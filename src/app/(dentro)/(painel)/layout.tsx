@@ -27,17 +27,17 @@ export default function DashboardLayout({
   };
    const [abrirMenu, setabrirMenu]=useState(false)
   return (
-    <div className="h-screen flex">
-      <div className="flex-col w-[20%]  bg-sky-700 hidden md:flex w-1/5 md:w-2/12 lg:w-2/12 xl:w-1/5">
+    <div className="h-screen flex font-sans">
+      <div className="flex-col hidden md:flex  w-1/5 md:w-2/10  xl:w-1/6">
         <Menu1 />
       </div>
        {abrirMenu && (
-        <div className="fixed top-0 left-0 h-full w-[50%] bg-sky-700 z-50 md:hidden shadow-lg p-4" ref={menuref}>
-                  <Menu1 onClose={() => setabrirMenu(false)} />
+        <div className="fixed top-0 left-0  h-full w-[50%]  z-50 md:hidden shadow-lg p-4" ref={menuref}>
+                  <Menu1 />
         </div>
               )}
       <div className="flex-1 flex flex-col bg-gray-50 overflow-auto">
-        <Navbar clicadoMenuAction={() => {setabrirMenu(!abrirMenu)}} />
+         <Navbar  /> 
         <main className="flex-1 p-4 overflow-auto">
           {children}
         </main>

@@ -7,37 +7,45 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
-
-function traduzirErroServidor(payload: any) {
-  if (payload.error?.includes('OTP inválido')) return 'OTP inválido. Verifique o código e tente novamente.';
-  if (payload.detail?.includes('not found')) return 'E-mail não encontrado no sistema.';
-  if (payload.error?.includes('senha')) return 'Erro na criação da senha.';
-  if (payload.error?.includes('6')) return 'A senha deve ter pelo menos 6 caracteres.';
-  return payload.error || payload.detail || 'Ocorreu um erro. Tente novamente.';
+function traduzirErroServidor(payload: { detail: string | string[]; email: any[]; otp: any[]; senha: any[]; }) {
+  if (payload.detail) {
+    if (payload.detail.includes('OTP inválido')) return 'Código OTP inválido ou expirado. Verifique e tente novamente.';
+    if (payload.detail.includes('Funcionário não existe')) return 'E-mail não encontrado no sistema.';
+    if (payload.detail.includes('A conta do funcionário ainda não foi ativada')) return 'A conta ainda não foi ativada. Verifique o OTP primeiro.';
+    if (payload.detail.includes('OTP verificado')) return 'OTP verificado com sucesso! Crie sua nova senha.';
+    if (payload.detail.includes('Senha criada com sucesso')) return 'Senha criada com sucesso. Faça login para continuar.';
+    return payload.detail;
+  }
+  if (payload.email) return `E-mail: ${payload.email.join(', ')}`;
+  if (payload.otp) return `OTP: ${payload.otp.join(', ')}`;
+  if (payload.senha) return `Senha: ${payload.senha.join(', ')}`;
+  
+  return 'Ocorreu um erro desconhecido. Tente novamente.';
 }
 
 export default function VerificarOTP() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [email, setEmail] = useState<string>('');
-  const [etapa, setEtapa] = useState<'otp' | 'senha'>('otp');
-  const [otp, setOtp] = useState<string>('');
-  const [senha, setSenha] = useState<string>('');
-  const [confirmarSenha, setConfirmarSenha] = useState<string>('');
-  const [carregando, setCarregando] = useState<boolean>(false);
+  const [email, setEmail] = useState('');
+  const [etapa, setEtapa] = useState('otp'); 
+  const [otp, setOtp] = useState('');
+  const [senha, setSenha] = useState('');
+  const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [carregando, setCarregando] = useState(false);
 
+  // Recupera o email da URL ao carregar a página
   useEffect(() => {
     const emailQuery = searchParams.get('email');
     if (emailQuery) setEmail(emailQuery);
   }, [searchParams]);
 
-  async function handleVerificarOtp(e: React.FormEvent) {
+  async function handleVerificarOtp(e:React.FormEvent) {
     e.preventDefault();
     setCarregando(true);
 
     try {
-      const res = await fetch("https://backend-django-2-7qpl.onrender.com/api/funcionarios/verify-otp/", {
+      const res = await fetch("http://localhost:8000/verifcar-otp/", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
@@ -45,9 +53,10 @@ export default function VerificarOTP() {
 
       const payload = await res.json();
       if (res.ok) {
+        Swal.fire({ icon: 'success', title: 'Sucesso', text: payload.detail });
         setEtapa('senha');
       } else {
-        Swal.fire({ icon: 'error', title: 'Erro', text: traduzirErroServidor(payload) });
+        // Swal.fire({ icon: 'error', title: 'Erro', text: traduzirErroServidor(payload) });
       }
     } catch (err) {
       console.error(err);
@@ -57,7 +66,8 @@ export default function VerificarOTP() {
     }
   }
 
-  async function handleCriarSenha(e: React.FormEvent) {
+  // Handler para criar a nova senha
+  async function handleCriarSenha(e:React.FormEvent) {
     e.preventDefault();
     if (senha !== confirmarSenha) {
       Swal.fire({ icon: 'error', title: 'Erro', text: 'As senhas não coincidem.' });
@@ -66,34 +76,34 @@ export default function VerificarOTP() {
     setCarregando(true);
 
     try {
-      const res = await fetch("https://backend-django-2-7qpl.onrender.com/api/funcionarios/set-password/", {
+      const res = await fetch("http://localhost:8000/set-password/", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, senha }),
+        body: JSON.stringify({ email, senha, confirmar_senha: confirmarSenha }),
       });
 
       const payload = await res.json();
       if (res.ok) {
-        await Swal.fire({ icon: 'success', title: 'Sucesso', text: 'Senha criada com sucesso!' });
-        const tokenRes = await fetch("https://backend-django-2-7qpl.onrender.com/api/token/", {
+        await Swal.fire({ icon: 'success', title: 'Sucesso', text: payload.detail });
+
+        const tokenRes = await fetch("http://127.0.0.1:8000/api/token/", {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password: senha }),
         });
         const data = await tokenRes.json();
-        if (!tokenRes.ok) throw new Error('Token inválido');
 
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
+        if (tokenRes.ok) {
+          localStorage.setItem('access_token', data.access);
+          localStorage.setItem('refresh_token', data.refresh);
 
-        const meRes = await fetch("https://backend-django-2-7qpl.onrender.com/api/funcionarios/me/", {
-          headers: { 'Authorization': `Bearer ${data.access}` },
-        });
-        const user = await meRes.json();
-        if (!meRes.ok) throw new Error('Falha ao obter dados do usuário');
+          router.replace('/painel'); 
+        } else {
+          Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Não foi possível fazer o login automático. Por favor, entre com sua nova senha.' });
+          router.replace('/login');
+        }
 
-        router.replace(user.is_admin ? '/admin' : '/funcionarios');
       } else {
-        Swal.fire({ icon: 'error', title: 'Erro', text: traduzirErroServidor(payload) });
+        // Swal.fire({ icon: 'error', title: 'Erro', text: traduzirErroServidor(payload) });
       }
     } catch (err) {
       console.error(err);

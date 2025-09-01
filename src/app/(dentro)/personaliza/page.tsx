@@ -1,508 +1,553 @@
-'use client'
-import { useState } from 'react';
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { motion } from "framer-motion"
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Swal from "sweetalert2"
+import { buscarDados } from '@/lib/api';
+import { HomeIcon, PlusCircle, Trash2, HelpCircle, ChevronDown } from "lucide-react";
+
 type FieldDefinition = {
-  name: string;
-  type: string;
-  length?: number;
-  constraints?: string;
+  nome: string;
+  tipo: string;
   isSystemField?: boolean;
+  obrigatorio?: boolean;
+  opcoes?: string[];
 };
 
-export default function CreateTablePage() {
+import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+export default function CriarDepartamento() {
   const router = useRouter();
-  const [tableName, setTableName] = useState('t');
-  const [fields, setFields] = useState<FieldDefinition[]>([
+  const [nomeDepartamento, setNomeDepartamento] = useState('');
+  const [apresentar, setApresentar] = useState(false);
+  const [empresaId, setEmpresaId] = useState('');
+  const [campos, setCampos] = useState<FieldDefinition[]>([
     {
-      name: 'id',
-      type: 'int',
-      constraints: 'NOT NULL AUTO_INCREMENT PRIMARY KEY',
       isSystemField: true
-    }
+    },
   ]);
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
+  
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [sucesso, setSucesso] = useState(false);
 
-  const fieldTypes = [
-    'varchar'
-    // 'int', 'varchar', 'text', 'bigint',
-    // 'decimal', 'datetime', 'date', 'tinyint',
-    // 'float', 'double', 'timestamp', 'json'
-  ];
+  useEffect(() => {
+    const carregarDados = async () => {
+      try {
+        const dadosUsuario = await buscarDados();
+        if (!dadosUsuario) {
+          Swal.fire({
+            title: "Autenticação Necessária",
+            text: "Por favor, faça login para acessar esta funcionalidade",
+            icon: "warning",
+            confirmButtonText: "Ir para Login"
+          }).then(() => router.push("/"));
+          return;
+        }
+        
+        setEmpresaId(dadosUsuario.empresa.id);
+        setApresentar(true);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        Swal.fire("Erro", "Não foi possível carregar os dados da empresa", "error");
+      }
+    };
+    
+    carregarDados();
+  }, [router]);
 
-  const commonConstraints = [
-    'Nenhuma'
-    // 'NOT NULL', 'UNIQUE',
-    // 'DEFAULT CURRENT_TIMESTAMP', 'DEFAULT NULL'
-  ];
-
-
-  const handleFieldChange = (index: number, key: keyof FieldDefinition, value: string | number) => {
-    if (fields[index].isSystemField) return;
-
-    const newFields = [...fields];
-    newFields[index] = { ...newFields[index], [key]: value };
-
-    if (key === 'type' && !['varchar', 'char', 'decimal'].includes(value as string)) {
-      delete newFields[index].length;
-    }
-
-    setFields(newFields);
+  const adicionarCampo = () => {
+    setCampos([
+      campos[0],
+      ...campos.slice(1),
+      {
+        nome: '',
+        tipo: 'text',
+        obrigatorio: false
+      }
+    ]);
   };
 
-  const addField = () => {
-  const defaultType: string = 'varchar'; // Tipo inicial padrão ao adicionar campo
-  const defaultLength =
-    defaultType === 'decimal' ? 10 :
-    (defaultType === 'varchar' || defaultType === 'char') ? 255 : undefined;
+  const removerCampo = (index: number) => {
+    if (campos[index].isSystemField) return;
 
-  setFields([
-    fields[0],
-    ...fields.slice(1),
-    {
-      name: '',
-      type: defaultType,
-      length: defaultLength,
-    }
-  ]);
-};
-
-
-  const removeField = (index: number) => {
-    if (fields[index].isSystemField) return;
-
-    const newFields = [...fields];
-    newFields.splice(index, 1);
-    setFields(newFields);
+    const novosCampos = [...campos];
+    novosCampos.splice(index, 1);
+    setCampos(novosCampos);
   };
 
-  const validateFields = () => {
-
-
-    // if (!tableName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
-    //   setError('Nome deve começar com letra/underscore e conter apenas letras, números e underscores');
-    //   return false;
-    // }
-const customFields = fields.filter(f => !f.isSystemField);
-if (customFields.length === 0) {
-  Swal.fire({
-    icon: 'warning',
-    title: 'Campo insuficiente',
-    text: 'Adicione pelo menos um campo além do Departamento',
-  });
-  return false;
-}
-    if (tableName.length > 64) {
-      setError('Nome da tabela não pode exceder 64 caracteres');
+  const validarCampos = () => {
+    if (!nomeDepartamento.trim()) {
+      setErro("O nome do departamento é obrigatório");
+      return false;
+    }
+    
+    if (nomeDepartamento.length > 64) {
+      setErro('Nome do departamento não pode exceder 64 caracteres');
       return false;
     }
 
-    const idField = fields.find(f => f.isSystemField);
-    if (!idField ||
-        idField.name !== 'id' ||
-        idField.type !== 'int' ||
-        idField.constraints !== 'NOT NULL AUTO_INCREMENT PRIMARY KEY') {
-      setError('O campo ID do sistema não pode ser modificado');
+    const camposPersonalizados = campos.filter(f => !f.isSystemField);
+    if (camposPersonalizados.length === 0) {
+      setErro('Adicione pelo menos um campo personalizado');
       return false;
     }
 
-    for (const field of fields) {
-      if (field.isSystemField) continue;
-
-      if (!field.name) {
-        setError('Todos os campos devem ter um nome');
+    for (const campo of camposPersonalizados) {
+      if (!campo.nome.trim()) {
+        setErro('Todos os campos devem ter um nome');
         return false;
       }
 
-      if (field.name.length > 64) {
-        setError('Nome de campo não pode exceder 64 caracteres');
+      if (campo.nome.length > 64) {
+        setErro(`O nome do campo "${campo.nome}" não pode exceder 64 caracteres`);
         return false;
       }
 
-      if (['varchar', 'char'].includes(field.type) && (!field.length || field.length < 1)) {
-        setError(`Campo ${field.name} do tipo ${field.type} precisa de um tamanho`);
-        return false;
-      }
-
-      if (field.type === 'decimal' && (!field.length || field.length < 1)) {
-        setError('Campo decimal precisa ter uma precisão definida');
+      // Validação específica para campos do tipo select
+      if (campo.tipo === 'select' && (!campo.opcoes || campo.opcoes.length === 0)) {
+        setErro(`O campo "${campo.nome}" do tipo seleção precisa ter opções definidas`);
         return false;
       }
     }
 
-    setError(null);
+    setErro(null);
     return true;
+  };
+
+  const salvarDepartamento = async () => {
+    try {
+      const dadosDepartamento = {
+        nome: nomeDepartamento,
+        empresa: empresaId
+      };
+      
+      const res = await fetch('http://localhost:8000/departamentos/', {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(dadosDepartamento)
+      });
+
+      if (!res.ok) {
+        const erroData = await res.json();
+        throw new Error(erroData.message || 'Erro ao salvar departamento');
+      }
+      
+      return await res.json();
+    } catch (error) {
+      console.error("Erro ao salvar departamento:", error);
+      throw error;
+    }
+  };
+
+  const salvarCampos = async (departamentoId: string) => {
+    try {
+      const camposParaEnviar = campos
+        .filter(campo => campo.nome && campo.tipo)
+        .map(campo => ({
+          nome: campo.nome,
+          tipo: campo.tipo,
+          obrigatorio: campo.obrigatorio || false,
+          opcoes: campo.tipo === 'select' ? campo.opcoes : undefined,
+          departamento: departamentoId,
+          empresa:empresaId
+        }));
+      
+      const res = await fetch('http://localhost:8000/campos/criar/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(camposParaEnviar),
+        credentials: "include"
+      });
+
+      if (!res.ok) {
+        const erroData = await res.json();
+        throw new Error(erroData.campos || 'Erro ao salvar campos');
+      }
+      
+      return await res.json();
+    } catch (error) {
+      console.error("Erro ao salvar campos:", error);
+      throw error;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  let normalizedTableName = ''
-    if (!tableName) {
-      setError('Nome da tabela é obrigatório');
-      return;
-    }
-    if (!validateFields()) return;
-
-    setIsSubmitting(true);
-    setError(null);
-
-normalizedTableName = tableName
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^\w]/g, '_'); // Espaços viram _, símbolos são removidos
-
-console.log("✅ Nome final (normalizado e minúsculo):", normalizedTableName);
-fields.forEach(item => {
-  item.name = item.name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\w]/g, '_'); // Espaços viram _, símbolos são removidos
-
-    console.log(item.name)
-});
-
+    
+    if (!validarCampos()) return;
+    
+    setEnviando(true);
+    
     try {
-      const response = await fetch('https://backend-django-2-7qpl.onrender.com/tables/create/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          table_name: normalizedTableName,
-          fields: fields.map(field => ({
-            name: field.name,
-            type: field.type,
-            length: ['varchar', 'char', 'decimal'].includes(field.type) ? field.length : undefined,
-            constraints: field.constraints
-          }))
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao criar tabela');
-      }
-
-      setSuccess(true);
-      setTimeout(() => {
+      const departamento = await salvarDepartamento();
+      
+      await salvarCampos(departamento.id);
+      
+      setSucesso(true);
+      
+      Swal.fire({
+        title: "Sucesso!",
+        text: "Departamento e campos criados com sucesso",
+        icon: "success",
+        confirmButtonText: "Continuar"
+      }).then(() => {
         router.push('/admin');
-      }, 2000);
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      setErro(err instanceof Error ? err.message : 'Erro desconhecido ao salvar');
+      Swal.fire("Erro", "Ocorreu um erro ao tentar salvar os dados", "error");
     } finally {
-      setIsSubmitting(false);
+      setEnviando(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-gray-900">Personalize sua Empresa</h1>
-          <p className="mt-2 text-sm text-gray-600">
-             Crie um novo departamento ou módulo de dados, definindo os campos que ele deve conter. 
-      Ex: Nome, Data de admissão, Cargo, etc. O sistema já adiciona um campo ID automaticamente.
-          </p>
-          <Link className='text-blue-500 mt-10 p-7 text-3xl ' href='/admin' >Ir direito para o painel</Link>
-        </div>
+  const adicionarOpcao = (campoIndex: number, novaOpcao: string) => {
+    if (!novaOpcao.trim()) return;
+    
+    const novosCampos = [...campos];
+    if (!novosCampos[campoIndex].opcoes) {
+      novosCampos[campoIndex].opcoes = [];
+    }
+    
+    novosCampos[campoIndex].opcoes?.push(novaOpcao.trim());
+    setCampos(novosCampos);
+  };
 
-        <div className="bg-white shadow rounded-lg p-6">
-          {success ? (
-            <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+  const removerOpcao = (campoIndex: number, opcaoIndex: number) => {
+    const novosCampos = [...campos];
+    novosCampos[campoIndex].opcoes?.splice(opcaoIndex, 1);
+    setCampos(novosCampos);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+      {!apresentar ? (
+        <div className="flex items-center justify-center h-screen">
+          <div className="flex flex-col items-center justify-center gap-3">
+            <motion.div
+              className="border-gray-300 h-20 w-20 animate-spin rounded-full border-8 border-t-purple-600"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+            <p className="text-gray-600">Carregando informações da empresa...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <motion.h1 
+              className="text-3xl font-bold text-gray-800 mb-2"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              Personalize seu Departamento
+            </motion.h1>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Crie um novo departamento e defina os campos personalizados para gerenciar as informações específicas da sua equipe.
+            </p>
+            
+            <Link 
+              href="/admin" 
+              className="inline-flex items-center mt-6 text-purple-600 hover:text-purple-800 transition-colors"
+            >
+              <HomeIcon className="mr-2" />
+              Voltar para o Painel Principal
+            </Link>
+          </div>
+
+          <motion.div 
+            className="bg-white rounded-xl shadow-lg p-6 md:p-8 border border-gray-100"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            {sucesso ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-5 text-center">
+                <div className="flex justify-center mb-4">
+                  <svg className="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-green-800">
-                    Tabela criada com sucesso!
-                  </h3>
-                  <div className="mt-2 text-sm text-green-700">
-                    <p>Redirecionando para a lista de tabelas...</p>
-                  </div>
-                </div>
+                <h3 className="text-xl font-semibold text-green-800 mb-2">
+                  Departamento Criado com Sucesso!
+                </h3>
+                <p className="text-green-700 mb-4">
+                  Você será redirecionado para o painel em instantes...
+                </p>
+                <Button 
+                  onClick={() => router.push('/admin')}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Ir para o Painel Agora
+                </Button>
               </div>
-            </div>
-          ) : (
-            <>
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            ) : (
+              <>
+                {erro && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <div className="flex items-start">
+                      <svg className="h-5 w-5 text-red-500 mt-0.5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-red-800">
-                        Departamento já existente
-                      </h3>
-                      <div className="mt-2 text-sm text-red-700">
-                        <p>{error}</p>
+                      <div>
+                        <h3 className="text-sm font-medium text-red-800">
+                          Atenção
+                        </h3>
+                        <div className="mt-1 text-sm text-red-700">
+                          <p>{erro}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-                <button
-  type="button"
-  onClick={() => {
-    Swal.fire({
-      title: "Como personalizar esta parte?",
-      html: `
-        <p><strong>1.</strong> Aqui você pode criar uma "ficha personalizada" para guardar dados importantes sobre sua empresa.</p>
-        <p><strong>2.</strong> Por exemplo, pode adicionar campos como:</p>
-        <ul style="text-align:left; padding-left:1em;">
-          <li>📌 Nome do funcionário</li>
-          <li>📅 Data de entrada</li>
-          <li>💼 Cargo</li>
-          <li>📍 Local de trabalho</li>
-        </ul>
-        <p><strong>3.</strong> Clique no botão azul "Adicionar Campo" para colocar mais informações.</p>
-        <p><strong>4.</strong> Quando terminar de adicionar, clique em "Criar Tabela" para guardar tudo.</p>
-      `,
-      icon: 'info',
-      confirmButtonText: 'Entendi',
-    });
-  }}
-  className="text-sm text-blue-600 underline mt-2"
->
-  Como funciona?
-</button>
+                )}
 
-              <form onSubmit={handleSubmit}>
-                <div className="mb-6">
-                  <label htmlFor="tableName" className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome do Departamento *
-                  </label>
-     <input
-  type="text"
-  id="tableName"
-  value={tableName}
-  onChange={(e) => {
-    const val = e.target.value.toLowerCase();
-    console.log("Lowercased:", val);
-    setTableName(val);
-  }}
-  autoCapitalize="off"
-  autoComplete="new-password"
-  spellCheck={false}
-  className="block w-full lowercase rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-  style={{ textTransform: 'lowercase' }}
-/>
-
-                  <p className="mt-1 text-xs text-gray-500">
-                    Deve começar com letra ou underscore, conter apenas letras, números e underscores (max 64 chars)
-                  </p>
-                  
+                <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                  <div className="flex items-start">
+                    <HelpCircle className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
+                    <div>
+                      <h3 className="font-medium text-blue-800 mb-1">Como personalizar seu departamento?</h3>
+                      <ul className="text-sm text-blue-700 list-disc pl-5 space-y-1">
+                        <li>Adicione campos específicos para coletar informações relevantes</li>
+                        <li>Para campos de seleção, defina as opções disponíveis</li>
+                        <li>Marque como obrigatório quando a informação for essencial</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mb-6">
-                  <div className="flex flex-col w-fit gap-2 mb-2">
-                    <h2 className="text-sm font-medium text-gray-700">
-                      Campos Personalizaveis
-                    </h2>
-                    <button
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  <div>
+                    <label htmlFor="nomeDepartamento" className="block text-sm font-medium text-gray-700 mb-2">
+                      Nome do Departamento *
+                    </label>
+                    <Input
+                      id="nomeDepartamento"
+                      value={nomeDepartamento}
+                      onChange={(e) => setNomeDepartamento(e.target.value)}
+                      placeholder="Ex: Recursos Humanos, TI, Financeiro"
+                      className="w-full"
+                    />
+                    <p className="mt-2 text-sm text-gray-500">
+                      Nome que identificará este departamento no sistema
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-semibold text-gray-800">Campos Personalizados</h2>
+                      <Button 
+                        type="button"
+                        onClick={adicionarCampo}
+                        variant="outline"
+                        className="flex items-center"
+                      >
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Adicionar Campo
+                      </Button>
+                    </div>
+
+                    <div className="space-y-6">
+                      {campos.map((campo, index) => (
+                        <div 
+                          key={index} 
+                          className={`p-5 rounded-lg border ${campo.isSystemField ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-300'}`}
+                        >
+                          {campo.isSystemField ? (
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <h3 className="font-medium text-gray-700">Campo do Sistema</h3>
+                                <p className="text-sm text-gray-500">ID (identificador único)</p>
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                Obrigatório • Tipo: Número
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Nome do Campo *
+                                  </label>
+                                  <Input
+                                    value={campo.nome}
+                                    onChange={(e) => {
+                                      const novosCampos = [...campos];
+                                      novosCampos[index].nome = e.target.value;
+                                      setCampos(novosCampos);
+                                    }}
+                                    placeholder="Ex: Nível Hierárquico, Especialização"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Tipo de Campo *
+                                  </label>
+                                  <Select 
+                                    value={campo.tipo} 
+                                    onValueChange={(value) => {
+                                      const novosCampos = [...campos];
+                                      novosCampos[index].tipo = value;
+                                      
+                                      if (value !== 'select') {
+                                        novosCampos[index].opcoes = undefined;
+                                      }
+                                      
+                                      setCampos(novosCampos);
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-full">
+                                      <SelectValue placeholder="Selecione o tipo" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="text">Texto</SelectItem>
+                                      <SelectItem value="number">Número</SelectItem>
+                                      <SelectItem value="date">Data</SelectItem>
+                                      <SelectItem value="select">Seleção</SelectItem>
+                                      <SelectItem value="email">Email</SelectItem>
+                                      <SelectItem value="file">Arquivo</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              {campo.tipo === 'select' && (
+                                <div className="space-y-3">
+                                  <label className="block text-sm font-medium text-gray-700">
+                                    Opções de Seleção *
+                                  </label>
+                                  <div className="space-y-2">
+                                    {campo.opcoes?.map((opcao, opcaoIndex) => (
+                                      <div key={opcaoIndex} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                        <span className="text-sm">{opcao}</span>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          type="button"
+                                          onClick={() => removerOpcao(index, opcaoIndex)}
+                                          className="text-red-500 hover:bg-red-50"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ))}
+
+                                    <div className="flex">
+                                      <Input
+                                        id={`nova-opcao-${index}`}
+                                        placeholder="Digite uma nova opção"
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            const input = e.target as HTMLInputElement;
+                                            adicionarOpcao(index, input.value);
+                                            input.value = '';
+                                          }
+                                        }}
+                                        className="flex-1 mr-2"
+                                      />
+                                      <Button 
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={() => {
+                                          const input = document.getElementById(`nova-opcao-${index}`) as HTMLInputElement;
+                                          if (input) {
+                                            adicionarOpcao(index, input.value);
+                                            input.value = '';
+                                          }
+                                        }}
+                                      >
+                                        Adicionar
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Pressione Enter ou clique em Adicionar para incluir uma opção
+                                  </p>
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between pt-2">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox 
+                                    id={`obrigatorio-${index}`}
+                                    checked={campo.obrigatorio} 
+                                    onCheckedChange={(checked) => {
+                                      const novosCampos = [...campos];
+                                      novosCampos[index].obrigatorio = checked as boolean;
+                                      setCampos(novosCampos);
+                                    }} 
+                                  />
+                                  <label htmlFor={`obrigatorio-${index}`} className="text-sm font-medium text-gray-700">
+                                    Campo obrigatório
+                                  </label>
+                                </div>
+
+                                <Button 
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => removerCampo(index)}
+                                  className="flex items-center"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Remover
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                    <Button 
                       type="button"
-                      onClick={addField}
-                      className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      aria-label="Adicionar novo campo"
-                      title="Adicionar novo campo à tabela"
+                      variant="outline"
+                      onClick={() => router.push('/admin')}
                     >
-                      Adicionar Campo
-                    </button>
+                      Cancelar
+                    </Button>
+                    <Button 
+                      type="submit"
+                      disabled={enviando}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      {enviando ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Salvando...
+                        </>
+                      ) : (
+                        'Criar Departamento'
+                      )}
+                    </Button>
                   </div>
-
-                  <div className="space-y-4 ">
-                    {fields.map((field, index) => (
-                      <div key={index} className="border border-gray-200 rounded-md p-4 ">
-                        {field.isSystemField ? (
-                          <div className=" grid-cols-1 md:grid-cols-4 gap-4 mb-3 hidden">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Nome do Campo *
-                              </label>
-                              <input
-                                type="text"
-                                value={field.name}
-                                readOnly
-                                className="block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 sm:text-sm p-2 border"
-                                aria-label="Campo ID (sistema)"
-                                title="Campo ID do sistema"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Tipo *
-                              </label>
-                              <input
-                                type="text"
-                                value={field.type}
-                                readOnly
-                                className="block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 sm:text-sm p-2 border"
-                                aria-label="Tipo do campo ID"
-                                title="Tipo do campo ID"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Restrições *
-                              </label>
-                              <input
-                                type="text"
-                                value={field.constraints}
-                                readOnly
-                                className="block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 sm:text-sm p-2 border"
-                                aria-label="Restrições do campo ID"
-                                title="Restrições do campo ID"
-                              />
-                            </div>
-
-                            <div className="flex items-end">
-                              <span className="text-xs text-gray-500">
-                                Campo obrigatório (ID)
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Nome do Campo *
-                              </label>
-                              <input
-                                type="text"
-                                value={field.name}
-                                onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
-                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                                required
-                                maxLength={64}
-                                placeholder="Ex:Nome"
-                                aria-label={`Nome do campo ${index}`}
-                                title={`Digite o nome para o campo ${index}`}
-                              />
-                            </div>
-
-                            <div>
-                              
-                              <select
-                                
-                                value={field.type}
-                                onChange={(e) => handleFieldChange(index, 'type', e.target.value)}
-                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border hidden"
-                                aria-label={`Tipo do campo ${field.name || index}`}
-                                title={`Selecione o tipo para o campo ${field.name || index}`}
-                              >
-                                {fieldTypes.map((type) => (
-                                  <option key={type} value={type}>
-                                    {type}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            <div>
-                              <label className=" text-xs font-medium text-gray-700 mb-1 hidden">
-                                Tamanho {['varchar', 'char', 'decimal'].includes(field.type) && '*'}
-                              </label>
-                              <input
-                                type="number"
-                                value={field.length || ''}
-                                onChange={(e) => handleFieldChange(index, 'length', e.target.value ? parseInt(e.target.value) : '')}
-                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border hidden"
-                                min="1"
-                                max="65535"
-                                disabled={!['varchar', 'char', 'decimal'].includes(field.type)}
-                                required={['varchar', 'char', 'decimal'].includes(field.type)}
-                                placeholder={
-                                  field.type === 'decimal' ? 'Precisão (ex: 10)' : 'Tamanho (ex: 255)'
-                                }
-                                aria-label={`Tamanho para o campo ${field.name || index}`}
-                                title={`Digite o tamanho para o campo ${field.name || index}`}
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                              </label>
-                              <select
-                                value={field.constraints || ''}
-                                onChange={(e) => handleFieldChange(index, 'constraints', e.target.value)}
-                                className="hidden w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                                aria-label={`Restrições para o campo ${field.name || index}`}
-                                title={`Selecione restrições para o campo ${field.name || index}`}
-                              >
-                                <option value="">Nenhuma</option>
-                                {commonConstraints.map((constraint) => (
-                                  <option key={constraint} value={constraint}>
-                                    {constraint}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                        )}
-
-                        {!field.isSystemField && (
-                          <button
-                            type="button"
-                            onClick={() => removeField(index)}
-                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                            aria-label={`Remover campo ${field.name || index}`}
-                            title={`Remover campo ${field.name || index}`}
-                          >
-                            Remover Campo
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => router.back()}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    aria-label="Cancelar criação de tabela"
-                    title="Cancelar e voltar"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    aria-label="Criar tabela"
-                    title="Criar tabela com os campos definidos"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Criando...
-                      </>
-                    ) : (
-                      'Criar Tabela'
-                    )}
-                  </button>
-                </div>
-              </form>
-            </>
-          )}
+                </form>
+              </>
+            )}
+          </motion.div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

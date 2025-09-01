@@ -12,6 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 
 export type Courses = {
   id: number,
@@ -53,18 +54,30 @@ export const columns: ColumnDef<Courses>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const finishDate = row.original.course_finish_date.split('/').reverse().join('/')
-      const now = new Date()
+      const finishDate = row.original.course_finish_date;
+      
+      if (!finishDate) {
+        return <Badge variant="secondary">Data não disponível</Badge>;
+      }
 
-      const day = now.getDate().toString().padStart(2, '0')
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const year = now.getFullYear()
+      // Converter para formato que o Date entenda (YYYY-MM-DD)
+      const formattedDate = finishDate.includes('/') 
+        ? finishDate.split('/').reverse().join('-')
+        : finishDate;
+      
+      const dateObj = new Date(formattedDate);
+      
+      if (isNaN(dateObj.getTime())) {
+        return <Badge variant="destructive">Data inválida</Badge>;
+      }
 
-      const formatDate = `${year}/${month}/${day}`
-
-      console.log(new Date(formatDate), typeof formatDate)
-      console.log( finishDate, typeof finishDate)
-      return new Date(finishDate) < new Date() ? "Concluído" : "Pendente"
+      const now = new Date();
+      
+      if (dateObj < now) {
+        return <Badge className="bg-green-100 text-green-800">Concluído</Badge>;
+      } else {
+        return <Badge className="bg-blue-100 text-blue-800">Em andamento</Badge>;
+      }
     }
   },
   { accessorKey: "course_name", header: "Curso" },

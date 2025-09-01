@@ -8,7 +8,7 @@ import Particles from "../../Particles";
 const inter = Inter({ subsets: ["latin"] });
 
 import Navbar from "./components/Navbar";
-import { FooterWithLogo } from "./components/Footer";
+import  FooterWithLogo  from "./components/Footer";
 
 import React, { useState } from "react";
 
@@ -102,137 +102,137 @@ export default function RootLayout({
   const containerRef = useRef<HTMLDivElement>(null);
     const mouseRef = useRef({ x: 0, y: 0 });
   
-    useEffect(() => {
-      const container = containerRef.current;
-      if (!container) return;
+    // useEffect(() => {
+    //   const container = containerRef.current;
+    //   if (!container) return;
 
-      // Define your configuration variables here or above the component
-      const cameraDistance = 10;
-      const particleCount = 500;
-      const particleColors = defaultColors;
-      const particleSpread = 1.2;
-      const particleBaseSize = 30;
-      const sizeRandomness = 0.8;
-      const alphaParticles = false;
-      const moveParticlesOnHover = false;
-      const particleHoverFactor = 1.5;
-      const speed = 0.1;
-      const disableRotation = false;
+    //   // Define your configuration variables here or above the component
+    //   const cameraDistance = 10;
+    //   const particleCount = 500;
+    //   const particleColors = defaultColors;
+    //   const particleSpread = 1.2;
+    //   const particleBaseSize = 30;
+    //   const sizeRandomness = 0.8;
+    //   const alphaParticles = false;
+    //   const moveParticlesOnHover = false;
+    //   const particleHoverFactor = 1.5;
+    //   const speed = 0.1;
+    //   const disableRotation = false;
 
-      const renderer = new Renderer({ depth: false, alpha: true });
-      const gl = renderer.gl;
-      container.appendChild(gl.canvas);
-      gl.clearColor(0, 0, 0, 0);
+    //   const renderer = new Renderer({ depth: false, alpha: true });
+    //   const gl = renderer.gl;
+    //   container.appendChild(gl.canvas);
+    //   gl.clearColor(0, 0, 0, 0);
 
-      const camera = new Camera(gl, { fov: 15 });
-      camera.position.set(0, 0, cameraDistance);
+    //   const camera = new Camera(gl, { fov: 15 });
+    //   camera.position.set(0, 0, cameraDistance);
 
-      const resize = () => {
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        renderer.setSize(width, height);
-        camera.perspective({ aspect: gl.canvas.width / gl.canvas.height });
-      };
-      window.addEventListener("resize", resize, false);
-      resize();
+    //   const resize = () => {
+    //     const width = container.clientWidth;
+    //     const height = container.clientHeight;
+    //     renderer.setSize(width, height);
+    //     camera.perspective({ aspect: gl.canvas.width / gl.canvas.height });
+    //   };
+    //   window.addEventListener("resize", resize, false);
+    //   resize();
 
-      const handleMouseMove = (e: MouseEvent) => {
-        const rect = container.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-        mouseRef.current = { x, y };
-      };
+    //   const handleMouseMove = (e: MouseEvent) => {
+    //     const rect = container.getBoundingClientRect();
+    //     const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    //     const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+    //     mouseRef.current = { x, y };
+    //   };
 
-      if (moveParticlesOnHover) {
-        container.addEventListener("mousemove", handleMouseMove);
-      }
+    //   if (moveParticlesOnHover) {
+    //     container.addEventListener("mousemove", handleMouseMove);
+    //   }
 
-      const count = particleCount;
-      const positions = new Float32Array(count * 3);
-      const randoms = new Float32Array(count * 4);
-      const colors = new Float32Array(count * 3);
-      const palette = particleColors && particleColors.length > 0 ? particleColors : defaultColors;
+    //   const count = particleCount;
+    //   const positions = new Float32Array(count * 3);
+    //   const randoms = new Float32Array(count * 4);
+    //   const colors = new Float32Array(count * 3);
+    //   const palette = particleColors && particleColors.length > 0 ? particleColors : defaultColors;
 
-      for (let i = 0; i < count; i++) {
-        let x, y, z, len;
-        do {
-          x = Math.random() * 2 - 1;
-          y = Math.random() * 2 - 1;
-          z = Math.random() * 2 - 1;
-          len = x * x + y * y + z * z;
-        } while (len > 1 || len === 0);
-        const r = Math.cbrt(Math.random());
-        positions.set([x * r, y * r, z * r], i * 3);
-        randoms.set([Math.random(), Math.random(), Math.random(), Math.random()], i * 4);
-        const col = hexToRgb(palette[Math.floor(Math.random() * palette.length)]);
-        colors.set(col, i * 3);
-      }
+    //   for (let i = 0; i < count; i++) {
+    //     let x, y, z, len;
+    //     do {
+    //       x = Math.random() * 2 - 1;
+    //       y = Math.random() * 2 - 1;
+    //       z = Math.random() * 2 - 1;
+    //       len = x * x + y * y + z * z;
+    //     } while (len > 1 || len === 0);
+    //     const r = Math.cbrt(Math.random());
+    //     positions.set([x * r, y * r, z * r], i * 3);
+    //     randoms.set([Math.random(), Math.random(), Math.random(), Math.random()], i * 4);
+    //     const col = hexToRgb(palette[Math.floor(Math.random() * palette.length)]);
+    //     colors.set(col, i * 3);
+    //   }
 
-      const geometry = new Geometry(gl, {
-        position: { size: 3, data: positions },
-        random: { size: 4, data: randoms },
-        color: { size: 3, data: colors },
-      });
+    //   const geometry = new Geometry(gl, {
+    //     position: { size: 3, data: positions },
+    //     random: { size: 4, data: randoms },
+    //     color: { size: 3, data: colors },
+    //   });
 
-      const program = new Program(gl, {
-        vertex,
-        fragment,
-        uniforms: {
-          uTime: { value: 0 },
-          uSpread: { value: particleSpread },
-          uBaseSize: { value: particleBaseSize },
-          uSizeRandomness: { value: sizeRandomness },
-          uAlphaParticles: { value: alphaParticles ? 1 : 0 },
-        },
-        transparent: true,
-        depthTest: false,
-      });
+    //   const program = new Program(gl, {
+    //     vertex,
+    //     fragment,
+    //     uniforms: {
+    //       uTime: { value: 0 },
+    //       uSpread: { value: particleSpread },
+    //       uBaseSize: { value: particleBaseSize },
+    //       uSizeRandomness: { value: sizeRandomness },
+    //       uAlphaParticles: { value: alphaParticles ? 1 : 0 },
+    //     },
+    //     transparent: true,
+    //     depthTest: false,
+    //   });
 
-      const particles = new Mesh(gl, { mode: gl.POINTS, geometry, program });
+    //   const particles = new Mesh(gl, { mode: gl.POINTS, geometry, program });
 
-      let animationFrameId: number;
-      let lastTime = performance.now();
-      let elapsed = 0;
+    //   let animationFrameId: number;
+    //   let lastTime = performance.now();
+    //   let elapsed = 0;
 
-      const update = (t: number) => {
-        animationFrameId = requestAnimationFrame(update);
-        const delta = t - lastTime;
-        lastTime = t;
-        elapsed += delta * speed;
+    //   const update = (t: number) => {
+    //     animationFrameId = requestAnimationFrame(update);
+    //     const delta = t - lastTime;
+    //     lastTime = t;
+    //     elapsed += delta * speed;
 
-        program.uniforms.uTime.value = elapsed * 0.001;
+    //     program.uniforms.uTime.value = elapsed * 0.001;
 
-        if (moveParticlesOnHover) {
-          particles.position.x = -mouseRef.current.x * particleHoverFactor;
-          particles.position.y = -mouseRef.current.y * particleHoverFactor;
-        } else {
-          particles.position.x = 0;
-          particles.position.y = 0;
-        }
+    //     if (moveParticlesOnHover) {
+    //       particles.position.x = -mouseRef.current.x * particleHoverFactor;
+    //       particles.position.y = -mouseRef.current.y * particleHoverFactor;
+    //     } else {
+    //       particles.position.x = 0;
+    //       particles.position.y = 0;
+    //     }
 
-        if (!disableRotation) {
-          particles.rotation.x = Math.sin(elapsed * 0.0002) * 0.1;
-          particles.rotation.y = Math.cos(elapsed * 0.0005) * 0.15;
-          particles.rotation.z += 0.01 * speed;
-        }
+    //     if (!disableRotation) {
+    //       particles.rotation.x = Math.sin(elapsed * 0.0002) * 0.1;
+    //       particles.rotation.y = Math.cos(elapsed * 0.0005) * 0.15;
+    //       particles.rotation.z += 0.01 * speed;
+    //     }
 
-        renderer.render({ scene: particles, camera });
-      };
+    //     renderer.render({ scene: particles, camera });
+    //   };
 
-      animationFrameId = requestAnimationFrame(update);
+    //   animationFrameId = requestAnimationFrame(update);
 
-      // Cleanup function
-      return () => {
-        window.removeEventListener("resize", resize);
-        if (moveParticlesOnHover) {
-          container.removeEventListener("mousemove", handleMouseMove);
-        }
-        cancelAnimationFrame(animationFrameId);
-        if (gl && gl.canvas && gl.canvas.parentNode) {
-          gl.canvas.parentNode.removeChild(gl.canvas);
-        }
-      };
-    }, []);
+    //   // Cleanup function
+    //   return () => {
+    //   //if (gl && gl.canvas && gl.canvas.parentNode) {
+    //   //     gl.canvas.parentNode.removeChild(gl.canvas);
+    //   //   }   window.removeEventListener("resize", resize);
+    //   //   if (moveParticlesOnHover) {
+    //   //     container.removeEventListener("mousemove", handleMouseMove);
+    //   //   }
+    //   //   cancelAnimationFrame(animationFrameId);
+    //   //   
+    //   // };
+    // }, []);
 
   const [theme, setTheme] = React.useState<'light' | '#27282c'>('#27282c')
 
@@ -243,7 +243,7 @@ export default function RootLayout({
 
   return (
     <html lang="pt">
-      <body className={`${inter.className} bg-[${theme}]`}>
+      <body className={`${inter.className} bg-gradient-to-r from-[#5B0EFB]  to-[#C56FFF]`}>
         <div
           ref={containerRef}
           className="relative w-full h-full"
@@ -262,7 +262,7 @@ export default function RootLayout({
           {children}
           
         </main>
-        <FooterWithLogo />
+        <FooterWithLogo /> 
       </body>
     </html>
   );

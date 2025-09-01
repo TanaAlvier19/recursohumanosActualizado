@@ -1,6 +1,45 @@
 import { Courses } from "./app/(training_module)/get_courses/columns";
 
 class APis {
+    getCourses() {
+      throw new Error("Method not implemented.");
+    }
+    getAllTrainees(): Trainee[] | PromiseLike<Trainee[]> {
+      throw new Error("Method not implemented.");
+    }
+    getDepartmentTrainees(managedDepartment: any): Trainee[] | PromiseLike<Trainee[]> {
+      throw new Error("Method not implemented.");
+    }
+    getTrainee(arg0: string | number): Trainee | PromiseLike<Trainee> {
+      throw new Error("Method not implemented.");
+    }
+    getCertificates() {
+      throw new Error("Method not implemented.");
+    }
+    getNotifications(arg0: string | number) {
+      throw new Error("Method not implemented.");
+    }
+    getTeamProgress() {
+      throw new Error("Method not implemented.");
+    }
+    checkNotifications(arg0: string | number) {
+      throw new Error("Method not implemented.");
+    }
+    addCourse(arg0: Course) {
+      throw new Error("Method not implemented.");
+    }
+    enrollTrainee(traineeId: number, courseId: number) {
+      throw new Error("Method not implemented.");
+    }
+    generateCertificate(traineeId: number, courseId: number) {
+      throw new Error("Method not implemented.");
+    }
+    submitFeedback(traineeId: number, courseId: number, feedback: Feedback) {
+      throw new Error("Method not implemented.");
+    }
+    sendNotification(traineeId: number, title: string, message: string) {
+      throw new Error("Method not implemented.");
+    }
     public constructor() {}
 
     public formatDate(dateString: string): string {

@@ -1,68 +1,80 @@
-import { Card, CardHeader, CardBody, CardFooter, Typography, Button } from '@material-tailwind/react'
+'use client'
+import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
-import CardContents from './CardsContents'
+import { useState } from 'react'
 
 const ModuleCard = ({ 
   title, 
   description,
-  imageSrc, link
-} : {title: any, description: any, imageSrc: any, link: any}) => (
-  <Card className="mt-10 w-96 h-120 shadow-2xl rounded-2xl"
-    placeholder={undefined} 
-    onPointerEnterCapture={undefined} 
-    onPointerLeaveCapture={undefined}>
-    
-    <CardHeader className="relative h-56 rounded-2xl flex"
-      placeholder={undefined}
-      onPointerEnterCapture={undefined}
-      onPointerLeaveCapture={undefined}>
-      <Image 
-        src={imageSrc} 
-        alt={title} 
-        width={320} 
-        height={224} 
-        className="w-80 h-50 mx-auto object-contain "
-      />
-    </CardHeader>
+  imageSrc, 
+  link
+}: { 
+  title: string, 
+  description: string, 
+  imageSrc: string, 
+  link: string 
+}) => {
+  const [isHovered, setIsHovered] = useState(false)
 
-    <CardBody
-      placeholder={undefined}
-      onPointerEnterCapture={undefined}
-      onPointerLeaveCapture={undefined}>
-      <Typography
-      onPointerEnterCapture={undefined}
-      onPointerLeaveCapture={undefined}
-        variant="h4" 
-        className="mb-2 text-black px-5"
-        placeholder={undefined}>
-        {title}
-      </Typography>
-
-      <Typography
-      onPointerEnterCapture={undefined}
-      onPointerLeaveCapture={undefined}
-        className="mb-2 px-5 text-black mt-5 whitespace-pre-line"
-        placeholder={undefined}>
-        {description}
-      </Typography>
-    </CardBody>
-
-    <CardFooter className="pt-0 px-5 mt-3"
-      placeholder={undefined}
-      onPointerEnterCapture={undefined}
-      onPointerLeaveCapture={undefined}>
-      <Button
-        className="bg-black py-3 px-7 mb-2 rounded-2xl"
-        placeholder={undefined}
-        onPointerEnterCapture={undefined}
-        onPointerLeaveCapture={undefined}
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      whileHover={{ y: -10 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="w-full max-w-sm bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl overflow-hidden border border-gray-100"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="relative h-56 bg-gradient-to-r from-purple-50 to-indigo-50 overflow-hidden">
+        <motion.div
+          animate={{ 
+            scale: isHovered ? 1.05 : 1,
+            rotate: isHovered ? 2 : 0
+          }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="h-full w-full flex items-center justify-center"
         >
-            
-        <Link href={link} >Saiba mais</Link>
-      </Button>
-    </CardFooter>
-  </Card>
-)
+          <Image 
+            src={imageSrc} 
+            alt={title} 
+            width={220} 
+            height={220}
+            className="object-contain transition-all duration-500"
+          />
+        </motion.div>
+        
+        <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full">
+          <span className="text-sm font-medium text-purple-700">Novo</span>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <div className="flex items-center mb-3">
+          <div className="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+        </div>
+        
+        <div className="h-32 overflow-y-auto mb-4">
+          <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+            {description}
+          </p>
+        </div>
+        
+        <Link href={link} passHref>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all"
+          >
+            Saiba mais
+          </motion.button>
+        </Link>
+      </div>
+    </motion.div>
+  )
+}
 
 export default ModuleCard
