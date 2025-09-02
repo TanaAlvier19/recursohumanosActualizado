@@ -48,7 +48,7 @@ function formatDate(dateString: string) {
 }
 
 const ForwardRefFileUploader = forwardRef((props: { pubkey: string }, ref) => {
-    return <FileUploaderRegular {...props} ref={ref} />;
+    return <FileUploaderRegular {...props} ref={ref}/>;
 });
 ForwardRefFileUploader.displayName = 'ForwardRefFileUploader';
 
@@ -171,7 +171,7 @@ export default function DispensaFuncionario() {
             });
 
             if (result.isConfirmed) {
-                const res = await fetch(`http://localhost/deletar-dispensa/${pk}/`, {
+                const res = await fetch(`http://localhost:8000/deletar-dispensa/${pk}/`, {
                     method: "DELETE",
                 });
                 await res.json();
