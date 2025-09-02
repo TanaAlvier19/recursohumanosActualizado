@@ -24,6 +24,8 @@ from django.utils import timezone
 from django.contrib.auth.hashers import make_password
 User = get_user_model()
 from rest_framework.decorators import api_view,permission_classes
+
+
 class CadastrarEmpresa(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
@@ -61,7 +63,7 @@ def ususario(request):
 class FolhaPagamentoView(APIView):
     def post(self, request):
         user = request.user
-        dados = request.data.copy()  # Use .copy() para garantir que você pode modificar o dicionário
+        dados = request.data.copy()  
         dados["empresa"] = user.empresa.id
 
         salario_bruto_float = dados.get("salario_bruto")
@@ -99,7 +101,6 @@ class FolhaPagamentoView(APIView):
         desconto_irt = desconto_irt.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         salario_liquido = salario_liquido.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-        # 7. Atualiza os dados com os valores calculados e arredondados
         dados.update({
             "desconto_inss": desconto_inss,
             "desconto_irt": desconto_irt,
@@ -192,6 +193,7 @@ class HistoricoFolhaView(APIView):
             })
         
         return Response(dados_grafico)
+
 class Login(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -231,6 +233,7 @@ class Login(TokenObtainPairView):
         )
         
         return resposta
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def campos(request):
@@ -257,7 +260,6 @@ def campos(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class valoresdoscampos(APIView):
-    # As suas classes de permissão
     # permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -273,11 +275,9 @@ class valoresdoscampos(APIView):
         nome_funcionario = valores_json.get('Nome', valores_json.get('nome', None))
         email_funcionario = valores_json.get('Email', valores_json.get('email', None))
 
-        # Validação de Nome e Email
         if not nome_funcionario or not email_funcionario:
             return Response({"erro": "Nome e Email do funcionário são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Lógica para obter a instância do departamento, se houver
         departamento_id = request.data.get('departamento')
         departamento_instance = None
         if departamento_id:
@@ -288,15 +288,14 @@ class valoresdoscampos(APIView):
 
         try:
             with transaction.atomic():
-                # --- Cria ou obtém o UsuarioEmpresa ---
                 usuario_funcionario, created = UsuarioEmpresa.objects.get_or_create(
                     emailRep=email_funcionario,
                     defaults={
                         'nomeRep': nome_funcionario,
                         'empresa': empresa,
                         'nivel_acesso': 'funcionario',
-                        'is_active': False, # Inicia como False, será ativado pelo OTP
-                        'password': make_password(None) # Senha inviável
+                        'is_active': False, 
+                        'password': make_password(None) 
                     }
                 )
 
@@ -339,7 +338,6 @@ class valoresdoscampos(APIView):
                         except CamposPersonalizados.DoesNotExist:
                             print(f"Campo personalizado '{nome_campo}' não encontrado.")
                     
-                    # Retorna uma resposta clara sobre o sucesso do cadastro e o status do e-mail
                     return Response({
                         "detail": "Funcionário cadastrado com sucesso. Verifique o e-mail para ativar a conta.",
                         "data": serializer.data
@@ -875,7 +873,7 @@ class EntrevistaView(APIView):
             send_mail(
                  'Confirmação de Entrevista',
                  f'Olá, sua entrevista foi agendada para {entrevista.dataHora}',
-                 'no-reply@empresa.com',
+                 
                  [entrevista.candidato.email],
                  fail_silently=False,
              )
@@ -894,7 +892,6 @@ class TesteTecnicoView(APIView):
             send_mail(
                  'Teste Técnico',
                  f'Acesse o teste em: {teste.link}',
-                 'no-reply@empresa.com',
                  [teste.candidato.email],
                  fail_silently=False,
             )
@@ -919,8 +916,7 @@ class RelatorioView(APIView):
         tipo = request.GET.get('tipo', 'candidatos')
         periodo = request.GET.get('periodo', '7dias')
         
-        # Lógica para gerar relatório baseado nos parâmetros
-        # Esta é uma implementação simulada
+        
         relatorio_url = f"/relatorios/{tipo}/{periodo}.pdf"
         
         return Response({"url": relatorio_url}, status=status.HTTP_200_OK)
