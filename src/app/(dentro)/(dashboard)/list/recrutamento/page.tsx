@@ -332,10 +332,8 @@ const buscarEntrevistas = async () => {
 
   const gerarRelatorio = async () => {
     try {
-      // Simulando geração de relatório
       const url = `http://localhost:8000/relatorios/?tipo=${tipoRelatorio}&periodo=${periodoRelatorio}`;
       
-      // Abrir relatório em nova aba (simulação)
       window.open(url, '_blank');
       
       Swal.fire("Sucesso", "Relatório gerado com sucesso", "success");
@@ -346,7 +344,6 @@ const buscarEntrevistas = async () => {
     }
   };
 
-  // Dados para gráficos
   const chartData = vagamensal.map((item) => {
     const data = new Date(item.mes);
     const nomeMes = data.toLocaleDateString("pt-BR", { month: "short" });

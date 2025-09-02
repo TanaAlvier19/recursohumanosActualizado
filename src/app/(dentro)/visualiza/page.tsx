@@ -8,26 +8,22 @@ interface TableData {
 }
 
 export default function DatabaseManager() {
-  // Estados principais
   const [tables, setTables] = useState<string[]>([])
   const [selectedTable, setSelectedTable] = useState('')
   const [tableData, setTableData] = useState<TableData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // Estados para CRUD
   const [editingId, setEditingId] = useState<number | string | null>(null)
   const [editFormData, setEditFormData] = useState<Record<string, any>>({})
   const [newRecordForm, setNewRecordForm] = useState<Record<string, any>>({})
   const [showCreateForm, setShowCreateForm] = useState(false)
   
-  // Estados para paginação/filtro
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [searchTerm, setSearchTerm] = useState('')
   const [sortConfig, setSortConfig] = useState<{key: string; direction: 'asc' | 'desc'} | null>(null)
 
-  // Busca todas as tabelas disponíveis
   useEffect(() => {
     const fetchTables = async () => {
       try {

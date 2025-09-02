@@ -334,7 +334,6 @@ export default function FormModalAssiduidade() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

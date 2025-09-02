@@ -19,7 +19,6 @@ type DescontosImposto = {
   irt7: number;
 };
 
-// Defina um estado inicial vazio para evitar erros de 'undefined'
 const initialDescontosState: DescontosImposto = {
   desconto_inss: 0,
   irt2: 0,

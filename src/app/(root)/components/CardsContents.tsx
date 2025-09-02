@@ -8,7 +8,7 @@ const CardContents = [
       'Suporte para BI e Inteligência Artificial'
     ],
     imageSrc: "/peer-to-peer1.png",
-    fullInfo: `...` // Mantenha o conteúdo completo aqui
+    fullInfo: `...` 
   },
   {
     title: 'Gestão de Formações',

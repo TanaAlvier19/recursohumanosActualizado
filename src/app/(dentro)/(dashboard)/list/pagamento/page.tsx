@@ -17,7 +17,6 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import autoTable from 'jspdf-autotable';
 
-// Declaração de tipos para o jsPDF
 declare module 'jspdf' {
   interface jsPDF {
     lastAutoTable?: {
@@ -64,7 +63,6 @@ const FolhaPagamento = () => {
     impostos_pagos: 0
   });
 
-  // Buscar dados da API
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -182,7 +180,7 @@ const FolhaPagamento = () => {
     doc.text('Resumo Financeiro', margin, yPos);
     yPos += 30;
 
-    // Tabela de resumo
+    // ...Tabela de resumo
     autoTable(doc, {
       startY: yPos,
       head: [['Total Folha', 'Funcionários', 'Média Salarial', 'Próximo Pagamento']],
@@ -200,7 +198,7 @@ const FolhaPagamento = () => {
     });
     yPos = (doc as any).lastAutoTable.finalY + 20;
 
-    // Seção de pagamentos
+    // .Seção de pagamentos
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('Detalhes de Pagamentos', margin, yPos);

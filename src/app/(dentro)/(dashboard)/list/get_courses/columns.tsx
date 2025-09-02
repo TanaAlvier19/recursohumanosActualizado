@@ -60,7 +60,6 @@ export const columns: ColumnDef<Courses>[] = [
         return <Badge variant="secondary">Data não disponível</Badge>;
       }
 
-      // Converter para formato que o Date entenda (YYYY-MM-DD)
       const formattedDate = finishDate.includes('/') 
         ? finishDate.split('/').reverse().join('-')
         : finishDate;

@@ -41,19 +41,9 @@ const FuncionarioDashboard = () => {
   const [reprovadas, setReprovadas] = useState(0);
   const [pendentes, setPendentes] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [eventos, setEventos] = useState([
-    { titulo: "Treinamento de Segurança", data: "15 Nov • 09:00" },
-    { titulo: "Avaliação de Desempenho", data: "25-30 Nov" },
-    { titulo: "Festa de Final de Ano", data: "15 Dez • 18:00" }
-  ]);
+  
 
-  // useEffect(() => {
-  //   if (!userLoading && !accessToken) {
-  //     router.push("/logincomsenha");
-  //   }
-  // }, [accessToken, userLoading, router]);
 
-  // Buscar dados de dispensas
   useEffect(() => {
     const fetchDispensas = async () => {
       try {
@@ -107,10 +97,9 @@ const FuncionarioDashboard = () => {
     }],
   };
 
-  // Calcular cumprimento baseado na hora
   const hoje = new Date();
   const hora = hoje.getHours();
-  const cumprimento = hora < 12 ? 'Bom Dia' : hora < 17 ? 'Boa Tarde' : 'Boa Noite';
+  const cumprimento = hora < 12 ? 'Bom Dia' : hora < 18 ? 'Boa Tarde' : 'Boa Noite';
 
   return (
     <motion.div 

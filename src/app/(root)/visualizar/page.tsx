@@ -8,7 +8,6 @@ interface TableData {
 }
 
 export default function DatabaseManager() {
-  // Estados principais
   const [tables, setTables] = useState<string[]>([])
   const [selectedTable, setSelectedTable] = useState('')
   const [tableData, setTableData] = useState<TableData | null>(null)
