@@ -1,469 +1,732 @@
 'use client'
 
-import { useState, useEffect, useCallback, useContext } from 'react'
-import { AuthContext } from '@/app/context/AuthContext'
-import { useRouter } from 'next/navigation'
-import Swal from "sweetalert2"
-import { MetricCard } from "@/components/metrcCard";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import {Users, DollarSign,Building} from "lucide-react"
-import {motion} from "framer-motion"
-import { Skeleton } from "@/components/ui/skeleton";
+import React from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
+  ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
+} from 'recharts'
+import { 
+  Users, DollarSign, Building, Plus, Search, Edit3, Trash2, 
+  TrendingUp, Users2, FileText, Download, Filter, Mail, Phone,
+  MapPin, Calendar, Target, BarChart3, Settings, UserCheck,
+  Clock, Award, PieChart as PieChartIcon, Network, Shield,
+  DownloadCloud, UploadCloud, Eye, MoreVertical, Star,
+  MessageSquare, History, ClipboardList, Building2, X
+} from "lucide-react"
 
+// Types
 interface Departamento {
   id: number
   nome: string
+  descricao: string
   responsavel: string
+  email: string
+  telefone: string
+  localizacao: string
   orcamento: number
+  orcamento_utilizado: number
   funcionarios: number
-  status: boolean
+  capacidade_maxima: number
+  status: 'ativo' | 'inativo' | 'reestruturacao'
   data_criacao: string
+  data_atualizacao: string
+  cor: string
+  metas: Meta[]
+  kpis: KPI[]
+  funcionariosList?: FuncionarioDepartamento[]
 }
 
-export default function DepartamentoManager() {
-  const [departamentos, setDepartamentos] = useState<Departamento[]>([])
-  const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [totalorcamento, setTotalorcamento]=useState('')
-  const [departamentoAtivo, setDepartamentoAtivo]=useState('')
-  const [funcionarios, setfuncionarios]=useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [currentDept, setCurrentDept] = useState<Departamento | null>(null)
-  const router = useRouter()
-  const pageSize = 10
-  useEffect(() => {
-    buscardepartamentos()
-  }, [])
+interface Meta {
+  id: number
+  titulo: string
+  descricao: string
+  tipo: 'orcamentaria' | 'pessoal' | 'performance' | 'estrategica'
+  valor_alvo: number
+  valor_atual: number
+  data_limite: string
+  progresso: number
+  status: 'em_andamento' | 'concluida' | 'atrasada' | 'cancelada'
+}
 
-  const handleEdit = (id: number) => {
-    const dept = departamentos.find(d => d.id === id)
-    if (dept) {
-      setCurrentDept(dept)
-      setShowForm(true)
-    }
-  }
-  // const pesquisar =async(pesquisa:string)=>{
-  //   try {
-  //       pesquisa=searchTerm
-  //       const data ={
-  //         nome:pesquisa
-  //       }
-  //       await fetch('http://localhost:8000/departamentos/pesquisar/', 
-  //         { 
-  //           credentials:"include",
-  //           method: 'POST',
-  //           body: JSON.stringify(data),
-  //           headers: {
-  //             "Content-Type": "application/json"
-  //           }
-  //         })
-  //       buscardepartamentos()
-  //     }catch{
+interface KPI {
+  id: number
+  nome: string
+  valor: number
+  variacao: number
+  tendencia: 'alta' | 'baixa' | 'estavel'
+  unidade: string
+}
 
-  //     }
-  // }
+interface FuncionarioDepartamento {
+  id: number
+  nome: string
+  cargo: string
+  email: string
+  data_admissao: string
+  status: 'ativo' | 'ferias' | 'licenca' | 'desligado'
+  performance: number
+  departamento_id: number
+}
 
-  const handleDelete = async (id: number) => {
-    if (await Swal.fire('Deletar Departamento','Tem certeza que deseja excluir este departamento?','question')) {
-      const data={
-        id:id
+interface DashboardStats {
+  totalDepartamentos: number
+  departamentosAtivos: number
+  totalFuncionarios: number
+  orcamentoTotal: number
+  orcamentoUtilizado: number
+  taxaOcupacao: number
+  departamentosComMeta: number
+  proximasRenovacoes: number
+}
+
+// Constants
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
+const STATUS_CONFIG = {
+  ativo: { label: 'Ativo', color: 'bg-green-100 text-green-800 border-green-200' },
+  inativo: { label: 'Inativo', color: 'bg-red-100 text-red-800 border-red-200' },
+  reestruturacao: { label: 'Reestruturação', color: 'bg-amber-100 text-amber-800 border-amber-200' }
+}
+
+// Mock Data
+const mockDepartamentos: Departamento[] = [
+  {
+    id: 1,
+    nome: 'Recursos Humanos',
+    descricao: 'Gestão de talentos e desenvolvimento organizacional',
+    responsavel: 'Maria Silva',
+    email: 'rh@empresa.com',
+    telefone: '+244 923 456 789',
+    localizacao: 'Edifício A - 3º Andar',
+    orcamento: 5000000,
+    orcamento_utilizado: 3200000,
+    funcionarios: 15,
+    capacidade_maxima: 20,
+    status: 'ativo',
+    data_criacao: '2023-01-15',
+    data_atualizacao: '2024-01-20',
+    cor: '#3B82F6',
+    metas: [
+      {
+        id: 1,
+        titulo: 'Reduzir turnover em 15%',
+        descricao: 'Implementar programas de retenção',
+        tipo: 'performance',
+        valor_alvo: 15,
+        valor_atual: 8,
+        data_limite: '2024-06-30',
+        progresso: 53,
+        status: 'em_andamento'
       }
-      try {
-        await fetch('http://localhost:8000/departamentos/', 
-          { 
-            credentials:"include",
-            method: 'DELETE',
-            body: JSON.stringify(data),
-            headers: {
-              "Content-Type": "application/json"
-            }
-          })
-        buscardepartamentos()
-      } catch (error) {
-        console.error('Erro ao excluir:', error)
+    ],
+    kpis: [
+      { id: 1, nome: 'Satisfação Funcional', valor: 85, variacao: 5, tendencia: 'alta', unidade: '%' },
+      { id: 2, nome: 'Taxa de Turnover', valor: 12, variacao: -2, tendencia: 'baixa', unidade: '%' }
+    ]
+  },
+  {
+    id: 2,
+    nome: 'Tecnologia da Informação',
+    descricao: 'Desenvolvimento e manutenção de sistemas',
+    responsavel: 'João Santos',
+    email: 'ti@empresa.com',
+    telefone: '+244 923 789 456',
+    localizacao: 'Edifício B - 2º Andar',
+    orcamento: 8000000,
+    orcamento_utilizado: 6400000,
+    funcionarios: 25,
+    capacidade_maxima: 30,
+    status: 'ativo',
+    data_criacao: '2022-03-10',
+    data_atualizacao: '2024-01-15',
+    cor: '#10B981',
+    metas: [
+      {
+        id: 2,
+        titulo: 'Automatizar 80% dos processos',
+        descricao: 'Implementar soluções de automação',
+        tipo: 'estrategica',
+        valor_alvo: 80,
+        valor_atual: 65,
+        data_limite: '2024-09-30',
+        progresso: 81,
+        status: 'em_andamento'
       }
-    }
+    ],
+    kpis: [
+      { id: 3, nome: 'Uptime Sistema', valor: 99.8, variacao: 0.2, tendencia: 'alta', unidade: '%' },
+      { id: 4, nome: 'Projetos Entregues', valor: 18, variacao: 3, tendencia: 'alta', unidade: 'un' }
+    ]
+  },
+  {
+    id: 3,
+    nome: 'Financeiro',
+    descricao: 'Gestão financeira e controle orçamental',
+    responsavel: 'Ana Costa',
+    email: 'financeiro@empresa.com',
+    telefone: '+244 923 321 654',
+    localizacao: 'Edifício A - 1º Andar',
+    orcamento: 3000000,
+    orcamento_utilizado: 2100000,
+    funcionarios: 12,
+    capacidade_maxima: 15,
+    status: 'ativo',
+    data_criacao: '2022-01-05',
+    data_atualizacao: '2024-01-22',
+    cor: '#F59E0B',
+    metas: [],
+    kpis: [
+      { id: 5, nome: 'Margem de Lucro', valor: 22, variacao: 1.5, tendencia: 'alta', unidade: '%' },
+      { id: 6, nome: 'Prazo Médio Cobrança', valor: 35, variacao: -5, tendencia: 'baixa', unidade: 'dias' }
+    ]
   }
-const buscardepartamentos=async()=>{
-    try{
-      const res= await fetch("http://localhost:8000/departamentos/",{
-        credentials:"include"
-      })
-      if (res.ok){
-      const data=await res.json()
-        setDepartamentos(data.dados)
-        setLoading(false)
-        setfuncionarios(data.funcionarios)
-        setTotalorcamento(data.orcamento)
-        setDepartamentoAtivo(data.status)
-      }
-    }catch{
+]
 
-    }
-  }
-  const handleSave = async (data: Omit<Departamento, 'id'>) => {
-    try {
-      const url = currentDept 
-        ? `/api/departamentos/${currentDept.id}`
-        : 'http://localhost:8000/departamentos/'
-        
-      const method = currentDept ? 'PUT' : 'POST'
-      
-      await fetch(url, {
-        credentials:"include",
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      })
-      
-      buscardepartamentos()
-      setShowForm(false)
-      setCurrentDept(null)
-    } catch (error) {
-      console.error('Erro ao salvar:', error)
-    }
-  }
+const mockFuncionarios: FuncionarioDepartamento[] = [
+  { id: 1, nome: 'Pedro Oliveira', cargo: 'Analista RH', email: 'pedro@empresa.com', data_admissao: '2023-03-15', status: 'ativo', performance: 88, departamento_id: 1 },
+  { id: 2, nome: 'Carla Mendes', cargo: 'Desenvolvedora Senior', email: 'carla@empresa.com', data_admissao: '2022-05-20', status: 'ativo', performance: 92, departamento_id: 2 },
+  { id: 3, nome: 'Rafael Torres', cargo: 'Contador', email: 'rafael@empresa.com', data_admissao: '2023-01-10', status: 'ativo', performance: 85, departamento_id: 3 }
+]
 
-  const chartData = departamentos.map(dept => ({
-    name: dept.nome,
-    funcionarios: dept.funcionarios,
-    orcamento: dept.orcamento / 1000, 
-  }))
+// Utility Functions
+const calcularEstatisticas = (departamentos: Departamento[]): DashboardStats => {
+  const totalDepartamentos = departamentos.length
+  const departamentosAtivos = departamentos.filter(d => d.status === 'ativo').length
+  const totalFuncionarios = departamentos.reduce((acc, d) => acc + d.funcionarios, 0)
+  const orcamentoTotal = departamentos.reduce((acc, d) => acc + d.orcamento, 0)
+  const orcamentoUtilizado = departamentos.reduce((acc, d) => acc + d.orcamento_utilizado, 0)
+  const capacidadeTotal = departamentos.reduce((acc, d) => acc + d.capacidade_maxima, 0)
+  const taxaOcupacao = capacidadeTotal > 0 ? (totalFuncionarios / capacidadeTotal) * 100 : 0
+  const departamentosComMeta = departamentos.filter(d => d.metas.length > 0).length
+
+  return {
+    totalDepartamentos,
+    departamentosAtivos,
+    totalFuncionarios,
+    orcamentoTotal,
+    orcamentoUtilizado,
+    taxaOcupacao,
+    departamentosComMeta,
+    proximasRenovacoes: 3
+  }
+}
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-AO', {
+    style: 'currency',
+    currency: 'AOA',
+    minimumFractionDigits: 0
+  }).format(value)
+}
+
+const formatNumber = (value: number) => {
+  return new Intl.NumberFormat('pt-AO').format(value)
+}
+
+// Components
+type ButtonVariant = 'default' | 'outline';
+type ButtonSize = 'default' | 'icon';
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  children: React.ReactNode;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+}
+
+const Button = ({
+  children,
+  onClick,
+  variant = 'default',
+  size = 'default',
+  className = '',
+  ...props
+}: ButtonProps) => {
+  const baseClass = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background";
+  const variants: Record<ButtonVariant, string> = {
+    default: "bg-primary text-primary-foreground hover:bg-primary/90 bg-blue-600 hover:bg-blue-700 text-white",
+    outline: "border border-input hover:bg-accent hover:text-accent-foreground border-gray-300 hover:bg-gray-50"
+  };
+  const sizes: Record<ButtonSize, string> = {
+    default: "h-10 py-2 px-4",
+    icon: "h-10 w-10"
+  };
 
   return (
+    <button
+      className={`${baseClass} ${variants[variant]} ${sizes[size]} ${className}`}
+      onClick={onClick}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+const Input = ({ className = '', ...props }: any) => (
+  <input
+    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${className}`}
+    {...props}
+  />
+)
+
+const Badge = ({ children, className = '' }: any) => (
+  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${className}`}>
+    {children}
+  </span>
+)
+
+const Card = ({ children, className = '' }: any) => (
+  <div className={`rounded-lg border bg-card text-card-foreground shadow-sm bg-white border-gray-200 ${className}`}>
+    {children}
+  </div>
+)
+
+const CardHeader = ({ children, className = '' }: any) => (
+  <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>
+    {children}
+  </div>
+)
+
+const CardTitle = ({ children, className = '' }: any) => (
+  <h3 className={`text-2xl font-semibold leading-none tracking-tight ${className}`}>
+    {children}
+  </h3>
+)
+
+const CardDescription = ({ children, className = '' }: any) => (
+  <p className={`text-sm text-muted-foreground text-gray-600 ${className}`}>
+    {children}
+  </p>
+)
+
+const CardContent = ({ children, className = '' }: any) => (
+  <div className={`p-6 pt-0 ${className}`}>
+    {children}
+  </div>
+)
+
+const Table = ({ children, className = '' }: any) => (
+  <div className="w-full overflow-auto">
+    <table className={`w-full caption-bottom text-sm ${className}`}>
+      {children}
+    </table>
+  </div>
+)
+
+const TableHeader = ({ children }: any) => (
+  <thead className="[&_tr]:border-b">
+    {children}
+  </thead>
+)
+
+const TableBody = ({ children }: any) => (
+  <tbody className="[&_tr:last-child]:border-0">
+    {children}
+  </tbody>
+)
+
+const TableHead = ({ children, className = '' }: any) => (
+  <th className={`h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 text-gray-600 ${className}`}>
+    {children}
+  </th>
+)
+
+const TableRow = ({ children, className = '', onClick }: any) => (
+  <tr className={`border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted hover:bg-gray-50 ${className}`} onClick={onClick}>
+    {children}
+  </tr>
+)
+
+const TableCell = ({ children, className = '' }: any) => (
+  <td className={`p-4 align-middle [&:has([role=checkbox])]:pr-0 ${className}`}>
+    {children}
+  </td>
+)
+
+const Progress = ({ value, className = '' }: any) => (
+  <div className={`relative h-2 w-full overflow-hidden rounded-full bg-secondary bg-gray-200 ${className}`}>
     <div 
-    
-     className="container mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Gestão de Departamentos</h1>
-      
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="w-full md:w-1/2">
-      
-        </div>
-        <button
-          onClick={() => {
-            setCurrentDept(null)
-            setShowForm(true)
-          }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2 justify-center"
-        >
-          <span>+</span>
-          <span>Novo Departamento</span>
-        </button>
-      </div>
+      className="h-full w-full flex-1 bg-primary transition-all bg-blue-600" 
+      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+    />
+  </div>
+)
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-         <MetricCard 
-            title="Departamentos Ativos" 
-            value={departamentoAtivo} 
-            icon={Building}
-            
-          />
-          
-          <MetricCard 
-            title="Total de Funcionários" 
-            value={funcionarios} 
-            icon={Users}
-            color="bg-amber-500"
-          />
-          
-          <MetricCard 
-            title="Orçamento Total" 
-            value={totalorcamento}
-            icon={DollarSign}
-            color="bg-emerald-500"
-          />
-        
-      </div>
-        {showForm && (
-        <DepartamentoForm
-          // departamento={currentDept}
-          onSave={handleSave}
-          onCancel={() => {
-            setShowForm(false)
-            setCurrentDept(null)
-          }}
-        />
-      )}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h2 className="text-lg font-semibold mb-4">Distribuição por Departamento</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis label={{ value: 'Funcionários', angle: -90, position: 'insideLeft' }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="funcionarios" name="Funcionários" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis label={{ value: 'Orçamento (mil KZ)', angle: -90, position: 'insideLeft' }} />
-                <Tooltip formatter={(value) => [`${value} mil KZ`, 'Orçamento']} />
-                <Legend />
-                <Bar dataKey="orcamento" name="Orçamento (mil KZ)" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-      {loading ? (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-          <p className="mt-2">Carregando departamentos...</p>
-        </div>
-      ) : (
-        <>
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <TableHeader>Nome</TableHeader>
-                  <TableHeader>Responsável</TableHeader>
-                  <TableHeader>Orçamento</TableHeader>
-                  <TableHeader>Funcionários</TableHeader>
-                  <TableHeader>Status</TableHeader>
-                  <TableHeader>Ações</TableHeader>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {departamentos.length > 0 ? (
-                  departamentos.map((dept) => (
-                    <tr key={dept.id} className="hover:bg-gray-50">
-                      <TableCell>{dept.nome}</TableCell>
-                      <TableCell>{dept.responsavel}</TableCell>
-                      <TableCell>KZ {dept.orcamento.toLocaleString('pt-AO')}</TableCell>
-                      <TableCell>{dept.funcionarios}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={dept.status ? 'ativo' : 'inativo'} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <ActionButton 
-                            onClick={() => handleEdit(dept.id)}
-                            color="blue"
-                            icon="✏️"
-                          />
-                          <ActionButton 
-                            onClick={() => handleDelete(dept.id)}
-                            color="red"
-                            icon="🗑️"
-                          />
-                        </div>
-                      </TableCell>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="py-4 text-center text-gray-500">
-                      Nenhum departamento encontrado
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+const Tabs = ({ children, value, onValueChange }: any) => (
+  <div data-state={value}>
+    {children}
+  </div>
+)
 
-          <div className="flex justify-between items-center mt-4">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50 flex items-center gap-1"
-            >
-              <span>←</span>
-              <span>Anterior</span>
-            </button>
-            <span className="text-sm text-gray-700">
-              Página {currentPage} • {departamentos.length} itens
-            </span>
-            <button
-              onClick={() => setCurrentPage(p => p + 1)}
-              disabled={departamentos.length < pageSize}
-              className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50 flex items-center gap-1"
-            >
-              <span>Próxima</span>
-              <span>→</span>
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
+const TabsList = ({ children, className = '' }: any) => (
+  <div className={`inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground bg-gray-100 ${className}`}>
+    {children}
+  </div>
+)
 
-function StatCard({ title, value, icon, trend }: { title: string; value: string | number; icon: string; trend: string }) {
-  const isPositive = trend.startsWith('+')
-  
-  return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
-        </div>
-        <span className="text-3xl">{icon}</span>
-      </div>
-      <div className={`mt-2 text-sm ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-        {trend} vs último mês
-      </div>
-    </div>
-  )
-}
-
-function TableHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      {children}
-    </th>
-  )
-}
-
-function TableCell({ children }: { children: React.ReactNode }) {
-  return (
-    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-      {children}
-    </td>
-  )
-}
-
-function StatusBadge({ status }: { status: 'ativo' | 'inativo' }) {
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs ${
-      status === 'ativo' 
-        ? 'bg-green-100 text-green-800' 
-        : 'bg-red-100 text-red-800'
-    }`}>
-      {status === 'ativo' ? 'Ativo' : 'Inativo'}
-    </span>
-  )
-}
-
-function ActionButton({ onClick, color, icon }: { onClick: () => void; color: 'blue' | 'red'; icon: string }) {
-  const colorClasses = {
-    blue: 'text-blue-600 hover:text-blue-900',
-    red: 'text-red-600 hover:text-red-900'
-  }
+const TabsTrigger = ({ children, value, className = '' }: any) => {
+  const [activeTab, setActiveTab] = useState('overview')
   
   return (
     <button
-      onClick={onClick}
-      className={`${colorClasses[color]} transition-colors`}
-      title={color === 'blue' ? 'Editar' : 'Excluir'}
+      className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm ${activeTab === value ? 'bg-white shadow' : 'hover:bg-gray-200'} ${className}`}
+      onClick={() => setActiveTab(value)}
     >
-      {icon}
+      {children}
     </button>
   )
 }
 
-function DepartamentoForm({
-  departamento,
-  onSave,
-  onCancel
-}: {
-  departamento?: Departamento
-  onSave: (data: Omit<Departamento, 'id'>) => void
-  onCancel: () => void
-}) {
-  const [formData, setFormData] = useState<Omit<Departamento, 'id'>>(
-    departamento || {
-      nome: '',
-      responsavel: '',
-      orcamento: 0,
-      funcionarios: 0,
-      status: false,
-      data_criacao: new Date().toISOString()
-    }
-  )
-
+const TabsContent = ({ children, value, className = '' }: any) => {
+  const [activeTab] = useState('overview')
+  
+  if (activeTab !== value) return null
+  
   return (
-    <div className="bg-white p-6 rounded-lg shadow mb-6">
-      <h2 className="text-xl font-semibold mb-4">
-        {departamento ? 'Editar Departamento' : 'Novo Departamento'}
-      </h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nome*</label>
-          <input
-            type="text"
-            value={formData.nome}
-            onChange={(e) => setFormData({...formData, nome: e.target.value})}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
-            required
-          />
-        </div>
+    <div className={`mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${className}`}>
+      {children}
+    </div>
+  )
+}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Responsável*</label>
-          <input
-            type="text"
-            value={formData.responsavel}
-            onChange={(e) => setFormData({...formData, responsavel: e.target.value})}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
-            required
-          />
-        </div>
+const DropdownMenu = ({ children }: any) => {
+  const [isOpen, setIsOpen] = useState(false)
+  
+  return (
+    <div className="relative inline-block text-left" onBlur={() => setTimeout(() => setIsOpen(false), 100)}>
+      {React.Children.map(children, (child) =>
+        React.cloneElement(child, { isOpen, setIsOpen })
+      )}
+    </div>
+  )
+}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Orçamento (KZ)*</label>
-          <input
-            type="number"
-            value={formData.orcamento}
-            onChange={(e) => setFormData({...formData, orcamento: Number(e.target.value)})}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
-            min="0"
-            required
-          />
-        </div>
+const DropdownMenuTrigger = ({ children, asChild, isOpen, setIsOpen }: any) => (
+  <div onClick={() => setIsOpen(!isOpen)}>
+    {children}
+  </div>
+)
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nº de Funcionários*</label>
-          <input
-            type="number"
-            value={formData.funcionarios}
-            onChange={(e) => setFormData({...formData, funcionarios: Number(e.target.value)})}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
-            min="0"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Status*</label>
-          <select
-            value={formData.status ? 'ativo' : 'inativo'}
-            onChange={(e) => setFormData({...formData, status: e.target.value === 'ativo'})}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
-          >
-            <option value="ativo">Ativo</option>
-            <option value="inativo">Inativo</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-2 mt-6">
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={() => onSave(formData)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Salvar Departamento
-        </button>
+const DropdownMenuContent = ({ children, align = 'right', isOpen }: any) => {
+  if (!isOpen) return null
+  
+  const alignClass = align === 'right' ? 'right-0' : 'left-0'
+  
+  return (
+    <div className={`absolute ${alignClass} mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50`}>
+      <div className="py-1">
+        {children}
       </div>
     </div>
   )
 }
+
+const DropdownMenuItem = ({ children, onClick, className = '' }: any) => (
+  <button
+    className={`group flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 ${className}`}
+    onClick={onClick}
+  >
+    {children}
+  </button>
+)
+
+const DropdownMenuLabel = ({ children }: any) => (
+  <div className="px-4 py-2 text-sm font-medium text-gray-900 bg-gray-50">
+    {children}
+  </div>
+)
+
+const DropdownMenuSeparator = () => (
+  <div className="h-px bg-gray-200 my-1" />
+)
+
+type MetricCardColor = 'blue' | 'green' | 'yellow' | 'red';
+
+const MetricCard = ({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  color,
+}: {
+  title: string;
+  value: number;
+  icon: React.ElementType;
+  trend?: string;
+  color: MetricCardColor;
+}) => {
+  const colorClasses: Record<MetricCardColor, string> = {
+    blue: 'bg-blue-50 text-blue-700',
+    green: 'bg-green-50 text-green-700',
+    yellow: 'bg-yellow-50 text-yellow-700',
+    red: 'bg-red-50 text-red-700',
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">{title}</p>
+            <p className="text-3xl font-bold text-gray-900">{formatNumber(value)}</p>
+            {trend && (
+              <p className="text-sm text-gray-500 mt-1">{trend}</p>
+            )}
+          </div>
+          <div className={`p-3 rounded-full ${colorClasses[color]}`}>
+            <Icon className="w-6 h-6" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const StatusBadge = ({ status }: { status: keyof typeof STATUS_CONFIG }) => {
+  const config = STATUS_CONFIG[status]
+  return (
+    <Badge className={config.color}>
+      {config.label}
+    </Badge>
+  )
+}
+
+const DashboardStats = ({ stats }: { stats: DashboardStats }) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <MetricCard 
+      title="Total Departamentos" 
+      value={stats.totalDepartamentos} 
+      icon={Building}
+      trend="+2 este mês"
+      color="blue"
+    />
+    <MetricCard 
+      title="Departamentos Ativos" 
+      value={stats.departamentosAtivos} 
+      icon={UserCheck}
+      trend="98% disponibilidade"
+      color="green"
+    />
+    <MetricCard 
+      title="Total Funcionários" 
+      value={stats.totalFuncionarios} 
+      icon={Users}
+      trend={`${stats.taxaOcupacao.toFixed(1)}% ocupação`}
+      color="yellow"
+    />
+    <MetricCard 
+      title="Orçamento Utilizado" 
+      value={stats.orcamentoUtilizado} 
+      icon={DollarSign}
+      trend={`${((stats.orcamentoUtilizado / stats.orcamentoTotal) * 100).toFixed(1)}% do total`}
+      color="red"
+    />
+  </div>
+)
+
+const ExportMenu = () => (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button variant="outline" className="gap-2">
+        <Download className="w-4 h-4" />
+        Exportar
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent>
+      <DropdownMenuItem>
+        <FileText className="w-4 h-4 mr-2" />
+        Relatório Completo
+      </DropdownMenuItem>
+      <DropdownMenuItem>
+        <Users className="w-4 h-4 mr-2" />
+        Estrutura Organizacional
+      </DropdownMenuItem>
+      <DropdownMenuItem>
+        <DollarSign className="w-4 h-4 mr-2" />
+        Análise Orçamental
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
+)
+
+// Tab Components
+const OverviewTab = ({ departamentos, chartData, kpiData }: any) => (
+  <div className="space-y-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-blue-600" />
+            Distribuição de Funcionários
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="funcionarios" name="Atual" fill="#3B82F6" />
+                <Bar dataKey="capacidade" name="Capacidade" fill="#94A3B8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PieChartIcon className="w-5 h-5 text-green-600" />
+            Utilização de Orçamento
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="utilizado"
+                  nameKey="name"
+                  label
+                >
+                  {chartData.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`${formatNumber(Number(value))} mil AOA`, 'Utilizado']} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>KPIs dos Departamentos</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {kpiData.slice(0, 8).map((kpi: any, index: number) => (
+            <div key={index} className="bg-slate-50 rounded-lg p-4">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-sm font-medium text-slate-700">{kpi.kpi}</span>
+                <Badge className={kpi.tendencia === 'alta' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                  {kpi.tendencia}
+                </Badge>
+              </div>
+              <div className="text-2xl font-bold text-slate-900">
+                {kpi.valor}{kpi.unidade}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">{kpi.departamento}</div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+)
+
+const DepartmentsTab = ({ departamentos, onEdit, onDelete, onSelect }: any) => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Lista de Departamentos</CardTitle>
+      <CardDescription>
+        {departamentos.length} departamentos encontrados
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Departamento</TableHead>
+            <TableHead>Responsável</TableHead>
+            <TableHead className="text-right">Funcionários</TableHead>
+            <TableHead className="text-right">Orçamento</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {departamentos.map((dept: Departamento) => (
+            <TableRow key={dept.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => onSelect(dept)}>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
+                    style={{ backgroundColor: dept.cor }}
+                  >
+                    <Building className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{dept.nome}</div>
+                    <div className="text-sm text-slate-500">{dept.descricao}</div>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div>
+                  <div className="font-medium">{dept.responsavel}</div>
+                  <div className="text-sm text-slate-500">{dept.email}</div>
+                </div>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex flex-col items-end">
+                  <span className="font-medium">{dept.funcionarios}/{dept.capacidade_maxima}</span>
+                  <Progress value={(dept.funcionarios / dept.capacidade_maxima) * 100} className="w-20 mt-1" />
+                </div>
+              </TableCell>
+              <TableCell className="text-right">
+                <div>
+                  <div className="font-medium">{formatCurrency(dept.orcamento_utilizado)}</div>
+                  <div className="text-sm text-slate-500">de {formatCurrency(dept.orcamento)}</div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={dept.status} />
+              </TableCell>
+              <TableCell>
+                <div className="flex justify-end gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-8 w-8">
+                        <MoreVertical className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onSelect(dept)}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver Detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEdit(dept)}>
+                        <Edit3 className="w-4 h-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onDelete(dept.id)} className="text-red-600">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </CardContent>
+  </Card>
+)
 

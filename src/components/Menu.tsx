@@ -1,151 +1,284 @@
 'use client';
+import { usePathname } from 'next/navigation';
+import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { buscarDados,buscarModulos } from "@/lib/api";
-import {useRouter} from "next/navigation"
-import {
-  Mail,
-  Phone,
-  MapPin,
-  MessageCircle,
-  DollarSign,
+import { useState } from "react";
+import { 
+  Home, 
+  Users, 
+  Calendar, 
+  Clock, 
   GraduationCap, 
-   FileInputIcon,
-  FileText,
-  Building,
-  Info,
-  Users,
-  Gift,
-  Briefcase,
-  Settings,
+  TrendingUp,
+  Settings, 
   LogOut,
-  LayoutDashboard,
-  Plus,
-  HelpCircle,
-} from "lucide-react"
-import Swal from "sweetalert2";
+  LifeBuoy,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Briefcase,
+  Building,
+  FileText,
+  UserPlus,
+  Network
+} from "lucide-react";
 
-interface MenuProps {
-  onClose?: () => void;
-}
+const menuItems = [
+  {
+    title: "MENU",
+    items: [
+      {
+        icon: <Home className="w-5 h-5" />,
+        label: "Dashboard",
+        href: "/admin",
+      },
+      {
+        icon: <Users className="w-5 h-5" />,
+        label: "Funcionários",
+        href: "/list/funciona",
+      },
+      {
+        icon: <Building className="w-5 h-5" />,
+        label: "Departamentos",
+        href: "/list/departamento",
+      },
+      {
+        icon: <CreditCard className="w-5 h-5" />,
+        label: "Folha de Pagamento",
+        href: "/list/pagamento",
+      },
+      {
+        icon: <UserPlus className="w-5 h-5" />,
+        label: "Recrutamento",
+        href: "/list/recrutamento",
+      },
+      {
+        icon: <Calendar className="w-5 h-5" />,
+        label: "Dispensas",
+        href: "/list/dispensas",
+      },
+      {
+        icon: <Clock className="w-5 h-5" />,
+        label: "Assiduidade",
+        href: "/list/assiduidade",
+      },
+      {
+        icon: <GraduationCap className="w-5 h-5" />,
+        label: "Formações",
+        href: "/list/formacoes",
+      },
+      {
+        icon: <TrendingUp className="w-5 h-5" />,
+        label: "Performance",
+        href: "/list/performance",
+      },
+    ],
+  },
+  {
+    title: "RELATÓRIOS",
+    items: [
+      {
+        icon: <FileText className="w-5 h-5" />,
+        label: "Relatórios",
+        href: "/relatorios",
+      },
+      {
+        icon: <Network className="w-5 h-5" />,
+        label: "Analytics",
+        href: "/analytics",
+      },
+    ],
+  },
+  {
+    title: "CONFIGURAÇÕES",
+    items: [
+      {
+        icon: <LifeBuoy className="w-5 h-5" />,
+        label: "Suporte",
+        href: "/suporte",
+      },
+      {
+        icon: <Settings className="w-5 h-5" />,
+        label: "Definições",
+        href: "/definicoes",
+      },
+      {
+        icon: <LogOut className="w-5 h-5" />,
+        label: "Sair",
+        href: "/logout",
+      },
+    ],
+  },
+];
 
-
-const Menu = ({ onClose }: MenuProps) => {
-const router=useRouter()
-async function logout() {
-  try {
-    const res = await fetch("http://localhost:8000/logout/", {
-      credentials: "include",
-      method:"POST",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    });
-    if (res.ok) {
-      Swal.fire("Saindo", "Volte Sempre", "success");
-      router.push("/");
-    }
-  }
-
-  catch (err) {
-  }
-}
-const [empresa, setempresa]=useState('')
-const [modulos, setmodulos]=useState<string[]>([])
-//useEffect(() => {
-//        const carregar=async()=>{
-//         const res= await buscarDados();
-//         if(!res){}else{
-//           setempresa(res.empresa)
-//         }
-//        }
-//        carregar()
-//        const modulos=async()=>{
-//         const res =await buscarModulos();
-//         if(res){
-//           setmodulos(res.map((item:{nome:string})=>item.nome))
-//         }
-//        }
-//        modulos()
-
-//     }, []);
-//     console.log(modulos)
+const Menu = () => {
+  const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
   return (
+    <div className={`
+      relative h-screen bg-gradient-to-b from-slate-900 to-slate-800 
+      transition-all duration-300 ease-in-out
+      ${isCollapsed ? 'w-20' : 'w-64'}
+      border-r border-slate-700 flex flex-col
+    `}>
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-6 bg-slate-800 hover:bg-slate-700 
+                 rounded-full p-1 border border-slate-600 transition-all duration-200 z-10"
+      >
+        {isCollapsed ? (
+          <ChevronRight className="w-4 h-4 text-white" />
+        ) : (
+          <ChevronLeft className="w-4 h-4 text-white" />
+        )}
+      </button>
 
-    <div className="h-screen flex">
-      <div className="w-64 bg-gradient-to-b from-purple-600 to-blue-600 text-white">
-              <div className="p-6">
-                <div className="flex items-center gap-2 mb-8">
-                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                    
-                  </div>
-                  <span className="font-semibold text-lg">AVD</span>
-                </div>
-      
-                <nav className="space-y-2">
-                  <Link href="/admin" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors">
-                    <LayoutDashboard size={20} />
-                    <span>Visão Geral</span>
-                  </Link>
-                  <Link href="/list/departamento" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors">
-                    <Building size={20} />
-                    <span>Departamentos</span>
-                  </Link>
-                  <Link href="/list/funciona" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors">
-                    <Users size={20} />
-                    <span>Funcionários</span>
-                  </Link>
-                  <Link href="/list/assiduidade" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors">
-                    <Briefcase size={20} />
-                    <span>Assiduidade</span>
-                  </Link>
-                  <Link href="/list/dispensas" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors">
-                    <FileInputIcon size={20} />
-                    <span >Dispensas</span>
-                  </Link>
-                  <Link href="/list/get_courses" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors">
-                    <GraduationCap size={20} />
-                    <span >Formações</span>
-                  </Link>
-                  <Link href="/list/pagamento" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors">
-                    <DollarSign size={20} />
-                    <span >Folha de Pagamento</span>
-                  </Link>
-                  <Link href="/list/recrutamento" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors">
-                    <Briefcase size={20} />
-                    <span>Recrutamento</span>
-                  </Link>
-                  
-                  </nav>
-                  <div className="mt-10 border-t border-blue-500 pt-1">
-                              <Link 
-                                href="/ajuda"
-                                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-500 transition-colors"
-                              >
-                                <HelpCircle size={20} />
-                                <span>Suporte RH</span>
-                              </Link>
-                              
-                              <Link 
-                                href="/personaliza" 
-                                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-500 transition-colors"
-                              >
-                                <Settings size={20} />
-                                <span>Configurações</span>
-                              </Link>
-                              
-                              <button 
-                                onClick={logout}
-                                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-500 transition-colors text-left"
-                              >
-                                <LogOut size={20} />
-                                <span>Sair</span>
-                              </button>
-                            </div>
+      <div className="p-6 border-b border-slate-700 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg p-2">
+            <Image 
+              src="/logo.png" 
+              alt="Logo" 
+              width={24} 
+              height={24}
+              className="filter brightness-0 invert"
+            />
+          </div>
+          {!isCollapsed && (
+            <div>
+              <h1 className="text-white font-bold text-lg">RH System</h1>
+              <p className="text-slate-400 text-xs">Professional Suite</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Menu Items - Scrollable */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-4">
+        <div className="space-y-6 px-4">
+          {menuItems.map((group) => (
+            <div key={group.title}>
+              {/* Group Title */}
+              {!isCollapsed && (
+                <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider px-2 block mb-2">
+                  {group.title}
+                </span>
+              )}
+              
+              {/* Menu Items */}
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      href={item.href}
+                      key={item.label}
+                      className={`
+                        flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group relative
+                        ${isActive 
+                          ? 'bg-blue-500/20 text-blue-400 border-r-2 border-blue-500 shadow-lg shadow-blue-500/10' 
+                          : 'text-slate-300 hover:bg-slate-700/50 hover:text-white hover:shadow-md'
+                        }
+                        ${isCollapsed ? 'justify-center' : ''}
+                      `}
+                      onMouseEnter={() => setActiveGroup(group.title)}
+                      onMouseLeave={() => setActiveGroup(null)}
+                    >
+                      <div className={`
+                        transition-all duration-200 relative
+                        ${isActive 
+                          ? 'text-blue-400 transform scale-110' 
+                          : 'text-slate-400 group-hover:text-white group-hover:scale-105'
+                        }
+                      `}>
+                        {item.icon}
+                        {/* Active indicator dot */}
+                        {isActive && (
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                        )}
+                      </div>
+                      
+                      {!isCollapsed && (
+                        <span className="font-medium text-sm transition-transform duration-200">
+                          {item.label}
+                        </span>
+                      )}
+                      
+                      {/* Tooltip for collapsed state */}
+                      {isCollapsed && (
+                        <div className={`
+                          absolute left-full ml-2 px-3 py-2 bg-slate-900 text-white text-sm 
+                          rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200
+                          pointer-events-none whitespace-nowrap z-50 border border-slate-700
+                          ${activeGroup === group.title ? 'translate-x-0' : 'translate-x-2'}
+                        `}>
+                          {item.label}
+                          {/* Tooltip arrow */}
+                          <div className="absolute right-full top-1/2 transform -translate-y-1/2">
+                            <div className="w-2 h-2 bg-slate-900 rotate-45"></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Active item indicator for collapsed state */}
+                      {isCollapsed && isActive && (
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                        </div>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
-    </div>  );
+          ))}
+        </div>
+      </div>
+
+      {/* User Profile */}
+      {!isCollapsed && (
+        <div className="border-t border-slate-700 flex-shrink-0">
+          <div className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full 
+                            flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-sm">AD</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-medium text-sm truncate">Admin User</p>
+                <p className="text-slate-400 text-xs truncate">Administrador</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Collapsed User Profile */}
+      {isCollapsed && (
+        <div className="border-t border-slate-700 flex-shrink-0">
+          <div className="p-4 flex justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full 
+                          flex items-center justify-center shadow-lg group relative">
+              <span className="text-white font-bold text-xs">AD</span>
+              
+              {/* Tooltip for user */}
+              <div className="absolute left-full ml-2 px-3 py-2 bg-slate-900 text-white text-sm 
+                            rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200
+                            pointer-events-none whitespace-nowrap z-50 border border-slate-700">
+                <div className="font-medium">Admin User</div>
+                <div className="text-slate-400 text-xs">Administrador</div>
+                <div className="absolute right-full top-1/2 transform -translate-y-1/2">
+                  <div className="w-2 h-2 bg-slate-900 rotate-45"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
-export default Menu;
+export default Menu; 

@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import autoTable from 'jspdf-autotable';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 declare module 'jspdf' {
   interface jsPDF {
@@ -44,7 +45,6 @@ const FolhaPagamento = () => {
   const router = useRouter();
   const { toast } = useToast();
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
-  const [abrirIRT, setAbrirIRT] = useState(false);
   const [loading, setLoading] = useState(true);
   const [resumo, setResumo] = useState({
     total_folha: 0,
@@ -53,15 +53,11 @@ const FolhaPagamento = () => {
     proximo_pagamento: ''
   });
   const [historico, setHistorico] = useState<any[]>([]);
-  const [formData, setFormData] = useState({
-    mes_referencia: '',
-    nome: '',
-    salario_bruto: ''
-  });
   const [relatorioMensal, setRelatorioMensal] = useState<RelatorioMensal>({
     funcionarios_pagos: 0,
     impostos_pagos: 0
   });
+  const [mesReferencia, setMesReferencia] = useState('');
 
   const fetchData = async () => {
     try {
@@ -104,49 +100,78 @@ const FolhaPagamento = () => {
     fetchData();
   }, []);
 
-  const processarSalario = async () => {
+  // Novo: Processamento automático da folha de pagamento
+  const processarFolha = async () => {
+    if (!mesReferencia) {
+      Swal.fire("Atenção", "Por favor, selecione um mês de referência.", "warning");
+      return;
+    }
+
     try {
-      const mesReferenciaFormatado = `${formData.mes_referencia}-01`;
-      const res = await fetch("http://localhost:8000/pagamentos/", {
+      const res = await fetch("http://localhost:8000/folha-pagamento/processar/", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          mes_referencia: mesReferenciaFormatado,
-          salario_bruto: parseFloat(formData.salario_bruto)
-        })
+        body: JSON.stringify({ mes_referencia: `${mesReferencia}-01` }),
       });
 
       if (res.ok) {
         Swal.fire({
           title: "Sucesso!",
-          text: "Salário processado com sucesso",
+          text: "Folha de pagamento processada com sucesso.",
           icon: "success",
-          confirmButtonColor: "#4f46e5"
+          confirmButtonColor: "#4f46e5",
         });
-        setAbrirIRT(false);
         fetchData();
-        setFormData({ mes_referencia: '', nome: '', salario_bruto: '' });
       } else {
         const error = await res.json();
-        throw new Error(error.detail || "Erro ao processar");
+        throw new Error(error.detail || "Erro ao processar a folha de pagamento.");
       }
     } catch (error: any) {
       Swal.fire({
         title: "Erro!",
-        text: error.message || "Falha no processamento",
+        text: error.message || "Falha no processamento.",
         icon: "error",
-        confirmButtonColor: "#ef4444"
+        confirmButtonColor: "#ef4444",
       });
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  // Novo: Aprovação da folha de pagamento
+  const aprovarFolha = async () => {
+    if (!mesReferencia) {
+      Swal.fire("Atenção", "Por favor, selecione um mês de referência para aprovação.", "warning");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8000/folha-pagamento/aprovar/", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mes_referencia: `${mesReferencia}` }),
+      });
+
+      if (res.ok) {
+        Swal.fire({
+          title: "Aprovado!",
+          text: "Folha de pagamento aprovada e pronta para pagamento.",
+          icon: "success",
+          confirmButtonColor: "#4f46e5",
+        });
+        fetchData();
+      } else {
+        const error = await res.json();
+        throw new Error(error.detail || "Erro ao aprovar a folha de pagamento.");
+      }
+    } catch (error: any) {
+      Swal.fire({
+        title: "Erro!",
+        text: error.message || "Falha na aprovação.",
+        icon: "error",
+        confirmButtonColor: "#ef4444",
+      });
+    }
   };
 
   // Dados para gráfico
@@ -277,14 +302,12 @@ const FolhaPagamento = () => {
       yPos = (doc as any).lastAutoTable.finalY + 20;
     }
 
-    // Gráfico (placeholder - na prática use html-to-image para capturar o gráfico real)
     if (chartData.length > 0) {
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text('Evolução da Folha de Pagamento', margin, yPos);
       yPos += 30;
 
-      // Placeholder para o gráfico
       doc.setFillColor(240, 240, 240);
       doc.rect(margin, yPos, 550, 200, 'F');
       doc.setTextColor(100, 100, 100);
@@ -304,7 +327,6 @@ const FolhaPagamento = () => {
       );
     }
 
-    // Salvar PDF
     doc.save('relatorio-folha-pagamento.pdf');
   };
 
@@ -346,7 +368,7 @@ const FolhaPagamento = () => {
             <Download className="mr-2 h-4 w-4" />
             Exportar
           </Button>
-          <Button>
+          <Button onClick={aprovarFolha} disabled={!mesReferencia}>
             <Send className="mr-2 h-4 w-4" />
             Enviar para Aprovação
           </Button>
@@ -480,27 +502,43 @@ const FolhaPagamento = () => {
           <Card>
             <CardHeader>
               <CardTitle>Ações Rápidas</CardTitle>
+              <CardDescription>
+                Selecione o mês e execute as ações de forma automatizada.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Mês de Referência</label>
+                <Input
+                  type="month"
+                  value={mesReferencia}
+                  onChange={(e) => setMesReferencia(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <Button 
+                className="justify-start bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={processarFolha}
+                disabled={!mesReferencia}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Processar Folha
+              </Button>
               <Button 
                 variant="outline" 
                 className="justify-start"
-                onClick={() => setAbrirIRT(true)}
+                onClick={aprovarFolha}
+                disabled={!mesReferencia}
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Processar Salário
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Aprovar Pagamentos
               </Button>
               <Link href={"/list/pagamento/desconto"}>
-                <Button variant="outline" className="justify-start">
+                <Button variant="outline" className="justify-start w-full">
                   <FileText className="mr-2 h-4 w-4" />
                   Descontos de imposto
                 </Button>
               </Link>
-              
-              <Button variant="outline" className="justify-start">
-                <Clock className="mr-2 h-4 w-4" />
-                Registrar Hora Extra
-              </Button>
             </CardContent>
           </Card>
 
@@ -526,7 +564,6 @@ const FolhaPagamento = () => {
             </CardContent>
           </Card>
 
-          {/* Card de Relatório Mensal */}
           <Card>
             <CardHeader>
               <CardTitle>Relatório do Mês</CardTitle>
@@ -554,63 +591,6 @@ const FolhaPagamento = () => {
         </div>
       </div>
 
-      {/* Modal de Processamento */}
-      {abrirIRT && (
-        <div className='fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4'>
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Processar Salário</CardTitle>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => setAbrirIRT(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <CardDescription>Preencha os dados do funcionário</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nome Completo</label>
-                <Input 
-                  name="nome"
-                  value={formData.nome}
-                  onChange={handleChange}
-                  placeholder="Nome do funcionário"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Mês Referência</label>
-                <Input 
-                  name="mes_referencia"
-                  type="month"
-                  value={formData.mes_referencia}
-                  onChange={handleChange}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Salário Bruto (KZ)</label>
-                <Input 
-                  name="salario_bruto"
-                  type="number"
-                  value={formData.salario_bruto}
-                  onChange={handleChange}
-                  placeholder="Valor em Kwanza"
-                />
-              </div>
-              <Button 
-                className="w-full mt-4"
-                onClick={processarSalario}
-                disabled={!formData.nome || !formData.mes_referencia || !formData.salario_bruto}
-              >
-                Processar Salário
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 };

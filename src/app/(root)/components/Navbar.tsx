@@ -1,19 +1,22 @@
-"use client";
+// components/Navbar.tsx
+'use client';
 import Image from "next/image";
 import Swal from "sweetalert2";
 import React, { useState, useEffect } from 'react';
 import { LoginForm } from "@/components/login-form";
 import { CadastroDialog } from "@/components/cadastro";
-import { X, Menu, User, UserPlus } from "lucide-react";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { X, Menu, User, UserPlus, ChevronDown } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 const Navbar = () => {
   const [abrirDialog, setAbrir] = useState(false);
   const [cadastro, setCadastro] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [servicesDropdown, setServicesDropdown] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,132 +26,111 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleComoFunciona = () => {
-    Swal.fire({
-      title: "Como funciona o E-FILA?",
-      html: `
-        <div class="space-y-3">
-          <div class="flex items-start">
-            <div class="bg-purple-100 text-purple-700 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">1</div>
-            <p>Você escolhe o <b>local de atendimento</b> e o <b>serviço desejado</b>.</p>
-          </div>
-          <div class="flex items-start">
-            <div class="bg-purple-100 text-purple-700 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">2</div>
-            <p>O sistema mostra os <b>horários disponíveis</b>.</p>
-          </div>
-          <div class="flex items-start">
-            <div class="bg-purple-100 text-purple-700 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">3</div>
-            <p>Você faz a <b>reserva da fila</b> e recebe um <b>número digital</b>.</p>
-          </div>
-          <div class="flex items-start">
-            <div class="bg-purple-100 text-purple-700 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">4</div>
-            <p>Ao chegar no local, <b>o atendimento já estará agendado</b>.</p>
-          </div>
-          <hr class="my-4 border-gray-200" />
-          <p class="text-gray-600 italic">Você pode acompanhar o status da fila em tempo real pelo celular ou receber notificações por SMS.</p>
-        </div>
-      `,
-      icon: 'info',
-      confirmButtonText: 'Entendi!',
-      customClass: {
-        popup: 'rounded-2xl shadow-xl',
-        confirmButton: 'bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-full'
-      }
-    });
-  };
 
   return (
     <>
-     
       <motion.nav 
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
-        className={`fixed w-full z-50 top-0 left-0 transition-all duration-300 ${
+        transition={{ duration: 0.6 }}
+        className={`fixed w-full text-blue-900 z-50 top-0 left-0 transition-all duration-300 ${
           scrolled 
-            ? 'bg-white shadow-md py-2 border-b border-gray-100' 
-            : 'bg-transparent py-4'
+            ? 'text-blue-900 backdrop-blur-md shadow-lg py-3 border-b ' 
+            : 'bg-transparent py-6'
         }`}
       >
-        <div className="container mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
-            
-            <div className="flex-shrink-0">
-              <Image 
-                src="/Onono.png" 
-                alt="Onono" 
-                width={140} 
-                height={40} 
-                className="w-32 md:w-40"
-              />
-            </div>
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="bg-gradient-to-r from-cyan-500 to-blue-600 p-2 rounded-xl">
+                <div className="bg-gray-900 p-2 rounded-md">
+                  <div className="bg-gray-800 w-6 h-6 rounded" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                  AVD<span className="font-light">Soluções</span>
+                </h3>
+                <p className="text-xs text-gray-500">Tecnologia para RH</p>
+              </div>
+            </Link>
 
-            <div className="hidden lg:flex gap-8 items-center">
-              <Button 
-                variant="ghost"
-                className={`font-medium text-base ${
-                  scrolled 
-                    ? 'text-gray-700 hover:text-purple-600' 
-                    : 'text-white hover:text-purple-300'
-                }`}
-              >
-                Serviços
-              </Button>
-              <Button 
-                variant="ghost"
-                onClick={handleComoFunciona}
-                className={`font-medium text-base ${
-                  scrolled 
-                    ? 'text-gray-700 hover:text-purple-600' 
-                    : 'text-white hover:text-purple-300'
-                }`}
-              >
-                Como funciona?
-              </Button>
-              <Button 
-                variant="ghost"
-                className={`font-medium text-base ${
-                  scrolled 
-                    ? 'text-gray-700 hover:text-purple-600' 
-                    : 'text-white hover:text-purple-300'
-                }`}
-              >
+            {/* Desktop Menu */}
+            <div className="hidden lg:flex items-center space-x-8">
+              <Link href="/" className="font-medium text-white hover:text-blue-600 transition-colors">
+                Home
+              </Link>
+              
+              <div className="relative" onMouseEnter={() => setServicesDropdown(true)} onMouseLeave={() => setServicesDropdown(false)}>
+                <button className="font-medium text-white hover:text-blue-600 transition-colors flex items-center">
+                  Serviços <ChevronDown size={16} className="ml-1" />
+                </button>
+                <AnimatePresence>
+                  {servicesDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-2"
+                    >
+                      <Link href="/modulo" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        Módulos RH
+                      </Link>
+                      <Link href="/consultoria" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        Consultoria
+                      </Link>
+                      <Link href="/treinamentos" className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        Treinamentos
+                      </Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <Link href="/sobre" className="font-medium text-white hover:text-blue-600 transition-colors">
                 Sobre nós
-              </Button>
+              </Link>
+              
+              <Link href="/contacto" className="font-medium text-white hover:text-blue-600 transition-colors">
+                Contactar
+              </Link>
             </div>
 
-            <div className="hidden lg:flex gap-3">
+            {/* Desktop Auth Buttons */}
+            <div className="hidden lg:flex items-center space-x-4">
               <Button 
                 variant="outline" 
-                className="border-purple-600 text-purple-600 hover:bg-purple-50 font-medium flex items-center gap-2"
+                className="border-gray-300 text-gray-700 hover:border-blue-600 hover:text-blue-600 font-medium"
                 onClick={() => setAbrir(true)}
               >
-                <User size={18} />
-                Iniciar Sessão
+                <User size={18} className="mr-2" />
+                Entrar
               </Button>
-              <Button 
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 font-medium text-white flex items-center gap-2"
-                onClick={() => setCadastro(true)}
-              >
-                <UserPlus size={18} />
-                Criar Conta
-              </Button>
+              <Link href={"/registrar"}>
+                <Button 
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium py-3"
+                  onClick={() => {
+                   /*  setCadastro(true); */
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  Criar Conta
+                </Button>
+                </Link>
             </div>
 
-            <div className="lg:hidden">
-              <Button 
-                variant="ghost"
-                size="icon"
-                onClick={() => setMobileMenuOpen(true)}
-                className="text-gray-700"
-              >
-                <Menu size={24} />
-              </Button>
-            </div>
+            {/* Mobile Menu Button */}
+            <button 
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+            >
+              <Menu size={24} className="text-gray-700" />
+            </button>
           </div>
         </div>
       </motion.nav>
 
+      {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
@@ -160,79 +142,66 @@ const Navbar = () => {
           >
             <div className="flex flex-col h-full p-6">
               <div className="flex justify-between items-center mb-8">
-                <Image 
-                  src="/Onono.png" 
-                  alt="Onono" 
-                  width={120} 
-                  height={35} 
-                  className="w-32"
-                />
-                <Button 
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
+                <div className="flex items-center space-x-3">
+                  <div className="bg-gradient-to-r from-cyan-500 to-blue-600 p-2 rounded-xl">
+                    <div className="bg-gray-900 p-2 rounded-md">
+                      <div className="bg-gray-800 w-6 h-6 rounded" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                    AVD Soluções
+                  </h3>
+                </div>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2">
                   <X size={24} />
-                </Button>
+                </button>
               </div>
 
-              <div className="flex flex-col gap-4 flex-grow">
-                <Button 
-                  variant="ghost"
-                  className="justify-start text-lg py-5"
-                >
-                  Serviços
-                </Button>
-                <Button 
-                  variant="ghost"
-                  onClick={() => {
-                    handleComoFunciona();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="justify-start text-lg py-5"
-                >
-                  Como funciona?
-                </Button>
-                <Button 
-                  variant="ghost"
-                  className="justify-start text-lg py-5"
-                >
+              <nav className="flex-1 space-y-4">
+                <Link href="/" className="block text-lg font-medium text-gray-700 py-3 border-b border-gray-100">
+                  Home
+                </Link>
+                <Link href="/modulos" className="block text-lg font-medium text-gray-700 py-3 border-b border-gray-100">
+                  Módulos RH
+                </Link>
+                <Link href="/sobre" className="block text-lg font-medium text-gray-700 py-3 border-b border-gray-100">
                   Sobre nós
-                </Button>
-              </div>
+                </Link>
+                <Link href="/contacto" className="block text-lg font-medium text-gray-700 py-3 border-b border-gray-100">
+                  Contactar
+                </Link>
+              </nav>
 
-              <div className="flex flex-col gap-3 mt-auto pt-8">
+              <div className="space-y-4 pt-8 border-t border-gray-100">
                 <Button 
                   variant="outline" 
-                  className="border-purple-600 text-purple-600 font-medium py-6 text-lg"
+                  className="w-full border-gray-300 text-gray-700 font-medium py-3"
                   onClick={() => {
                     setAbrir(true);
                     setMobileMenuOpen(false);
                   }}
                 >
-                  Iniciar Sessão
+                  Entrar
                 </Button>
+                <Link href={"/registrar"}>
                 <Button 
-                  className="bg-purple-600 hover:bg-purple-700 font-medium text-white py-6 text-lg"
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium py-3"
                   onClick={() => {
-                    setCadastro(true);
+                   /*  setCadastro(true); */
                     setMobileMenuOpen(false);
                   }}
                 >
                   Criar Conta
                 </Button>
+                </Link>
+                
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-      {/* {abrirDialog &&(
-        <div className="fixed insert-0 z-50 bg-white">
 
-        </div>
-      )
-
-      } */}
+      {/* Login Dialog */}
       <Dialog open={abrirDialog} onOpenChange={setAbrir}>
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
@@ -242,26 +211,17 @@ const Navbar = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <LoginForm  />
+            <LoginForm />
           </div>
-          <DialogClose asChild>
-            <Button variant="ghost" className="absolute top-4 right-4" size="icon">
-              <X size={20} />
-            </Button>
-          </DialogClose>
         </DialogContent>
       </Dialog>
 
+      {/* Cadastro Dialog */}
       <Dialog open={cadastro} onOpenChange={setCadastro}>
-      <DialogContent className="sm:max-w-2xl max-w-[95vw] rounded-2xl p-6">
-        <CadastroDialog onSuccess={() => setCadastro(false)} onCancel={() => setCadastro(false)} />
-        <DialogClose asChild>
-          <Button variant="ghost" className="absolute top-4 right-4" size="icon">
-            <X size={20} />
-          </Button>
-        </DialogClose>
-      </DialogContent>
-    </Dialog>
+        <DialogContent className="sm:max-w-2xl max-w-[95vw] rounded-2xl p-6">
+          <CadastroDialog onSuccess={() => setCadastro(false)} onCancel={() => setCadastro(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

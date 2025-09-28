@@ -62,35 +62,7 @@ export default function FormModalAssiduidade() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
-  useEffect(() => {
-    if (accessToken) {
-      carregarAssiduidade()
-    }
-  }, [accessToken])
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          definirLocalizar({
-            lat: position.coords.latitude,
-            long: position.coords.longitude,
-          })
-        },
-        (error) => {
-          console.error("Erro ao obter localização:", error)
-          definirErro("Não foi possível obter sua localização. Por favor, permita o acesso à localização.")
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 20000,
-          maximumAge: 0,
-        },
-      )
-    } else {
-      definirErro("Geolocalização não é suportada pelo seu navegador.")
-    }
-  }, [])
+  
 
   const carregarAssiduidade = async () => {
     setLoading(true)
@@ -214,11 +186,6 @@ export default function FormModalAssiduidade() {
     definirModalAberto(false) // Garante que modalAberto também seja resetado
   }
 
-  useEffect(() => {
-    if (!accessToken) {
-      router.push("/logincomsenha")
-    }
-  }, [accessToken, router])
 
   const reconhecerFace = async () => {
     definirCarregando(true)

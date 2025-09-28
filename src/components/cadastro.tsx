@@ -1,22 +1,52 @@
-"use client"
+'use client'
 
 import type React from "react"
-
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { CheckCircle, XCircle, Building2, User } from "lucide-react"
+import { 
+  CheckCircle, 
+  XCircle, 
+  Building2, 
+  User, 
+  Shield,
+  Mail,
+  Phone,
+  MapPin,
+  FileText,
+  Briefcase,
+  Lock,
+  Eye,
+  EyeOff
+} from "lucide-react"
 import Swal from "sweetalert2"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 const PASSOS = [
-  { numero: 1, titulo: "Dados Institucionais", descricao: "Informações da empresa", icone: Building2 },
-  { numero: 2, titulo: "Representante", descricao: "Dados do responsável", icone: User },
+  { 
+    numero: 1, 
+    titulo: "Dados Empresariais", 
+    descricao: "Informações da organização", 
+    icone: Building2 
+  },
+  { 
+    numero: 2, 
+    titulo: "Representante Legal", 
+    descricao: "Dados do responsável", 
+    icone: User 
+  },
+  { 
+    numero: 3, 
+    titulo: "Segurança", 
+    descricao: "Criação de credenciais", 
+    icone: Lock 
+  },
 ]
 
 interface CadastroDialogProps {
@@ -24,460 +54,662 @@ interface CadastroDialogProps {
   onCancel?: () => void
 }
 
-export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
-  const [nome, setNome] = useState("")
-  const router = useRouter()
-  const [email, setRepEmail] = useState("")
-  const [tipoEmpresa, setTipoEmpresa] = useState("")
-  const [setorAtuacao, setSetorAtuacao] = useState("")
-  const [cargo, setCargo] = useState("")
-  const [nivelAcesso, setNivelAcesso] = useState("")
-  const [emailCorporativo, setEmailCorporativo] = useState("")
-  const [senha, setSenha] = useState("")
-  const [confirmarsenha, setconfirmarsenha] = useState("")
-  const [telefone, settelefoneRe] = useState("")
-  const [nomeRep, setRepNome] = useState("")
-  const [nif, setNif] = useState("")
-  const [avancar, setAvancar] = useState(0)
-  const [endereco, setEndereco] = useState("")
+interface EmpresaData {
+  nome: string
+  nif: string
+  tipoEmpresa: string
+  setorAtuacao: string
+  endereco: string
+  emailCorporativo: string
+  telefoneEmpresa: string
+}
 
-  function verificar(senha: string) {
+interface RepresentanteData {
+  nomeCompleto: string
+  email: string
+  telefone: string
+  cargo: string
+  nivelAcesso: string
+}
+
+interface SegurancaData {
+  senha: string
+  confirmarSenha: string
+}
+
+export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
+  const router = useRouter()
+  const [passoAtual, setPassoAtual] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [mostrarSenha, setMostrarSenha] = useState(false)
+  
+  // Estados organizados por categoria
+  const [empresa, setEmpresa] = useState<EmpresaData>({
+    nome: "",
+    nif: "",
+    tipoEmpresa: "",
+    setorAtuacao: "",
+    endereco: "",
+    emailCorporativo: "",
+    telefoneEmpresa: ""
+  })
+
+  const [representante, setRepresentante] = useState<RepresentanteData>({
+    nomeCompleto: "",
+    email: "",
+    telefone: "",
+    cargo: "",
+    nivelAcesso: ""
+  })
+
+  const [seguranca, setSeguranca] = useState<SegurancaData>({
+    senha: "",
+    confirmarSenha: ""
+  })
+
+  // Setores de atuação profissionais
+  const SETORES_ATUACAO = [
+    "Tecnologia da Informação",
+    "Saúde e Bem-estar",
+    "Educação e Treinamento",
+    "Serviços Financeiros",
+    "Comércio e Varejo",
+    "Indústria e Manufatura",
+    "Consultoria Empresarial",
+    "Serviços Profissionais",
+    "Energia e Utilities",
+    "Construção Civil",
+    "Transporte e Logística",
+    "Agricultura e Agropecuária",
+    "Telecomunicações",
+    "Mídia e Entretenimento",
+    "Hotelaria e Turismo",
+    "Outros"
+  ]
+
+  const CARGOS = [
+    "CEO/Diretor Executivo",
+    "Diretor de RH",
+    "Gerente de RH",
+    "Coordenador de RH",
+    "Analista de RH",
+    "Proprietário/Empreendedor",
+    "Outro"
+  ]
+
+  // Validação de senha profissional
+  function validarSenha(senha: string) {
     const criterios = {
-      comprimento: senha.length >= 8,
+      comprimento: senha.length >= 12,
       maiusculo: /[A-Z]/.test(senha),
       minusculo: /[a-z]/.test(senha),
       numero: /[0-9]/.test(senha),
-      simbolo: /[^A-Za-z0-9]/.test(senha),
+      simbolo: /[!@#$%^&*(),.?":{}|<>]/.test(senha),
+      sequencia: !/(.)\1\1/.test(senha), // Evitar sequências repetitivas
+      comum: !['password', '123456', 'senha'].includes(senha.toLowerCase())
     }
+
     const cumpridos = Object.values(criterios).filter(Boolean).length
     let nivel = "Fraca"
-    if (cumpridos >= 4) nivel = "Média"
-    if (cumpridos === 5) nivel = "Forte"
-    return { criterios, nivel }
+    let cor = "red"
+
+    if (cumpridos >= 4) {
+      nivel = "Média"
+      cor = "orange"
+    }
+    if (cumpridos >= 5) {
+      nivel = "Forte"
+      cor = "green"
+    }
+    if (cumpridos === 7) {
+      nivel = "Excelente"
+      cor = "emerald"
+    }
+
+    return { criterios, nivel, cor }
   }
 
-  const { criterios, nivel } = verificar(senha)
+  const { criterios, nivel, cor } = validarSenha(seguranca.senha)
 
-  const logar = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const dados = {
-      password: senha,
-      emailRep: email,
+  // Atualizações específicas por categoria
+  const atualizarEmpresa = (campo: keyof EmpresaData, valor: string) => {
+    setEmpresa(prev => ({ ...prev, [campo]: valor }))
+  }
+
+  const atualizarRepresentante = (campo: keyof RepresentanteData, valor: string) => {
+    setRepresentante(prev => ({ ...prev, [campo]: valor }))
+  }
+
+  const atualizarSeguranca = (campo: keyof SegurancaData, valor: string) => {
+    setSeguranca(prev => ({ ...prev, [campo]: valor }))
+  }
+
+  // Validações de passo
+  const passo1Valido = () => {
+    return empresa.nome && empresa.nif && empresa.endereco && empresa.emailCorporativo
+  }
+
+  const passo2Valido = () => {
+    return representante.nomeCompleto && representante.email && representante.telefone && representante.nivelAcesso
+  }
+
+  const passo3Valido = () => {
+    return seguranca.senha && seguranca.confirmarSenha && seguranca.senha === seguranca.confirmarSenha && nivel !== "Fraca"
+  }
+
+  const avancarPasso = () => {
+    if (passoAtual < PASSOS.length - 1) {
+      setPassoAtual(passoAtual + 1)
     }
-    try {
-      const res = await fetch("http://localhost:8000/login/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dados),
-        credentials: "include",
-      })
-      if (res.ok) {
-        onSuccess?.()
-        router.push("/personaliza")
-      }
-    } catch (error) {
-      console.error("Erro ao fazer login:", error)
+  }
+
+  const voltarPasso = () => {
+    if (passoAtual > 0) {
+      setPassoAtual(passoAtual - 1)
     }
   }
 
   const cadastrarEmpresa = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
 
-    if (senha !== confirmarsenha) {
-      Swal.fire("Erro", "As senhas não coincidem", "error")
+    if (seguranca.senha !== seguranca.confirmarSenha) {
+      Swal.fire("Erro de Validação", "As senhas não coincidem. Por favor, verifique e tente novamente.", "error")
+      setLoading(false)
       return
     }
 
     try {
-      const dados = {
-        nome,
-        nomeRep,
-        email_corporativo: emailCorporativo,
-        emailRep: email,
-        tipo_empresa: tipoEmpresa,
-        setor_atuacao: setorAtuacao,
-        cargo,
-        nivel_acesso: nivelAcesso,
-        password: senha,
-        telefone,
-        representante: nomeRep,
-        nif,
-        endereco,
+      const dadosEmpresa = {
+        empresa: {
+          nome: empresa.nome,
+          nif: empresa.nif.replace(/\D/g, ''), // Remove caracteres não numéricos
+          tipo_empresa: empresa.tipoEmpresa,
+          setor_atuacao: empresa.setorAtuacao,
+          endereco: empresa.endereco,
+          email_corporativo: empresa.emailCorporativo,
+          telefone: empresa.telefoneEmpresa
+        },
+        representante: {
+          nome_completo: representante.nomeCompleto,
+          email: representante.email,
+          telefone: representante.telefone,
+          cargo: representante.cargo,
+          nivel_acesso: representante.nivelAcesso
+        },
+        seguranca: {
+          senha: seguranca.senha
+        }
       }
+
       const res = await fetch("http://localhost:8000/empresa/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dados),
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(dadosEmpresa),
       })
+
       if (res.ok) {
-        Swal.fire("Sucesso!", "Empresa cadastrada com sucesso. Verifique seu email.", "success")
-        logar(e)
+        await Swal.fire({
+          title: "Cadastro Realizado com Sucesso!",
+          text: "Sua empresa foi cadastrada com sucesso. Em breve nossa equipe entrará em contato para ativação da conta.",
+          icon: "success",
+          confirmButtonText: "Continuar",
+          confirmButtonColor: "#2563eb",
+          timer: 5000
+        })
+        
+        onSuccess?.()
+        router.push("/personaliza")
       } else {
-        Swal.fire("Erro", "Não foi possível cadastrar a empresa", "error")
+        const errorData = await res.json()
+        throw new Error(errorData.detail || "Erro ao processar cadastro")
       }
     } catch (error) {
-      Swal.fire("Erro", "Erro de conexão com o servidor", "error")
+      console.error("Erro no cadastro:", error)
+      Swal.fire({
+        title: "Erro no Cadastro",
+        text: "Ocorreu um erro ao processar seu cadastro. Por favor, tente novamente ou entre em contato com nosso suporte.",
+        icon: "error",
+        confirmButtonText: "Entendi"
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
-  function CriterioItem({ valido, texto }: { valido: boolean; texto: string }) {
-    const textoMap: { [key: string]: string } = {
-      comprimento: "8+ caracteres",
-      maiusculo: "Letra maiúscula",
-      minusculo: "Letra minúscula",
-      numero: "Número",
-      simbolo: "Símbolo especial",
-    }
-
+  // Componente de critério de senha
+  function CriterioSenha({ valido, texto }: { valido: boolean; texto: string }) {
     return (
       <div className="flex items-center gap-2 text-xs">
-        {valido ? <CheckCircle className="text-emerald-500 size-3" /> : <XCircle className="text-red-500 size-3" />}
+        {valido ? 
+          <CheckCircle className="text-emerald-500 size-3" /> : 
+          <XCircle className="text-red-500 size-3" />
+        }
         <span className={cn("transition-colors", valido ? "text-emerald-600" : "text-slate-500")}>
-          {textoMap[texto] || texto}
+          {texto}
         </span>
       </div>
     )
   }
 
-  const progressoAtual = ((avancar + 1) / PASSOS.length) * 100
+  // Máscara de telefone
+  const formatarTelefone = (valor: string) => {
+    const numbers = valor.replace(/\D/g, '')
+    if (numbers.length <= 11) {
+      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+    }
+    return valor
+  }
+
+  // Máscara de NIF
+  const formatarNIF = (valor: string) => {
+    return valor.replace(/\D/g, '').slice(0, 14)
+  }
+
+  const progresso = ((passoAtual + 1) / PASSOS.length) * 100
 
   return (
-    <div className="w-full max-h-[80vh] overflow-y-auto">
-      {/* Header Compacto */}
-      <div className="text-center mb-4">
-        <h2 className="text-xl font-bold text-slate-900">Cadastro Empresarial</h2>
-        <p className="text-sm text-slate-600">Complete as informações para criar sua conta</p>
-      </div>
-
-      {/* Progress Indicator Compacto */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium text-slate-700">
-            Passo {avancar + 1} de {PASSOS.length}
-          </span>
-          <span className="text-xs text-slate-500">{Math.round(progressoAtual)}%</span>
-        </div>
-        <Progress value={progressoAtual} className="mb-3" />
-        <div className="flex justify-center gap-4">
-          {PASSOS.map((passo, index) => {
-            const Icone = passo.icone
-            return (
-              <div key={passo.numero} className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors",
-                    index <= avancar ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500",
-                  )}
-                >
-                  {index < avancar ? <CheckCircle className="w-3 h-3" /> : <Icone className="w-3 h-3" />}
-                </div>
-                <div className="hidden sm:block">
-                  <p className="text-xs font-medium text-slate-900">{passo.titulo}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Step 1: Dados Institucionais */}
-      {avancar === 0 && (
-        <div className="space-y-4">
-          <div className="text-center">
-            <h3 className="font-semibold text-slate-900 flex items-center justify-center gap-2">
-              <Building2 className="w-4 h-4 text-blue-600" />
-              Dados Institucionais
-            </h3>
-            <p className="text-xs text-slate-600">Informações básicas da empresa</p>
+    <div className="w-full max-w-2xl mx-auto">
+      <Card className="border-0 shadow-xl">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center mb-3">
+            <Shield className="w-6 h-6 text-white" />
           </div>
+          <CardTitle className="text-2xl font-bold text-slate-900">
+            Cadastro Empresarial
+          </CardTitle>
+          <CardDescription className="text-slate-600">
+            Complete as informações para criar sua conta corporativa
+          </CardDescription>
+        </CardHeader>
 
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="nomeEmpresa" className="text-xs font-medium">
-                  Nome da Empresa *
-                </Label>
-                <Input
-                  id="nomeEmpresa"
-                  type="text"
-                  placeholder="Digite o nome da empresa"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="nif" className="text-xs font-medium">
-                    NIF *
-                  </Label>
-                  <Input
-                    id="nif"
-                    type="text"
-                    placeholder="NIF"
-                    value={nif}
-                    onChange={(e) => setNif(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="tipoEmpresa" className="text-xs font-medium">
-                    Tipo
-                  </Label>
-                  <Select value={tipoEmpresa} onValueChange={setTipoEmpresa}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      
-                      <SelectItem value="unipessoal">Privada</SelectItem>
-                      <SelectItem value="sa">Pública</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="endereco" className="text-xs font-medium">
-                  Endereço *
-                </Label>
-                <Input
-                  id="endereco"
-                  type="text"
-                  placeholder="Endereço completo"
-                  value={endereco}
-                  onChange={(e) => setEndereco(e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="emailCorporativo" className="text-xs font-medium">
-                    Email Corporativo *
-                  </Label>
-                  <Input
-                    id="emailCorporativo"
-                    type="email"
-                    placeholder="contato@empresa.com"
-                    value={emailCorporativo}
-                    onChange={(e) => setEmailCorporativo(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="setorAtuacao" className="text-xs font-medium">
-                    Setor de Atuação
-                  </Label>
-                  <Select value={setorAtuacao} onValueChange={setSetorAtuacao}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Selecione o setor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="tecnologia">Tecnologia</SelectItem>
-                      <SelectItem value="saude">Saúde</SelectItem>
-                      <SelectItem value="educacao">Educação</SelectItem>
-                      <SelectItem value="financeiro">Financeiro</SelectItem>
-                      <SelectItem value="comercio">Comércio</SelectItem>
-                      <SelectItem value="industria">Indústria</SelectItem>
-                      <SelectItem value="servicos">Serviços</SelectItem>
-                      <SelectItem value="outros">Outros</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+        <CardContent className="space-y-6">
+          {/* Barra de Progresso */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-slate-700">
+                Etapa {passoAtual + 1} de {PASSOS.length}
+              </span>
+              <span className="text-sm text-slate-500">{Math.round(progresso)}% completo</span>
             </div>
-
-            <div className="flex justify-end pt-2">
-              <Button
-                onClick={() => setAvancar(avancar + 1)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 h-9 text-sm"
-                disabled={!nome || !nif || !endereco || !emailCorporativo}
-              >
-                Continuar
-              </Button>
+            <Progress value={progresso} className="h-2" />
+            
+            {/* Indicadores de Etapa */}
+            <div className="flex justify-between">
+              {PASSOS.map((passo, index) => {
+                const Icone = passo.icone
+                const ativo = index <= passoAtual
+                const concluido = index < passoAtual
+                
+                return (
+                  <div key={passo.numero} className="flex flex-col items-center flex-1">
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
+                      concluido ? "bg-green-500 text-white" :
+                      ativo ? "bg-blue-600 text-white" :
+                      "bg-slate-200 text-slate-400"
+                    )}>
+                      {concluido ? <CheckCircle className="w-4 h-4" /> : <Icone className="w-4 h-4" />}
+                    </div>
+                    <div className="text-center mt-2">
+                      <p className={cn(
+                        "text-xs font-medium transition-colors",
+                        ativo ? "text-blue-600" : "text-slate-400"
+                      )}>
+                        {passo.titulo}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
-        </div>
-      )}
 
-      {avancar === 1 && (
-        <div className="space-y-4">
-          <div className="text-center">
-            <h3 className="font-semibold text-slate-900 flex items-center justify-center gap-2">
-              <User className="w-4 h-4 text-blue-600" />
-              Dados do Representante
-            </h3>
-            <p className="text-xs text-slate-600">Informações do responsável</p>
-          </div>
+          {/* Conteúdo dos Passos */}
+          <div className="space-y-6">
+            {/* Passo 1: Dados Empresariais */}
+            {passoAtual === 0 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nomeEmpresa" className="text-sm font-medium flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      Nome da Empresa *
+                    </Label>
+                    <Input
+                      id="nomeEmpresa"
+                      placeholder="Digite a razão social"
+                      value={empresa.nome}
+                      onChange={(e) => atualizarEmpresa('nome', e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
 
-          <form onSubmit={cadastrarEmpresa} className="space-y-3">
-            <div className="grid grid-cols-1 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="nomeRepresentante" className="text-xs font-medium">
-                  Nome Completo *
-                </Label>
-                <Input
-                  id="nomeRepresentante"
-                  type="text"
-                  placeholder="Nome do representante"
-                  value={nomeRep}
-                  onChange={(e) => setRepNome(e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nif" className="text-sm font-medium flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      NIF/CNPJ *
+                    </Label>
+                    <Input
+                      id="nif"
+                      placeholder="000.000.000-00"
+                      value={formatarNIF(empresa.nif)}
+                      onChange={(e) => atualizarEmpresa('nif', e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="emailRep" className="text-xs font-medium">
-                    Email *
-                  </Label>
-                  <Input
-                    id="emailRep"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setRepEmail(e.target.value)}
-                    className="h-9 text-sm"
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="tipoEmpresa" className="text-sm font-medium">
+                      Tipo de Empresa *
+                    </Label>
+                    <Select value={empresa.tipoEmpresa} onValueChange={(v) => atualizarEmpresa('tipoEmpresa', v)}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mei">MEI</SelectItem>
+                        <SelectItem value="ltda">LTDA</SelectItem>
+                        <SelectItem value="sa">S.A.</SelectItem>
+                        <SelectItem value="eireli">EIRELI</SelectItem>
+                        <SelectItem value="ong">ONG/Associação</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="setorAtuacao" className="text-sm font-medium">
+                      Setor de Atuação *
+                    </Label>
+                    <Select value={empresa.setorAtuacao} onValueChange={(v) => atualizarEmpresa('setorAtuacao', v)}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Selecione o setor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SETORES_ATUACAO.map(setor => (
+                          <SelectItem key={setor} value={setor.toLowerCase().replace(/\s+/g, '-')}>
+                            {setor}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="endereco" className="text-sm font-medium flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Endereço Completo *
+                    </Label>
+                    <Input
+                      id="endereco"
+                      placeholder="Rua, número, bairro, cidade - Estado"
+                      value={empresa.endereco}
+                      onChange={(e) => atualizarEmpresa('endereco', e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="emailCorporativo" className="text-sm font-medium flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email Corporativo *
+                    </Label>
+                    <Input
+                      id="emailCorporativo"
+                      type="email"
+                      placeholder="contato@empresa.com"
+                      value={empresa.emailCorporativo}
+                      onChange={(e) => atualizarEmpresa('emailCorporativo', e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="telefoneEmpresa" className="text-sm font-medium flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Telefone Comercial *
+                    </Label>
+                    <Input
+                      id="telefoneEmpresa"
+                      placeholder="(00) 00000-0000"
+                      value={formatarTelefone(empresa.telefoneEmpresa)}
+                      onChange={(e) => atualizarEmpresa('telefoneEmpresa', e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor="telefone" className="text-xs font-medium">
-                    Telefone *
-                  </Label>
-                  <Input
-                    id="telefone"
-                    type="tel"
-                    placeholder="Telefone"
-                    value={telefone}
-                    onChange={(e) => settelefoneRe(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="cargo" className="text-xs font-medium">
-                    Cargo
-                  </Label>
-                  <Select value={cargo} onValueChange={setCargo}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Cargo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ceo">CEO</SelectItem>
-                      <SelectItem value="diretor">Diretor</SelectItem>
-                      <SelectItem value="gerente">Gerente</SelectItem>
-                      <SelectItem value="coordenador">Coordenador</SelectItem>
-                      <SelectItem value="proprietario">Proprietário</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="nivelAcesso" className="text-xs font-medium">
-                    Nível de Acesso *
-                  </Label>
-                  <Select value={nivelAcesso} onValueChange={setNivelAcesso}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Nível" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="gerente">Gerente</SelectItem>
-                      <SelectItem value="usuario">Usuário</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="senha" className="text-xs font-medium">
-                    Senha *
-                  </Label>
-                  <Input
-                    id="senha"
-                    type="password"
-                    placeholder="Senha"
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="confirmarSenha" className="text-xs font-medium">
-                    Confirmar *
-                  </Label>
-                  <Input
-                    id="confirmarSenha"
-                    type="password"
-                    placeholder="Confirmar"
-                    value={confirmarsenha}
-                    onChange={(e) => setconfirmarsenha(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </div>
-              </div>
-
-              {confirmarsenha && senha !== confirmarsenha && (
-                <p className="text-xs text-red-600">As senhas não coincidem</p>
-              )}
-            </div>
-
-            {senha && (
-              <div className="bg-slate-50 p-3 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-xs font-medium">Força da Senha</Label>
-                  <Badge
-                    variant={nivel === "Forte" ? "default" : nivel === "Média" ? "secondary" : "destructive"}
-                    className="text-xs"
+                <div className="flex justify-between pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCancel}
+                    className="px-6"
                   >
-                    {nivel}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  {Object.entries(criterios).map(([key, valido]) => (
-                    <CriterioItem key={key} valido={valido} texto={key} />
-                  ))}
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={avancarPasso}
+                    disabled={!passo1Valido()}
+                    className="px-6 bg-blue-600 hover:bg-blue-700"
+                  >
+                    Continuar
+                  </Button>
                 </div>
               </div>
             )}
 
-            <div className="flex justify-between pt-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAvancar(avancar - 1)}
-                className="px-4 h-9 text-sm"
-              >
-                Voltar
-              </Button>
-              <Button
-                type="submit"
-                className="bg-purple-600 hover:bg-blue-700 text-white px-6 h-9 text-sm"
-                disabled={
-                  !nomeRep ||
-                  !email ||
-                  !telefone ||
-                  !senha ||
-                  !confirmarsenha ||
-                  !nivelAcesso ||
-                  senha !== confirmarsenha
-                }
-              >
-                Cadastrar
-              </Button>
-            </div>
-          </form>
-        </div>
-      )}
+            {/* Passo 2: Representante Legal */}
+            {passoAtual === 1 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="nomeRepresentante" className="text-sm font-medium flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Nome Completo do Representante *
+                    </Label>
+                    <Input
+                      id="nomeRepresentante"
+                      placeholder="Nome completo do responsável legal"
+                      value={representante.nomeCompleto}
+                      onChange={(e) => atualizarRepresentante('nomeCompleto', e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="emailRepresentante" className="text-sm font-medium">
+                      Email Pessoal *
+                    </Label>
+                    <Input
+                      id="emailRepresentante"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={representante.email}
+                      onChange={(e) => atualizarRepresentante('email', e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="telefoneRepresentante" className="text-sm font-medium">
+                      Telefone/WhatsApp *
+                    </Label>
+                    <Input
+                      id="telefoneRepresentante"
+                      placeholder="(00) 00000-0000"
+                      value={formatarTelefone(representante.telefone)}
+                      onChange={(e) => atualizarRepresentante('telefone', e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cargo" className="text-sm font-medium flex items-center gap-2">
+                      <Briefcase className="w-4 h-4" />
+                      Cargo *
+                    </Label>
+                    <Select value={representante.cargo} onValueChange={(v) => atualizarRepresentante('cargo', v)}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Selecione o cargo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CARGOS.map(cargo => (
+                          <SelectItem key={cargo} value={cargo.toLowerCase().replace(/\s+/g, '-')}>
+                            {cargo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nivelAcesso" className="text-sm font-medium">
+                      Nível de Acesso *
+                    </Label>
+                    <Select value={representante.nivelAcesso} onValueChange={(v) => atualizarRepresentante('nivelAcesso', v)}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Selecione o nível" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrador Master</SelectItem>
+                        <SelectItem value="gerente">Gerente de RH</SelectItem>
+                        <SelectItem value="coordenador">Coordenador</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex justify-between pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={voltarPasso}
+                    className="px-6"
+                  >
+                    Voltar
+                  </Button>
+                  <Button
+                    onClick={avancarPasso}
+                    disabled={!passo2Valido()}
+                    className="px-6 bg-blue-600 hover:bg-blue-700"
+                  >
+                    Continuar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Passo 3: Segurança */}
+            {passoAtual === 2 && (
+              <form onSubmit={cadastrarEmpresa} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="senha" className="text-sm font-medium flex items-center gap-2">
+                      <Lock className="w-4 h-4" />
+                      Senha de Acesso *
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="senha"
+                        type={mostrarSenha ? "text" : "password"}
+                        placeholder="Mínimo 12 caracteres"
+                        value={seguranca.senha}
+                        onChange={(e) => atualizarSeguranca('senha', e.target.value)}
+                        className="h-10 pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-10 px-3"
+                        onClick={() => setMostrarSenha(!mostrarSenha)}
+                      >
+                        {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmarSenha" className="text-sm font-medium">
+                      Confirmar Senha *
+                    </Label>
+                    <Input
+                      id="confirmarSenha"
+                      type="password"
+                      placeholder="Digite novamente a senha"
+                      value={seguranca.confirmarSenha}
+                      onChange={(e) => atualizarSeguranca('confirmarSenha', e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Validação de Senha */}
+                {seguranca.senha && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <Label className="text-sm font-medium">Segurança da Senha</Label>
+                        <Badge variant={cor === "emerald" ? "default" : cor === "green" ? "secondary" : "destructive"}>
+                          {nivel}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <CriterioSenha valido={criterios.comprimento} texto="12+ caracteres" />
+                        <CriterioSenha valido={criterios.maiusculo} texto="Letra maiúscula" />
+                        <CriterioSenha valido={criterios.minusculo} texto="Letra minúscula" />
+                        <CriterioSenha valido={criterios.numero} texto="Número" />
+                        <CriterioSenha valido={criterios.simbolo} texto="Símbolo especial" />
+                        <CriterioSenha valido={criterios.sequencia} texto="Sem repetições" />
+                        <CriterioSenha valido={criterios.comum} texto="Não é comum" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {seguranca.confirmarSenha && seguranca.senha !== seguranca.confirmarSenha && (
+                  <div className="text-red-600 text-sm flex items-center gap-2">
+                    <XCircle className="w-4 h-4" />
+                    As senhas não coincidem
+                  </div>
+                )}
+
+                <div className="flex justify-between pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={voltarPasso}
+                    className="px-6"
+                  >
+                    Voltar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={!passo3Valido() || loading}
+                    className="px-6 bg-green-600 hover:bg-green-700"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Processando...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Finalizar Cadastro
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

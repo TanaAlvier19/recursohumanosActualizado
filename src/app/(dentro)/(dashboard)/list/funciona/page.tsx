@@ -6,6 +6,13 @@ import { DataGrid, type GridColDef, type GridEventListener } from "@mui/x-data-g
 import { ptBR } from "@mui/x-data-grid/locales"
 import { useState, useEffect } from "react"
 import Swal from "sweetalert2"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { buscarDados } from "@/lib/api"
@@ -19,7 +26,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FiPlus, FiUser, FiX, FiCheck, FiDownload, FiEye, FiFile } from "react-icons/fi"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-
+type Departamento = {
+  id: string;
+  nome: string;
+};
 const VisualizadorArquivo = ({ url, nome }: { url: string; nome: string }) => {
   const [abrir, setAbrir] = useState(false)
   const [tipoArquivo, setTipoArquivo] = useState("")
@@ -103,8 +113,10 @@ const VisualizadorArquivo = ({ url, nome }: { url: string; nome: string }) => {
 export default function EmployeeDashboard() {
   type valorcampo = string | File | null
   const search = useSearchParams()
+  const [salario_bruto, setsalario_bruto]=useState(0)
   const abrirDialog = search.get("abrirDialog") === "true"
   const [data, setData] = useState<any>()
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [campos, setCampos] = useState<Campo[]>([])
   const [valores, setValores] = useState<Record<string, valorcampo>>({})
   const [empresa, setEmpresa] = useState("")
@@ -112,7 +124,7 @@ export default function EmployeeDashboard() {
   const [abrir, setAbrir] = useState(abrirDialog)
   const [apresentar, setApresentar] = useState(false)
   const [loading, setLoading] = useState(true)
-
+  const [departamentoSelecionado, setDepartamentoSelecionado] = useState<string>('')
   const columns: GridColDef[] = campos.map((campo) => {
     return {
       field: campo.nome,
@@ -176,6 +188,7 @@ export default function EmployeeDashboard() {
         setLoading(false)
       }
     }
+    Departamanto()
     carregar()
   }, [])
 
@@ -216,6 +229,8 @@ export default function EmployeeDashboard() {
 
     formData.append("valores", JSON.stringify(valoresJSON))
     formData.append("empresa", "20866411-4d42-4115-9bc1-2ec6427ace1d")
+    formData.append("departamento", departamentoSelecionado)
+    formData.append("salario_bruto", JSON.stringify(salario_bruto))
 
     try {
       const res = await fetch("http://localhost:8000/valores/", {
@@ -280,9 +295,29 @@ export default function EmployeeDashboard() {
       })
       const data: ValoresAPI[] = await res.json()
       if (res.ok) {
+        
         setRow(data)
+        
+        console.log("NOO",data)
       } else {
         throw new Error("Falha ao buscar valores")
+      }
+    } catch (err) {
+      Swal.fire("Erro", "Falha ao buscar dados dos funcionários", "error")
+    }
+  }
+  const Departamanto = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/departamentos/", {
+        method: "GET",
+        credentials: "include",
+      })
+      const data = await res.json() 
+      if (res.ok) {
+        setDepartamentos(data.dados)
+        console.log("Departamentos",data.dados)
+      } else {
+        throw new Error("Falha ao buscar Departamentos")
       }
     } catch (err) {
       Swal.fire("Erro", "Falha ao buscar dados dos funcionários", "error")
@@ -372,30 +407,61 @@ export default function EmployeeDashboard() {
                             )}
                           </>
                         ) : (
-                          <Input
-                            id={campo.nome}
-                            type={campo.tipo}
-                            required={campo.obrigatorio}
-                            placeholder={`Digite ${campo.nome.toLowerCase()}`}
-                            value={(valores[campo.nome] as string) || ""}
-                            onChange={(e) => {
-                              setValores((prev) => ({
-                                ...prev,
-                                [campo.nome]: e.target.value,
-                              }))
-                            }}
-                            className={cn(
-                              "border border-gray-300 rounded-lg px-4 py-3 shadow-sm focus:outline-none focus:ring-2 transition duration-150",
-                              campo.obrigatorio && !valores[campo.nome]
-                                ? "focus:ring-red-300"
-                                : "focus:ring-purple-500",
-                            )}
-                          />
+                          <>
+                            <Input
+                              id={campo.nome}
+                              type={campo.tipo}
+                              required={campo.obrigatorio}
+                              placeholder={`Digite ${campo.nome.toLowerCase()}`}
+                              value={(valores[campo.nome] as string) || ""}
+                              onChange={(e) => {
+                                setValores((prev) => ({
+                                  ...prev,
+                                  [campo.nome]: e.target.value,
+                                }))
+                              }}
+                              className={cn(
+                                "border border-gray-300 rounded-lg px-4 py-3 shadow-sm focus:outline-none focus:ring-2 transition duration-150",
+                                campo.obrigatorio && !valores[campo.nome]
+                                  ? "focus:ring-red-300"
+                                  : "focus:ring-purple-500",
+                              )}
+                            />
+                          </>
                         )}
+
                       </div>
                     ))}
                   </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
+                      <div className='flex flex-col gap-2'>
+                  <Label htmlFor="departamento">Departamento</Label>
+                  <Select value={departamentoSelecionado} onValueChange={setDepartamentoSelecionado}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione um departamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departamentos.map((departamento) => (
+                        <SelectItem key={departamento.id} value={departamento.id}>
+                          {departamento.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                      <div>
+                        <Label>Salário Bruto</Label>
+                      <Input
 
+                      value={salario_bruto}
+                      onChange={(e)=>setsalario_bruto(Number(e.target.value))}
+                      type="number"
+                      placeholder="300.000"
+                      required
+                      className="border border-gray-300 rounded-lg px-4 py-3 shadow-sm focus:outline-none focus:ring-2 transition duration-150"
+                      
+                      /></div>
+                    </div>
                   <div className="flex justify-end gap-3 mt-4">
                     <Button variant="outline" type="button" onClick={() => setAbrir(false)} className="border-gray-300">
                       Cancelar
