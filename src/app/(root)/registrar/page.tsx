@@ -77,7 +77,7 @@ interface SegurancaData {
   confirmarSenha: string
 }
 
-export default function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
+export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   const router = useRouter()
   const [passoAtual, setPassoAtual] = useState(0)
   const [loading, setLoading] = useState(false)

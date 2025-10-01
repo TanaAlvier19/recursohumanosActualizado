@@ -404,8 +404,19 @@ const RecrutamentoDashboard = () => {
   const [tipoVaga, setTipoVaga] = useState('')
   const [titulo, setTitulo] = useState('')
   const { metrics } = useRecruitmentMetrics();
+  const [tipoContrato, setTipoContrato] = useState("");
+const [nivel, setNivel] = useState("");
+const [modalidade, setModalidade] = useState("");
+const [vagasDisponiveis, setVagasDisponiveis] = useState(1);
+const [cidade, setCidade] = useState("");
+const [salarioMin, setSalarioMin] = useState("");
+const [salarioMax, setSalarioMax] = useState("");
+const [requisitosObrigatorios, setRequisitosObrigatorios] = useState("");
+const [requisitosDesejaveis, setRequisitosDesejaveis] = useState("");
+const [prazoInscricao, setPrazoInscricao] = useState("");
+const [previsaoInicio, setPrevisaoInicio] = useState("");
+const [etapasProcesso, setEtapasProcesso] = useState("");
 
-  const [nivel, setnivel]=useState('')
   const [contrato, setcontrato]=useState('')
   const [loading,setLoading]=useState(false)
   /* const { vagas, loading } = useVagas(); */
