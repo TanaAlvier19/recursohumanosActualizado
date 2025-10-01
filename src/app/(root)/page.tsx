@@ -89,7 +89,7 @@ const Homepage = () => {
               className="mt-8 text-center"
             >
               <p className="text-slate-500 text-sm max-w-md">
-                Preparando sua experiência premium em gestão de RH...
+                Preparando sua experiência  em gestão de RH...
               </p>
             </motion.div>
           </motion.div>

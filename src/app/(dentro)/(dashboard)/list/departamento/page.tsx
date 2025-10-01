@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useContext } from 'react'
 import { AuthContext } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 import Swal from "sweetalert2"
+import { Button } from '@/components/ui/button'
 import { MetricCard } from "@/components/metrcCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import {Users, DollarSign,Building} from "lucide-react"
@@ -135,7 +136,7 @@ const buscardepartamentos=async()=>{
     <div 
     
      className="container mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Gestão de Departamentos</h1>
+      <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Gestão de Departamentos</h1>
       
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div className="w-full md:w-1/2">
@@ -456,12 +457,12 @@ function DepartamentoForm({
         >
           Cancelar
         </button>
-        <button
+        <Button
           onClick={() => onSave(formData)}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
           Salvar Departamento
-        </button>
+        </Button>
       </div>
     </div>
   )

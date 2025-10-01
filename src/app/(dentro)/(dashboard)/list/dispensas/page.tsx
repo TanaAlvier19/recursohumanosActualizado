@@ -362,7 +362,7 @@ export default function AdminLeavesPage() {
     <div className="p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Gestão de Dispensas</h1>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Gestão de Dispensas</h1>
           <p className="text-gray-600">
             {filteredLeaves.length} {filteredLeaves.length === 1 ? 'registro encontrado' : 'registros encontrados'}
           </p>

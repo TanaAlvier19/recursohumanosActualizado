@@ -6,8 +6,8 @@ interface MetricCardProps {
   value: string | number
   icon?: LucideIcon
   trend?: {
-    value: string
-    positive: boolean
+    value: string | number
+    isPositive: boolean
   }
   description?: string
   color?: string
@@ -19,7 +19,7 @@ export function MetricCard({
   icon: Icon,
   trend,
   description,
-  color = "bg-purple-500"
+  color = "bg-gradient-to-r from-cyan-400 to-blue-500"
 }: MetricCardProps) {
   return (
     <Card>
@@ -39,8 +39,8 @@ export function MetricCard({
         {(trend || description) && (
           <div className="mt-4 flex items-center gap-1 text-sm">
             {trend && (
-              <span className={`flex items-center ${trend.positive ? 'text-green-500' : 'text-red-500'}`}>
-                {trend.positive ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+              <span className={`flex items-center ${trend.isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                {trend.isPositive ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
                 {trend.value}
               </span>
             )}

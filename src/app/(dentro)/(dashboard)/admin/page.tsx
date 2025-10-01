@@ -185,7 +185,7 @@ const cumprimento=`${(hora<12 && 'Bom Dia')||(hora<17 && 'Boa tarde')|| 'Boa Noi
   return (
     <div 
     
-    className=" bg-gray-50 p-6 space-y-8">
+    className="  p-6 space-y-8">
       <div className="flex justify-between items-center ">
         {carregar ? (
           <div className="space-y-2">
@@ -194,7 +194,7 @@ const cumprimento=`${(hora<12 && 'Bom Dia')||(hora<17 && 'Boa tarde')|| 'Boa Noi
           </div>
         ) : (
           <>
-            <h1 className="font-extrabold text-purple-500 text-2xl">{cumprimento}, {nome}</h1>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">{cumprimento}, {nome}</h1>
             <p className="text-gray-600">Aqui está o resumo das operações de RH</p>
           </>
         )}

@@ -111,45 +111,42 @@ const menuItems = [
   },
 ];
 
-const Menu = () => {
+interface MenuProps {
+  isCollapsed: boolean;
+  onCollapseToggle: () => void;
+  onItemClick?: () => void;
+}
+
+const Menu = ({ isCollapsed, onCollapseToggle, onItemClick }: MenuProps) => {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
   return (
     <div className={`
       relative h-screen bg-gradient-to-b from-slate-900 to-slate-800 
       transition-all duration-300 ease-in-out
-      ${isCollapsed ? 'w-20' : 'w-64'}
+      ${isCollapsed ? 'w-20' : 'w-64 xl:w-72'}
       border-r border-slate-700 flex flex-col
     `}>
       <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={onCollapseToggle}
         className="absolute -right-3 top-6 bg-slate-800 hover:bg-slate-700 
                  rounded-full p-1 border border-slate-600 transition-all duration-200 z-10"
       >
-        {isCollapsed ? (
-          <ChevronRight className="w-4 h-4 text-white" />
-        ) : (
-          <ChevronLeft className="w-4 h-4 text-white" />
-        )}
+        
       </button>
 
       <div className="p-6 border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg p-2">
-            <Image 
-              src="/logo.png" 
-              alt="Logo" 
-              width={24} 
-              height={24}
-              className="filter brightness-0 invert"
-            />
+          <div className="bg-gradient-to-r from-cyan-500 to-blue-600 p-2 rounded-lg">
+            <div className="bg-gray-900 p-2 rounded-md">
+              <div className="bg-gray-800 w-2 h-2 rounded-sm" />
+            </div>
           </div>
           {!isCollapsed && (
             <div>
-              <h1 className="text-white font-bold text-lg">RH System</h1>
-              <p className="text-slate-400 text-xs">Professional Suite</p>
+              <h1 className="text-white font-bold text-lg">AVD Soluções</h1>
+              <p className="text-slate-400 text-xs">Tecnologia RH</p>
             </div>
           )}
         </div>
@@ -175,6 +172,7 @@ const Menu = () => {
                     <Link
                       href={item.href}
                       key={item.label}
+                      onClick={onItemClick}
                       className={`
                         flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group relative
                         ${isActive 
@@ -194,7 +192,6 @@ const Menu = () => {
                         }
                       `}>
                         {item.icon}
-                        {/* Active indicator dot */}
                         {isActive && (
                           <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
                         )}
@@ -206,7 +203,6 @@ const Menu = () => {
                         </span>
                       )}
                       
-                      {/* Tooltip for collapsed state */}
                       {isCollapsed && (
                         <div className={`
                           absolute left-full ml-2 px-3 py-2 bg-slate-900 text-white text-sm 
@@ -215,14 +211,12 @@ const Menu = () => {
                           ${activeGroup === group.title ? 'translate-x-0' : 'translate-x-2'}
                         `}>
                           {item.label}
-                          {/* Tooltip arrow */}
                           <div className="absolute right-full top-1/2 transform -translate-y-1/2">
                             <div className="w-2 h-2 bg-slate-900 rotate-45"></div>
                           </div>
                         </div>
                       )}
 
-                      {/* Active item indicator for collapsed state */}
                       {isCollapsed && isActive && (
                         <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
@@ -237,7 +231,6 @@ const Menu = () => {
         </div>
       </div>
 
-      {/* User Profile */}
       {!isCollapsed && (
         <div className="border-t border-slate-700 flex-shrink-0">
           <div className="p-4">
@@ -255,7 +248,6 @@ const Menu = () => {
         </div>
       )}
 
-      {/* Collapsed User Profile */}
       {isCollapsed && (
         <div className="border-t border-slate-700 flex-shrink-0">
           <div className="p-4 flex justify-center">
@@ -263,7 +255,6 @@ const Menu = () => {
                           flex items-center justify-center shadow-lg group relative">
               <span className="text-white font-bold text-xs">AD</span>
               
-              {/* Tooltip for user */}
               <div className="absolute left-full ml-2 px-3 py-2 bg-slate-900 text-white text-sm 
                             rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200
                             pointer-events-none whitespace-nowrap z-50 border border-slate-700">
@@ -281,4 +272,4 @@ const Menu = () => {
   );
 };
 
-export default Menu; 
+export default Menu;
