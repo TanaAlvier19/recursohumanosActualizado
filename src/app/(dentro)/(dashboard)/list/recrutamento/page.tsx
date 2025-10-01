@@ -1090,317 +1090,59 @@ const [etapasProcesso, setEtapasProcesso] = useState("");
         </div>
 
         {/* Modal Nova Vaga */}
-       <Dialog open={modalVagaAberto} onOpenChange={setModalVagaAberto}>
-  <DialogContent className="sm:max-w-[800px] bg-white border-slate-200 text-slate-900 max-h-[90vh] overflow-y-auto">
-    <DialogHeader className="space-y-3 border-b border-slate-200 pb-4">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50">
-        <Briefcase className="h-7 w-7 text-blue-600" />
-      </div>
-      <DialogTitle className="text-2xl font-bold text-center text-slate-900">
-        Cadastrar Nova Vaga
-      </DialogTitle>
-      <DialogDescription className="text-center text-slate-500">
-        Preencha todas as informações necessárias para publicar a vaga
-      </DialogDescription>
-    </DialogHeader>
-    
-    <div className="space-y-8 py-6">
-      {/* Seção: Informações Básicas */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-800 border-b border-slate-200 pb-2">
-          Informações Básicas
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="titulo" className="text-sm font-medium text-slate-700 flex items-center gap-1">
-              Título da Vaga <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="titulo"
-              required
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              placeholder="Ex: Desenvolvedor Frontend Sênior"
-              className="bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-500"
-            />
-          </div>
-          
-          <div className='space-y-2'>
-                <Label htmlFor="departamento">Departamento *</Label>
-                <Select value={departamentoSelecionado} onValueChange={setDepartamentoSelecionado}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione departamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departamentos.map((departamento) => (
-                      <SelectItem key={departamento.id} value={departamento.id}>
-                        {departamento.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="descricao" className="text-sm font-medium text-slate-700 flex items-center gap-1">
-            Descrição da Vaga <span className="text-red-500">*</span>
-          </Label>
-          <textarea
-            id="descricao"
-            value={descricao}
-            onChange={(e) => setdescricao(e.target.value)}
-
-            rows={4}
-            placeholder="Descreva as responsabilidades, objetivos e missão do cargo..."
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-800 border-b border-slate-200 pb-2">
-          Detalhes do Cargo
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="tipoContrato" className="text-sm font-medium text-slate-700">
-              Tipo de Contrato
-            </Label>
-            <Select>
-              <SelectTrigger className="bg-white border-slate-300 text-slate-900">
-                <SelectValue placeholder="Selecionar" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border-slate-300">
-                <SelectItem value="ESTAGIO">Estágio</SelectItem>
-                <SelectItem value="EFECTIVO">Efectivo</SelectItem>
-                <SelectItem value="TEMPORARIO">Temporário</SelectItem>
-                <SelectItem value="FREELANCE">Freelance</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="nivel" className="text-sm font-medium text-slate-700">
-              Nível
-            </Label>
-            <Select>
-              <SelectTrigger className="bg-white border-slate-300 text-slate-900">
-                <SelectValue placeholder="Selecionar" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border-slate-300">
-                <SelectItem value="ESTAGIARIO">Estagiário</SelectItem>
-                <SelectItem value="JUNIOR">Júnior</SelectItem>
-                <SelectItem value="PLENO">Pleno</SelectItem>
-                <SelectItem value="SENIOR">Sênior</SelectItem>
-                <SelectItem value="ESPECIALISTA">Especialista</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="modalidade" className="text-sm font-medium text-slate-700">
-              Modalidade
-            </Label>
-            <Select>
-              <SelectTrigger className="bg-white border-slate-300 text-slate-900">
-                <SelectValue placeholder="Selecionar" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border-slate-300">
-                <SelectItem value="PRESENCIAL">Presencial</SelectItem>
-                <SelectItem value="HIBRIDO">Híbrido</SelectItem>
-                <SelectItem value="REMOTO">Remoto</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="vagasDisponiveis" className="text-sm font-medium text-slate-700">
-              Vagas Disponíveis
-            </Label>
-            <Input
-              id="vagasDisponiveis"
-              type="number"
-              min="1"
-              placeholder="Ex: 2"
-              className="bg-white border-slate-300 text-slate-900"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-800 border-b border-slate-200 pb-2">
-          Localização e Remuneração
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="cidade" className="text-sm font-medium text-slate-700">
-                Cidade
-              </Label>
-              <Input
-                id="cidade"
-                placeholder="Ex: Luanda"
-                className="bg-white border-slate-300 text-slate-900"
-              />
-            </div>
+        <Dialog open={modalRelatorioAberto} onOpenChange={setModalRelatorioAberto}>
+          <DialogContent className="sm:max-w-[500px] bg-slate-800 border-slate-600">
+            <DialogHeader>
+              <DialogTitle className="text-white">Gerar Relatório</DialogTitle>
+              <DialogDescription className="text-slate-400">
+                Selecione o tipo de relatório desejado
+              </DialogDescription>
+            </DialogHeader>
             
-           
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="salarioMin" className="text-sm font-medium text-slate-700">
-                  Salário Mínimo (KZ)
-                </Label>
-                <Input
-                  id="salarioMin"
-                  type="number"
-                  required
-                  placeholder="5000"
-                  className="bg-white border-slate-300 text-slate-900"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="salarioMax" className="text-sm font-medium text-slate-700">
-                  Salário Máximo (KZ)
-                </Label>
-                <Input
-                  id="salarioMax"
-                  required
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <Label className="text-slate-300">Tipo de Relatório</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex-col border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => exportarRelatorio('candidatos')}
+                  >
+                    <Users className="h-6 w-6 mb-2 text-cyan-400" />
+                    <span className="text-sm">Candidatos</span>
+                  </Button>
                   
-                  type="number"
-                  placeholder="8000"
-                  className="bg-white border-slate-300 text-slate-900"
-                />
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex-col border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => exportarRelatorio('vagas')}
+                  >
+                    <Briefcase className="h-6 w-6 mb-2 text-green-400" />
+                    <span className="text-sm">Vagas</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex-col border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => exportarRelatorio('entrevistas')}
+                  >
+                    <Calendar className="h-6 w-6 mb-2 text-purple-400" />
+                    <span className="text-sm">Entrevistas</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex-col border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => exportarRelatorio('desempenho')}
+                  >
+                    <TrendingUp className="h-6 w-6 mb-2 text-orange-400" />
+                    <span className="text-sm">Desempenho</span>
+                  </Button>
+                </div>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">
-                Benefícios
-              </Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-2">
-                  <input type="checkbox" id="vr" className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                  <Label htmlFor="vr" className="text-sm text-slate-700">Vale Refeição</Label>
-                </div>
-                  <input type="checkbox" id="vt" className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                  <Label htmlFor="vt" className="text-sm text-slate-700">Vale Transporte</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input type="checkbox" id="planoSaude" className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                  <Label htmlFor="planoSaude" className="text-sm text-slate-700">Plano de Saúde</Label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-800 border-b border-slate-200 pb-2">
-          Requisitos e Qualificações
-        </h3>
-        
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="requisitosObrigatorios" className="text-sm font-medium text-slate-700">
-              Requisitos Obrigatórios
-            </Label>
-            <textarea
-              id="requisitosObrigatorios"
-              rows={3}
-              
-              placeholder="Liste os requisitos essenciais para a vaga..."
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-slate-900 placeholder-slate-400 focus:border-blue-500 resize-none"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="requisitosDesejaveis" className="text-sm font-medium text-slate-700">
-              Requisitos Desejáveis
-            </Label>
-            <textarea
-              id="requisitosDesejaveis"
-              rows={2}
-              placeholder="Liste os requisitos que seriam um diferencial..."
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-slate-900 placeholder-slate-400 focus:border-blue-500 resize-none"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Seção: Processo Seletivo */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-800 border-b border-slate-200 pb-2">
-          Processo Seletivo
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="prazoInscricao" className="text-sm font-medium text-slate-700">
-              Prazo para Inscrições
-            </Label>
-            <Input
-              id="prazoInscricao"
-              type="date"
-              className="bg-white border-slate-300 text-slate-900"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="previsaoInicio" className="text-sm font-medium text-slate-700">
-              Previsão de Início
-            </Label>
-            <Input
-              id="previsaoInicio"
-              type="date"
-              className="bg-white border-slate-300 text-slate-900"
-            />
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="etapasProcesso" className="text-sm font-medium text-slate-700">
-            Etapas do Processo
-          </Label>
-          <textarea
-            id="etapasProcesso"
-            rows={2}
-            placeholder="Descreva as etapas do processo seletivo..."
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-slate-900 placeholder-slate-400 focus:border-blue-500 resize-none"
-          />
-        </div>
-      </div>
-
-      {/* Botões de Ação */}
-      <div className="flex gap-3 pt-4 border-t border-slate-200">
-        <Button 
-          variant="outline"
-          className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
-          onClick={() => setModalVagaAberto(false)}
-        >
-          Cancelar
-        </Button>
-        <Button 
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5"
-          onClick={criarVaga}
-        >
-          <Briefcase className="mr-2 h-5 w-5" />
-          Publicar Vaga
-        </Button>
-      </div>
-    </div>
-  </DialogContent>
-</Dialog>
+          </DialogContent>
+        </Dialog>
 
         {/* Modal Relatório */}
         <Dialog open={modalRelatorioAberto} onOpenChange={setModalRelatorioAberto}>
