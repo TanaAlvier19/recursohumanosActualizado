@@ -77,7 +77,7 @@ interface SegurancaData {
   confirmarSenha: string
 }
 
-export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
+export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   const router = useRouter()
   const [passoAtual, setPassoAtual] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -312,7 +312,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   const progresso = ((passoAtual + 1) / PASSOS.length) * 100
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto py-20 " >
       <Card className="border-0 shadow-xl">
         <CardHeader className="text-center pb-4">
           <div className="mx-auto w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center mb-3">
