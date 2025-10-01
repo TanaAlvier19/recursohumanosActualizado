@@ -39,7 +39,7 @@ const FeedbackSatisfacao = () => {
         const timer = setTimeout(() => {
           setIsOpen(true);
           localStorage.setItem('feedbackShown', 'true');
-        }, 2000); // Pequeno delay para não ser intrusivo
+        }, 2000); 
         
         return () => clearTimeout(timer);
       }
@@ -63,7 +63,6 @@ const FeedbackSatisfacao = () => {
       }
     };
 
-    // Eventos que indicam interação do usuário
     document.addEventListener('click', handleUserInteraction);
     document.addEventListener('scroll', handleUserInteraction);
     document.addEventListener('keydown', handleUserInteraction);
@@ -119,7 +118,6 @@ const FeedbackSatisfacao = () => {
         setComment("");
         setIsOpen(false);
         
-        // Marcar como enviado para não mostrar novamente
         localStorage.setItem('feedbackSubmitted', 'true');
       } else {
         throw new Error("Falha ao enviar feedback");
@@ -184,7 +182,6 @@ const FeedbackSatisfacao = () => {
     return emojis[rating as keyof typeof emojis] || "⭐";
   };
 
-  // Não renderizar se o usuário já enviou feedback
   if (localStorage.getItem('feedbackSubmitted') === 'true') {
     return null;
   }
@@ -250,7 +247,6 @@ const FeedbackSatisfacao = () => {
                   </motion.p>
                 </div>
 
-                {/* Comentário - Aparece apenas após avaliação */}
                 <AnimatePresence>
                   {rating > 0 && (
                     <motion.div
@@ -260,9 +256,9 @@ const FeedbackSatisfacao = () => {
                       className="space-y-3 overflow-hidden"
                     >
                       <Label htmlFor="comment" className="text-sm font-medium">
-                        {rating >= 4 ? "O que mais você gostou? 😊" : 
-                         rating <= 2 ? "Como podemos melhorar? 🤔" : 
-                         "Tem alguma sugestão? 💡"}
+                        {rating >= 4 ? "O que mais você gostou? " : 
+                         rating <= 2 ? "Como podemos melhorar? " : 
+                         "Tem alguma sugestão? "}
                       </Label>
                       <Textarea
                         id="comment"
@@ -279,7 +275,6 @@ const FeedbackSatisfacao = () => {
                   )}
                 </AnimatePresence>
 
-                {/* Botões de Ação */}
                 <div className="flex gap-3 pt-2">
                   <Button
                     variant="outline"
@@ -311,7 +306,6 @@ const FeedbackSatisfacao = () => {
                   </Button>
                 </div>
 
-                {/* Informação de Privacidade */}
                 <motion.p 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
