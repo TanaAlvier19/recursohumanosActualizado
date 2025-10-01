@@ -49,7 +49,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Courses } from "./columns"
 
-import { Textarea } from "@material-tailwind/react"
+import { Textarea } from "@/components/ui/textarea"
 import { Plus } from "lucide-react"
 import {
   Select,
@@ -534,7 +534,7 @@ const table = useReactTable({
           <Textarea 
                 value={descricao}
                 onChange={(e) => setdescricao(e.target.value)}
-                placeholder="Descrição detalhada da formação" onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}          />
+                placeholder="Descrição detalhada da formação"          />
         </div>
         
         <div className="space-y-2">
