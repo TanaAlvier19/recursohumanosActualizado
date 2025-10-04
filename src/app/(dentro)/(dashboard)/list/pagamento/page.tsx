@@ -14,7 +14,6 @@ import {
   CheckCircle,
   Download,
   Plus,
-  Edit,
   Eye,
   Search,
   Filter,
@@ -67,54 +66,62 @@ declare module "jspdf" {
   }
 }
 
-type Pagamento = {
+type Recibo = {
   id: string
-  nome: string
-  cargo: string
-  departamento: string
+  funcionario: {
+    id: string
+    valores: {
+      nome: string
+      cargo?: string
+    }
+  }
+  departamento?: string
   salario_bruto: number
   salario_liquido: number
-  mes_referencia: string
-  status: "pago" | "pendente" | "atrasado"
+  mes_referencia: number
+  ano_referencia: number
+  status: "PAGO" | "PENDENTE" | "VISUALIZADO" | "BAIXADO"
   data_pagamento?: string
-  beneficios: number
-  descontos: number
-  horas_extras: number
-  inadimplencia: number
+  total_vencimentos: number
+  total_descontos: number
+  horas_extras?: number
 }
 
 type Funcionario = {
   id: string
-  nome: string
-  email: string
-  cargo: string
-  departamento: string
-  data_admissao: string
-  salario_base: number
-  status: "ativo" | "afastado" | "ferias" | "desligado"
+  valores: {
+    nome: string
+    email?: string
+    cargo?: string
+  }
+  departamento?: string
+  data_criacao: string
+  salario_bruto: number
+  status?: string
 }
 
 type Departamento = {
   id: string
   nome: string
-  orcamento: number
-  funcionarios_count: number
-  custo_total: number
+  orcamento?: number
+  funcionarios_count?: number
+  custo_total?: number
 }
 
 type Beneficio = {
   id: string
-  nome: string
-  tipo: "saude" | "alimentacao" | "transporte" | "educacao" | "outros"
+  tipo: string
+  descricao: string
   valor: number
-  ativo: boolean
+  status: "ativo" | "inativo"
+  recorrente: boolean
 }
 
 const FolhaPagamento = () => {
   const router = useRouter()
   const { toast } = useToast()
 
-  const [pagamentos, setPagamentos] = useState<Pagamento[]>([])
+  const [recibos, setRecibos] = useState<Recibo[]>([])
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [beneficios, setBeneficios] = useState<Beneficio[]>([])
@@ -167,32 +174,42 @@ const FolhaPagamento = () => {
     try {
       setLoading(true)
 
-      // Fazer apenas as requisições que EXISTEM no seu backend
-      const [funcionariosRes, departamentosRes, beneficiosRes] = await Promise.all([
-        fetch("http://localhost:8000/funcionarios/", { credentials: "include" }),
+      // Buscar dados básicos em paralelo
+      const [funcionariosRes, departamentosRes, beneficiosRes, recibosRes] = await Promise.all([
+        fetch("http://localhost:8000/valores/", { credentials: "include" }),
         fetch("http://localhost:8000/departamentos/", { credentials: "include" }),
-        fetch("http://localhost:8000/beneficios/", { credentials: "include" })
+        fetch("http://localhost:8000/beneficios/", { credentials: "include" }),
+        fetch("http://localhost:8000/recibos/", { credentials: "include" }),
       ])
 
-      // Processar respostas com verificação de erro
+      // Processar funcionários
       if (funcionariosRes.ok) {
         const funcionariosData = await funcionariosRes.json()
         setFuncionarios(Array.isArray(funcionariosData) ? funcionariosData : [])
       }
 
+      // Processar departamentos
       if (departamentosRes.ok) {
         const departamentosData = await departamentosRes.json()
         setDepartamentos(Array.isArray(departamentosData) ? departamentosData : [])
       }
 
+      // Processar benefícios
       if (beneficiosRes.ok) {
         const beneficiosData = await beneficiosRes.json()
         setBeneficios(Array.isArray(beneficiosData) ? beneficiosData : [])
       }
 
+      // Processar recibos
+      if (recibosRes.ok) {
+        const recibosData = await recibosRes.json()
+        setRecibos(Array.isArray(recibosData) ? recibosData : [])
+      }
+
+      // Buscar resumo da folha
       try {
-        const resumoRes = await fetch("http://localhost:8000/resumo-folha-completo/", { 
-          credentials: "include" 
+        const resumoRes = await fetch("http://localhost:8000/resumo-folha-completo/", {
+          credentials: "include",
         })
         if (resumoRes.ok) {
           const resumoData = await resumoRes.json()
@@ -201,12 +218,14 @@ const FolhaPagamento = () => {
           calcularResumoLocal()
         }
       } catch (error) {
+        console.log("Resumo não disponível, calculando localmente")
         calcularResumoLocal()
       }
 
+      // Buscar histórico
       try {
-        const historicoRes = await fetch("http://localhost:8000/historico-folha/", { 
-          credentials: "include" 
+        const historicoRes = await fetch("http://localhost:8000/historico-folha/", {
+          credentials: "include",
         })
         if (historicoRes.ok) {
           const historicoData = await historicoRes.json()
@@ -216,6 +235,7 @@ const FolhaPagamento = () => {
         console.log("Histórico não disponível")
       }
 
+      // Buscar relatório mensal
       try {
         const relatorioRes = await fetch("http://localhost:8000/relatorio-mensal-completo/", {
           credentials: "include",
@@ -227,8 +247,8 @@ const FolhaPagamento = () => {
       } catch (error) {
         console.log("Relatório mensal não disponível")
       }
-
     } catch (error) {
+      console.error("Erro ao carregar dados:", error)
       toast({
         title: "Erro",
         description: "Falha ao carregar dados do sistema",
@@ -239,54 +259,65 @@ const FolhaPagamento = () => {
       setLoading(false)
     }
   }
-const calcularResumoLocal = () => {
-    const funcionariosAtivos = funcionarios.filter(f => f.status === "ativo")
-    const beneficiosAtivos = beneficios.filter(b => b.ativo)
-    
-    const totalFolha = funcionariosAtivos.reduce((sum, func) => sum + func.salario_base, 0)
-    const totalBeneficios = beneficiosAtivos.reduce((sum, benef) => sum + benef.valor, 0)
-    const mediaSalarial = funcionariosAtivos.length > 0 
-      ? totalFolha / funcionariosAtivos.length 
-      : 0
+
+  const calcularResumoLocal = () => {
+    const funcionariosAtivos = funcionarios.filter((f) => !f.status || f.status === "ativo")
+    const beneficiosAtivos = beneficios.filter((b) => b.status === "ativo")
+
+    const totalFolha = funcionariosAtivos.reduce((sum, func) => sum + (func.salario_bruto || 0), 0)
+    const totalBeneficios = beneficiosAtivos.reduce((sum, benef) => sum + (benef.valor || 0), 0)
+    const mediaSalarial = funcionariosAtivos.length > 0 ? totalFolha / funcionariosAtivos.length : 0
 
     const hoje = new Date()
     const proximoPagamento = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 5)
+
+    // Calcular folha pendente dos recibos
+    const folhaPendente = recibos
+      .filter((r) => r.status === "PENDENTE")
+      .reduce((sum, r) => sum + (r.salario_liquido || 0), 0)
 
     setResumo({
       total_folha: totalFolha,
       funcionarios: funcionarios.length,
       funcionarios_ativos: funcionariosAtivos.length,
       media_salarial: mediaSalarial,
-      proximo_pagamento: proximoPagamento.toLocaleDateString('pt-BR'),
+      proximo_pagamento: proximoPagamento.toLocaleDateString("pt-BR"),
       total_beneficios: totalBeneficios,
-      total_descontos: totalFolha * 0.15, // Estimativa de 15% em descontos
-      folha_pendente: 0,
+      total_descontos: totalFolha * 0.15,
+      folha_pendente: folhaPendente,
     })
+
+    // Calcular relatório mensal dos recibos
+    const hoje_mes = hoje.getMonth() + 1
+    const hoje_ano = hoje.getFullYear()
+    const recibosMesAtual = recibos.filter((r) => r.mes_referencia === hoje_mes && r.ano_referencia === hoje_ano)
 
     setRelatorioMensal({
-      funcionarios_pagos: funcionariosAtivos.length,
-      impostos_pagos: totalFolha * 0.15,
+      funcionarios_pagos: recibosMesAtual.filter((r) => r.status === "PAGO").length,
+      impostos_pagos: recibosMesAtual.reduce((sum, r) => sum + (r.total_descontos || 0), 0),
       total_beneficios: totalBeneficios,
-      total_horas_extras: 0,
+      total_horas_extras: recibosMesAtual.reduce((sum, r) => sum + (r.horas_extras || 0), 0),
     })
   }
-
 
   useEffect(() => {
     fetchData()
   }, [])
 
-  const pagamentosFiltrados = pagamentos.filter((pagamento) => {
+  const recibosFiltrados = recibos.filter((recibo) => {
+    const nome = recibo.funcionario?.valores?.nome || ""
+    const cargo = recibo.funcionario?.valores?.cargo || ""
+
     const matchesSearch =
-      pagamento.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pagamento.cargo.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "todos" || pagamento.status === statusFilter
-    const matchesDepartamento = departamentoFilter === "todos" || pagamento.departamento === departamentoFilter
+      nome.toLowerCase().includes(searchTerm.toLowerCase()) || cargo.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesStatus = statusFilter === "todos" || recibo.status === statusFilter.toUpperCase()
+    const matchesDepartamento = departamentoFilter === "todos" || recibo.departamento === departamentoFilter
 
     return matchesSearch && matchesStatus && matchesDepartamento
   })
 
-  const funcionariosAtivos = funcionarios.filter((f) => f.status === "ativo")
+  const funcionariosAtivos = funcionarios.filter((f) => !f.status || f.status === "ativo")
 
   const processarFolha = async () => {
     if (!mesReferencia) {
@@ -381,7 +412,16 @@ const calcularResumoLocal = () => {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(novoFuncionario),
+        body: JSON.stringify({
+          valores: {
+            nome: novoFuncionario.nome,
+            email: novoFuncionario.email,
+            cargo: novoFuncionario.cargo,
+          },
+          departamento: novoFuncionario.departamento,
+          salario_bruto: novoFuncionario.salario_base,
+          data_admissao: novoFuncionario.data_admissao,
+        }),
       })
 
       if (res.ok) {
@@ -413,11 +453,14 @@ const calcularResumoLocal = () => {
 
   const aplicarAjusteSalarial = async () => {
     try {
-      const res = await fetch("http://localhost:8000/ajustes-salariais/", {
-        method: "POST",
+      const res = await fetch(`http://localhost:8000/valores/${ajusteSalarial.funcionario_id}/`, {
+        method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(ajusteSalarial),
+        body: JSON.stringify({
+          salario_bruto: ajusteSalarial.novo_salario,
+          observacoes: ajusteSalarial.motivo,
+        }),
       })
 
       if (res.ok) {
@@ -445,17 +488,26 @@ const calcularResumoLocal = () => {
     }
   }
 
-   const chartData = Array.isArray(historico) ? historico.map((item) => ({
-    mes: item.mes ? item.mes.split("-")[1] + "/" + item.mes.split("-")[0].slice(2) : "",
-    folha: item.folha || 0,
-    impostos: item.impostos || 0,
-    beneficios: item.beneficios || 0,
-  })) : []
+  const chartData = Array.isArray(historico)
+    ? historico.map((item) => ({
+        mes: item.mes ? item.mes.split("-")[1] + "/" + item.mes.split("-")[0].slice(2) : "",
+        folha: item.folha || 0,
+        impostos: item.impostos || 0,
+        beneficios: item.beneficios || 0,
+      }))
+    : []
 
-  const dataDistribuicaoDepartamentos = departamentos.map((depto) => ({
-    name: depto.nome,
-    value: depto.custo_total || 0,
-  }))
+  const dataDistribuicaoDepartamentos = departamentos
+    .map((depto) => {
+      const funcionariosDepto = funcionarios.filter((f) => f.departamento === depto.id)
+      const custoTotal = funcionariosDepto.reduce((sum, f) => sum + (f.salario_bruto || 0), 0)
+
+      return {
+        name: depto.nome,
+        value: custoTotal,
+      }
+    })
+    .filter((d) => d.value > 0)
 
   const COLORS = ["#0ea5e9", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#06b6d4"]
 
@@ -485,8 +537,8 @@ const calcularResumoLocal = () => {
       body: [
         [
           `KZ ${(resumo.total_folha || 0).toLocaleString("pt-BR")}`,
-          `${(resumo.funcionarios_ativos || 0)}/${(resumo.funcionarios || 0)}`,
-          `KZ ${(resumo.media_salarial ||0).toLocaleString("pt-BR")}`,
+          `${resumo.funcionarios_ativos || 0}/${resumo.funcionarios || 0}`,
+          `KZ ${(resumo.media_salarial || 0).toLocaleString("pt-BR")}`,
           resumo.proximo_pagamento || "N/A",
           `KZ ${(resumo.total_beneficios || 0).toLocaleString("pt-BR")}`,
         ],
@@ -502,12 +554,18 @@ const calcularResumoLocal = () => {
     doc.text("Distribuição por Departamento", margin, yPos)
     yPos += 30
 
-    const departamentosData = departamentos.map((d) => [
-      d.nome,
-      (d.funcionarios_count || 0).toString(),
-      `KZ ${(d.custo_total || 0).toLocaleString("pt-BR")}`,
-      `KZ ${Math.round((d.custo_total || 0) / (d.funcionarios_count || 1)).toLocaleString("pt-BR")}`
-    ])
+    const departamentosData = departamentos.map((d) => {
+      const funcionariosDepto = funcionarios.filter((f) => f.departamento === d.id)
+      const custoTotal = funcionariosDepto.reduce((sum, f) => sum + (f.salario_bruto || 0), 0)
+      const custoMedio = funcionariosDepto.length > 0 ? custoTotal / funcionariosDepto.length : 0
+
+      return [
+        d.nome,
+        funcionariosDepto.length.toString(),
+        `KZ ${custoTotal.toLocaleString("pt-BR")}`,
+        `KZ ${Math.round(custoMedio).toLocaleString("pt-BR")}`,
+      ]
+    })
 
     autoTable(doc, {
       startY: yPos,
@@ -521,13 +579,14 @@ const calcularResumoLocal = () => {
     doc.save("relatorio-folha-pagamento-completo.pdf")
   }
 
-  const getStatusConfig = (status: "pago" | "pendente" | "atrasado") => {
-    const config = {
-      pago: { label: "Pago", color: "bg-green-500/20 text-green-400 border-green-500/30" },
-      pendente: { label: "Pendente", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-      atrasado: { label: "Atrasado", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+  const getStatusConfig = (status: string) => {
+    const config: Record<string, { label: string; color: string }> = {
+      PAGO: { label: "Pago", color: "bg-green-500/20 text-green-400 border-green-500/30" },
+      PENDENTE: { label: "Pendente", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+      VISUALIZADO: { label: "Visualizado", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+      BAIXADO: { label: "Baixado", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
     }
-    return config[status]
+    return config[status] || config.PENDENTE
   }
 
   if (loading) {
@@ -609,7 +668,7 @@ const calcularResumoLocal = () => {
           title="Total Benefícios"
           value={`KZ ${(resumo.total_beneficios || 0).toLocaleString("pt-BR")}`}
           icon={UserCheck}
-          description={`${beneficios.filter((b) => b.ativo).length} benefícios ativos`}
+          description={`${beneficios.filter((b) => b.status === "ativo").length} benefícios ativos`}
           trend={{ value: 2.3, isPositive: true }}
         />
       </div>
@@ -643,6 +702,9 @@ const calcularResumoLocal = () => {
                   <p className="text-sm text-slate-400">
                     Visualize, gere e envie recibos de pagamento para funcionários
                   </p>
+                  <Badge className="mt-3 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
+                    {recibos.length} recibos
+                  </Badge>
                 </CardContent>
               </Card>
             </Link>
@@ -660,6 +722,9 @@ const calcularResumoLocal = () => {
                   <p className="text-sm text-slate-400">
                     Configure descontos obrigatórios e benefícios para funcionários
                   </p>
+                  <Badge className="mt-3 bg-purple-500/20 text-purple-400 border-purple-500/30">
+                    {beneficios.filter((b) => b.status === "ativo").length} ativos
+                  </Badge>
                 </CardContent>
               </Card>
             </Link>
@@ -721,9 +786,7 @@ const calcularResumoLocal = () => {
                     <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-yellow-400 transition-colors" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">Relatórios Fiscais</h3>
-                  <p className="text-sm text-slate-400">
-                    Gere relatórios fiscais e contábeis (SEFIP, DIRF, RAIS, eSocial)
-                  </p>
+                  <p className="text-sm text-slate-400">Gere relatórios fiscais e contábeis (IRT, INSS, AGT)</p>
                 </CardContent>
               </Card>
             </Link>
@@ -808,12 +871,12 @@ const calcularResumoLocal = () => {
                             borderRadius: "8px",
                             color: "white",
                           }}
-                          formatter={(value) => [`R$ ${Number(value).toLocaleString("pt-BR")}`, "Valor"]}
+                          formatter={(value) => [`KZ ${Number(value).toLocaleString("pt-BR")}`, "Valor"]}
                         />
                         <Legend />
-                        <Bar dataKey="folha" name="Folha (R$)" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="impostos" name="Impostos (R$)" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="beneficios" name="Benefícios (R$)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="folha" name="Folha (KZ)" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="impostos" name="Impostos (KZ)" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="beneficios" name="Benefícios (KZ)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -821,33 +884,39 @@ const calcularResumoLocal = () => {
 
                 <TabsContent value="distribuicao" className="mt-6">
                   <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={dataDistribuicaoDepartamentos}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {dataDistribuicaoDepartamentos.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "#1e293b",
-                            border: "1px solid #475569",
-                            borderRadius: "8px",
-                            color: "white",
-                          }}
-                          formatter={(value) => [`R$ ${Number(value).toLocaleString("pt-BR")}`, "Custo"]}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    {dataDistribuicaoDepartamentos.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={dataDistribuicaoDepartamentos}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {dataDistribuicaoDepartamentos.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "#1e293b",
+                              border: "1px solid #475569",
+                              borderRadius: "8px",
+                              color: "white",
+                            }}
+                            formatter={(value) => [`KZ ${Number(value).toLocaleString("pt-BR")}`, "Custo"]}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-slate-400">Nenhum dado disponível para exibir</p>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -858,9 +927,9 @@ const calcularResumoLocal = () => {
             <CardHeader>
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
-                  <CardTitle className="text-white">Pagamentos do Mês</CardTitle>
+                  <CardTitle className="text-white">Recibos de Pagamento</CardTitle>
                   <CardDescription className="text-slate-400">
-                    {pagamentosFiltrados.length} pagamentos encontrados
+                    {recibosFiltrados.length} recibos encontrados
                   </CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
@@ -882,7 +951,8 @@ const calcularResumoLocal = () => {
                       <SelectItem value="todos">Todos</SelectItem>
                       <SelectItem value="pago">Pago</SelectItem>
                       <SelectItem value="pendente">Pendente</SelectItem>
-                      <SelectItem value="atrasado">Atrasado</SelectItem>
+                      <SelectItem value="visualizado">Visualizado</SelectItem>
+                      <SelectItem value="baixado">Baixado</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={departamentoFilter} onValueChange={setDepartamentoFilter}>
@@ -892,7 +962,7 @@ const calcularResumoLocal = () => {
                     <SelectContent className="bg-slate-800 border-slate-600 text-white">
                       <SelectItem value="todos">Todos</SelectItem>
                       {departamentos.map((depto) => (
-                        <SelectItem key={depto.id} value={depto.nome}>
+                        <SelectItem key={depto.id} value={depto.id}>
                           {depto.nome}
                         </SelectItem>
                       ))}
@@ -908,7 +978,7 @@ const calcularResumoLocal = () => {
                     <TableRow className="border-slate-600 hover:bg-slate-700/50">
                       <TableHead className="text-slate-300">Colaborador</TableHead>
                       <TableHead className="text-slate-300">Cargo</TableHead>
-                      <TableHead className="text-slate-300">Departamento</TableHead>
+                      <TableHead className="text-slate-300">Mês/Ano</TableHead>
                       <TableHead className="text-slate-300">Bruto</TableHead>
                       <TableHead className="text-slate-300">Líquido</TableHead>
                       <TableHead className="text-slate-300">Status</TableHead>
@@ -916,25 +986,25 @@ const calcularResumoLocal = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pagamentosFiltrados.map((pagamento) => {
-                      const statusInfo = getStatusConfig(pagamento.status)
+                    {recibosFiltrados.map((recibo) => {
+                      const statusInfo = getStatusConfig(recibo.status)
+                      const nome = recibo.funcionario?.valores?.nome || "N/A"
+                      const cargo = recibo.funcionario?.valores?.cargo || "N/A"
+
                       return (
-                        <TableRow
-                          key={pagamento.id}
-                          className="border-slate-600 hover:bg-slate-700/50 transition-colors"
-                        >
-                          <TableCell className="font-medium text-white">{pagamento.nome}</TableCell>
-                          <TableCell className="text-slate-300">{pagamento.cargo}</TableCell>
+                        <TableRow key={recibo.id} className="border-slate-600 hover:bg-slate-700/50 transition-colors">
+                          <TableCell className="font-medium text-white">{nome}</TableCell>
+                          <TableCell className="text-slate-300">{cargo}</TableCell>
                           <TableCell>
                             <Badge variant="secondary" className="bg-slate-700 text-slate-300">
-                              {pagamento.departamento}
+                              {recibo.mes_referencia}/{recibo.ano_referencia}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-slate-300">
-                            R$ {pagamento.salario_bruto.toLocaleString("pt-BR")}
+                            KZ {(recibo.salario_bruto || 0).toLocaleString("pt-BR")}
                           </TableCell>
                           <TableCell className="font-semibold text-white">
-                            R$ {pagamento.salario_liquido.toLocaleString("pt-BR")}
+                            KZ {(recibo.salario_liquido || 0).toLocaleString("pt-BR")}
                           </TableCell>
                           <TableCell>
                             <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
@@ -953,7 +1023,7 @@ const calcularResumoLocal = () => {
                                 size="sm"
                                 className="text-slate-400 hover:text-white hover:bg-slate-700"
                               >
-                                <Edit className="h-4 w-4" />
+                                <Download className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -962,10 +1032,10 @@ const calcularResumoLocal = () => {
                     })}
                   </TableBody>
                 </Table>
-                {pagamentosFiltrados.length === 0 && (
+                {recibosFiltrados.length === 0 && (
                   <div className="text-center py-12">
-                    <DollarSign className="h-12 w-12 mx-auto text-slate-500 mb-4" />
-                    <h3 className="text-lg font-semibold text-white mb-2">Nenhum pagamento encontrado</h3>
+                    <Receipt className="h-12 w-12 mx-auto text-slate-500 mb-4" />
+                    <h3 className="text-lg font-semibold text-white mb-2">Nenhum recibo encontrado</h3>
                     <p className="text-slate-400">Tente ajustar os filtros de pesquisa</p>
                   </div>
                 )}
@@ -1024,14 +1094,20 @@ const calcularResumoLocal = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-300">Folha do Mês</span>
-                <Badge className={mesReferencia ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}>
-                  {mesReferencia ? "Processada" : "Pendente"}
+                <span className="text-sm text-slate-300">Recibos Gerados</span>
+                <Badge className="bg-green-500/20 text-green-400">{recibos.length}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-300">Pagos</span>
+                <Badge className="bg-green-500/20 text-green-400">
+                  {recibos.filter((r) => r.status === "PAGO").length}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-300">Aprovação</span>
-                <Badge className="bg-yellow-500/20 text-yellow-400">Pendente</Badge>
+                <span className="text-sm text-slate-300">Pendentes</span>
+                <Badge className="bg-yellow-500/20 text-yellow-400">
+                  {recibos.filter((r) => r.status === "PENDENTE").length}
+                </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-300">Próximo Pagamento</span>
@@ -1039,7 +1115,9 @@ const calcularResumoLocal = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-300">Benefícios Ativos</span>
-                <Badge className="bg-purple-500/20 text-purple-400">{beneficios.filter((b) => b.ativo).length}</Badge>
+                <Badge className="bg-purple-500/20 text-purple-400">
+                  {beneficios.filter((b) => b.status === "ativo").length}
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -1057,13 +1135,13 @@ const calcularResumoLocal = () => {
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Impostos Pagos</span>
                   <span className="font-semibold text-white">
-                    R$ {relatorioMensal.impostos_pagos.toLocaleString("pt-BR")}
+                    KZ {(relatorioMensal.impostos_pagos || 0).toLocaleString("pt-BR")}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Total Benefícios</span>
                   <span className="font-semibold text-white">
-                    R$ {relatorioMensal.total_beneficios.toLocaleString("pt-BR")}
+                    KZ {(relatorioMensal.total_beneficios || 0).toLocaleString("pt-BR")}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -1133,7 +1211,7 @@ const calcularResumoLocal = () => {
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600 text-white">
                     {departamentos.map((depto) => (
-                      <SelectItem key={depto.id} value={depto.nome}>
+                      <SelectItem key={depto.id} value={depto.id}>
                         {depto.nome}
                       </SelectItem>
                     ))}
@@ -1207,7 +1285,7 @@ const calcularResumoLocal = () => {
                 <SelectContent className="bg-slate-800 border-slate-600 text-white">
                   {funcionariosAtivos.map((func) => (
                     <SelectItem key={func.id} value={func.id}>
-                      {func.nome} - {func.cargo}
+                      {func.valores.nome} - {func.valores.cargo || "N/A"}
                     </SelectItem>
                   ))}
                 </SelectContent>

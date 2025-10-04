@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect,useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -68,7 +68,7 @@ const RelatoriosPage = () => {
   })
 
   // Buscar dados reais do backend
-  const fetchData = async () => {
+  const fetchData =useCallback( async () => {
     try {
       setLoading(true)
 
@@ -115,7 +115,7 @@ const RelatoriosPage = () => {
     } finally {
       setLoading(false)
     }
-  }
+  },[toast])
 
   // Dados mock como fallback
   const carregarDadosMock = () => {
@@ -177,7 +177,7 @@ const RelatoriosPage = () => {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [fetchData])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-AO", {

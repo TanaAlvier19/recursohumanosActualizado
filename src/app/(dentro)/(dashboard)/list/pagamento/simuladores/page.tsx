@@ -91,7 +91,7 @@ const SimuladoresPage = () => {
   // Simular Folha
   const simularFolha = async () => {
     try {
-      const response = await fetch(`${API_URL}/simuladores/folha/`, {
+      const response = await fetch(`${API_URL}/api/simuladores/folha/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -113,7 +113,7 @@ const SimuladoresPage = () => {
   // Simular Rescisão
   const simularRescisao = async () => {
     try {
-      const response = await fetch(`${API_URL}/simuladores/rescisao/`, {
+      const response = await fetch(`${API_URL}/api/simuladores/rescisao/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -135,7 +135,7 @@ const SimuladoresPage = () => {
   // Simular Reajuste
   const simularReajuste = async () => {
     try {
-      const response = await fetch(`${API_URL}/simuladores/reajuste/`, {
+      const response = await fetch(`${API_URL}/api/simuladores/reajuste/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -154,7 +154,7 @@ const SimuladoresPage = () => {
 
   const simularCusto = async () => {
     try {
-      const response = await fetch(`${API_URL}/simuladores/custo-contratacao/`, {
+      const response = await fetch(`${API_URL}/api/simuladores/custo-contratacao/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -170,6 +170,7 @@ const SimuladoresPage = () => {
     }
   }
 
+  // Simular automaticamente quando os valores mudarem
   useEffect(() => {
     simularFolha()
   }, [salarioBase, horasExtras, comissoes, bonus, dependentes])
@@ -703,10 +704,8 @@ const SimuladoresPage = () => {
           </div>
         </TabsContent>
 
-        {/* Simulador de Custo de Contratação Tab */}
         <TabsContent value="contratacao" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Inputs */}
             <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">

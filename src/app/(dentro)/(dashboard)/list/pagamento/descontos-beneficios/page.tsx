@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { MetricCard } from "@/components/metrcCard"
 import { 
-  Search, Plus, Edit, Trash2, Gift, TrendingDown, CheckCircle, 
-  XCircle, Filter, Calendar, User, Building, Briefcase 
+  Search, Plus, Edit, Trash2, Gift, TrendingDown, Filter,
+  Loader2, Users, Building, Briefcase 
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -79,7 +78,13 @@ const DescontosBeneficiosPage = () => {
   const [modalBeneficioAberto, setModalBeneficioAberto] = useState(false)
   const [itemSelecionado, setItemSelecionado] = useState<Desconto | Beneficio | null>(null)
   const [modoEdicao, setModoEdicao] = useState(false)
-  const [loading, setLoading] = useState(false)
+  
+  // Estados de loading separados para melhor UX
+  const [loadingDescontos, setLoadingDescontos] = useState(false)
+  const [loadingBeneficios, setLoadingBeneficios] = useState(false)
+  const [loadingFuncionarios, setLoadingFuncionarios] = useState(false)
+  const [loadingDepartamentos, setLoadingDepartamentos] = useState(false)
+  const [loadingSubmit, setLoadingSubmit] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Data states
@@ -122,7 +127,7 @@ const DescontosBeneficiosPage = () => {
 
   const fetchDescontos = async () => {
     try {
-      setLoading(true)
+      setLoadingDescontos(true)
       const response = await fetch(`${API_URL}/descontos/`, {
         credentials: "include",
       })
@@ -130,15 +135,20 @@ const DescontosBeneficiosPage = () => {
       const data = await response.json()
       setDescontos(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido")
+      setError(err instanceof Error ? err.message : "Erro ao carregar descontos")
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar descontos",
+        variant: "destructive"
+      })
     } finally {
-      setLoading(false)
+      setLoadingDescontos(false)
     }
   }
 
   const fetchBeneficios = async () => {
     try {
-      setLoading(true)
+      setLoadingBeneficios(true)
       const response = await fetch(`${API_URL}/beneficios/`, {
         credentials: "include",
       })
@@ -146,14 +156,20 @@ const DescontosBeneficiosPage = () => {
       const data = await response.json()
       setBeneficios(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido")
+      setError(err instanceof Error ? err.message : "Erro ao carregar benefícios")
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar benefícios",
+        variant: "destructive"
+      })
     } finally {
-      setLoading(false)
+      setLoadingBeneficios(false)
     }
   }
 
   const fetchFuncionarios = async () => {
     try {
+      setLoadingFuncionarios(true)
       const response = await fetch(`${API_URL}/funcionarios/`, {
         credentials: "include",
       })
@@ -163,11 +179,14 @@ const DescontosBeneficiosPage = () => {
       }
     } catch (err) {
       console.error("Erro ao carregar funcionários:", err)
+    } finally {
+      setLoadingFuncionarios(false)
     }
   }
 
   const fetchDepartamentos = async () => {
     try {
+      setLoadingDepartamentos(true)
       const response = await fetch(`${API_URL}/departamentos/`, {
         credentials: "include",
       })
@@ -177,7 +196,16 @@ const DescontosBeneficiosPage = () => {
       }
     } catch (err) {
       console.error("Erro ao carregar departamentos:", err)
+    } finally {
+      setLoadingDepartamentos(false)
     }
+  }
+
+  // Função auxiliar para converter valores numéricos de forma segura
+  const parseNumber = (value: string): number => {
+    if (!value || value === '') return 0
+    const parsed = parseFloat(value)
+    return isNaN(parsed) ? 0 : parsed
   }
 
   const stats = {
@@ -263,6 +291,20 @@ const DescontosBeneficiosPage = () => {
     </Badge>
   }
 
+  // Função melhorada para buscar nome do funcionário
+  const getFuncionarioNome = (funcionarioId: string) => {
+    if (!funcionarioId) return 'N/A'
+    
+    const funcionario = funcionarios.find(f => f.id === funcionarioId)
+    if (!funcionario) return 'N/A'
+    
+    // Tenta diferentes estruturas de dados possíveis
+    return funcionario.nome || 
+           funcionario.valores?.nome || 
+           funcionario.nome_completo || 
+           `Funcionário ${funcionarioId}`
+  }
+
   const abrirModalDesconto = (desconto?: Desconto) => {
     if (desconto) {
       setItemSelecionado(desconto)
@@ -275,8 +317,8 @@ const DescontosBeneficiosPage = () => {
       setPercentual(desconto.percentual?.toString() || "")
       setValorMinimo(desconto.valor_minimo?.toString() || "")
       setValorMaximo(desconto.valor_maximo?.toString() || "")
-      setDataInicio(desconto.data_inicio)
-      setDataFim(desconto.data_fim || "")
+      setDataInicio(desconto.data_inicio.split('T')[0]) // Remove time part if exists
+      setDataFim(desconto.data_fim ? desconto.data_fim.split('T')[0] : "")
       setRecorrente(desconto.recorrente)
       setAtivo(desconto.ativo)
       setFuncionarioId(desconto.funcionario || "")
@@ -302,8 +344,8 @@ const DescontosBeneficiosPage = () => {
       setPercentual(beneficio.percentual?.toString() || "")
       setValorMinimo(beneficio.valor_minimo?.toString() || "")
       setValorMaximo(beneficio.valor_maximo?.toString() || "")
-      setDataInicio(beneficio.data_inicio)
-      setDataFim(beneficio.data_fim || "")
+      setDataInicio(beneficio.data_inicio.split('T')[0])
+      setDataFim(beneficio.data_fim ? beneficio.data_fim.split('T')[0] : "")
       setRecorrente(beneficio.recorrente)
       setAtivo(beneficio.ativo)
       setFuncionarioId(beneficio.funcionario || "")
@@ -343,19 +385,91 @@ const DescontosBeneficiosPage = () => {
     setItemSelecionado(null)
   }
 
+  // Validação melhorada do formulário
+  const validarFormulario = (): boolean => {
+    if (!nome.trim()) {
+      toast({
+        title: "Erro de Validação",
+        description: "Nome é obrigatório",
+        variant: "destructive"
+      })
+      return false
+    }
+
+    if (!dataInicio) {
+      toast({
+        title: "Erro de Validação",
+        description: "Data de início é obrigatória",
+        variant: "destructive"
+      })
+      return false
+    }
+
+    if (tipo === "FIXO" && !valorFixo) {
+      toast({
+        title: "Erro de Validação",
+        description: "Valor fixo é obrigatório para tipo FIXO",
+        variant: "destructive"
+      })
+      return false
+    }
+
+    if (tipo === "PERCENTUAL" && !percentual) {
+      toast({
+        title: "Erro de Validação",
+        description: "Percentual é obrigatório para tipo PERCENTUAL",
+        variant: "destructive"
+      })
+      return false
+    }
+
+    if (aplicavelA === "INDIVIDUAL" && !funcionarioId) {
+      toast({
+        title: "Erro de Validação",
+        description: "Funcionário é obrigatório para aplicação individual",
+        variant: "destructive"
+      })
+      return false
+    }
+
+    if (aplicavelA === "DEPARTAMENTO" && !departamentoAlvo) {
+      toast({
+        title: "Erro de Validação",
+        description: "Departamento é obrigatório para aplicação por departamento",
+        variant: "destructive"
+      })
+      return false
+    }
+
+    if (aplicavelA === "CARGO" && !cargoAlvo) {
+      toast({
+        title: "Erro de Validação",
+        description: "Cargo é obrigatório para aplicação por cargo",
+        variant: "destructive"
+      })
+      return false
+    }
+
+    return true
+  }
+
   const salvarDesconto = async () => {
+    if (!validarFormulario()) return
+
     try {
-      setLoading(true)
+      setLoadingSubmit(true)
+      
+      // Usar a função parseNumber para conversão segura
       const payload = {
-        nome,
-        descricao,
+        nome: nome.trim(),
+        descricao: descricao.trim(),
         tipo,
         categoria,
         aplicavel_a: aplicavelA,
-        valor_fixo: tipo === 'FIXO' ? Number(valorFixo) : 0,
-        percentual: tipo === 'PERCENTUAL' ? Number(percentual) : 0,
-        valor_minimo: Number(valorMinimo) || 0,
-        valor_maximo: Number(valorMaximo) || 0,
+        valor_fixo: tipo === 'FIXO' ? parseNumber(valorFixo) : 0,
+        percentual: tipo === 'PERCENTUAL' ? parseNumber(percentual) : 0,
+        valor_minimo: parseNumber(valorMinimo),
+        valor_maximo: parseNumber(valorMaximo),
         data_inicio: dataInicio,
         data_fim: dataFim || null,
         recorrente,
@@ -376,7 +490,10 @@ const DescontosBeneficiosPage = () => {
         body: JSON.stringify(payload),
       })
 
-      if (!response.ok) throw new Error("Erro ao salvar desconto")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || `Erro ${response.status} ao salvar desconto`)
+      }
 
       await fetchDescontos()
       setModalDescontoAberto(false)
@@ -387,30 +504,34 @@ const DescontosBeneficiosPage = () => {
         description: `Desconto ${modoEdicao ? 'atualizado' : 'criado'} com sucesso!`,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido")
+      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido"
+      setError(errorMessage)
       toast({
         title: "Erro",
-        description: "Erro ao salvar desconto",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
-      setLoading(false)
+      setLoadingSubmit(false)
     }
   }
 
   const salvarBeneficio = async () => {
+    if (!validarFormulario()) return
+
     try {
-      setLoading(true)
+      setLoadingSubmit(true)
+      
       const payload = {
-        nome,
-        descricao,
+        nome: nome.trim(),
+        descricao: descricao.trim(),
         tipo,
         categoria,
         aplicavel_a: aplicavelA,
-        valor_fixo: tipo === 'FIXO' ? Number(valorFixo) : 0,
-        percentual: tipo === 'PERCENTUAL' ? Number(percentual) : 0,
-        valor_minimo: Number(valorMinimo) || 0,
-        valor_maximo: Number(valorMaximo) || 0,
+        valor_fixo: tipo === 'FIXO' ? parseNumber(valorFixo) : 0,
+        percentual: tipo === 'PERCENTUAL' ? parseNumber(percentual) : 0,
+        valor_minimo: parseNumber(valorMinimo),
+        valor_maximo: parseNumber(valorMaximo),
         descontavel_ir: descontavelIR,
         descontavel_inss: descontavelINSS,
         tributavel,
@@ -434,7 +555,10 @@ const DescontosBeneficiosPage = () => {
         body: JSON.stringify(payload),
       })
 
-      if (!response.ok) throw new Error("Erro ao salvar benefício")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || `Erro ${response.status} ao salvar benefício`)
+      }
 
       await fetchBeneficios()
       setModalBeneficioAberto(false)
@@ -445,14 +569,15 @@ const DescontosBeneficiosPage = () => {
         description: `Benefício ${modoEdicao ? 'atualizado' : 'criado'} com sucesso!`,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido")
+      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido"
+      setError(errorMessage)
       toast({
         title: "Erro",
-        description: "Erro ao salvar benefício",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
-      setLoading(false)
+      setLoadingSubmit(false)
     }
   }
 
@@ -460,7 +585,7 @@ const DescontosBeneficiosPage = () => {
     if (!confirm(`Tem certeza que deseja excluir este ${tipoItem}?`)) return
 
     try {
-      setLoading(true)
+      setLoadingSubmit(true)
       const url = tipoItem === "desconto" ? `${API_URL}/descontos/${id}/` : `${API_URL}/beneficios/${id}/`
 
       const response = await fetch(url, {
@@ -488,27 +613,18 @@ const DescontosBeneficiosPage = () => {
         variant: "destructive"
       })
     } finally {
-      setLoading(false)
+      setLoadingSubmit(false)
     }
   }
 
-  const getFuncionarioNome = (funcionarioId: string) => {
-    const funcionario = funcionarios.find(f => f.id === funcionarioId)
-    return funcionario ? funcionario.valores?.nome || 'N/A' : 'N/A'
-  }
-
-  if (loading && descontos.length === 0 && beneficios.length === 0) {
+  // Loading state mais específico
+  if (loadingDescontos && loadingBeneficios && descontos.length === 0 && beneficios.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-6 flex items-center justify-center">
-        <p className="text-white text-xl">Carregando...</p>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-6 flex items-center justify-center">
-        <p className="text-red-400 text-xl">Erro: {error}</p>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+          <p className="text-white text-xl">Carregando dados...</p>
+        </div>
       </div>
     )
   }
@@ -1032,7 +1148,7 @@ const DescontosBeneficiosPage = () => {
                   <SelectContent className="bg-slate-800 border-slate-600 text-white">
                     {funcionarios.map((func) => (
                       <SelectItem key={func.id} value={func.id}>
-                        {func.valores?.nome || `Funcionário ${func.id}`}
+                        {func.nome || func.valores?.nome || func.nome_completo || `Funcionário ${func.id}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1107,10 +1223,11 @@ const DescontosBeneficiosPage = () => {
             </Button>
             <Button 
               onClick={salvarDesconto}
-              disabled={loading || !nome || !tipo || !categoria || !dataInicio}
+              disabled={loadingSubmit || !nome || !tipo || !categoria || !dataInicio}
               className="bg-cyan-600 hover:bg-cyan-700"
             >
-              {loading ? "Salvando..." : modoEdicao ? "Atualizar" : "Criar"} Desconto
+              {loadingSubmit && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {loadingSubmit ? "Salvando..." : modoEdicao ? "Atualizar" : "Criar"} Desconto
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1264,7 +1381,7 @@ const DescontosBeneficiosPage = () => {
                   <SelectContent className="bg-slate-800 border-slate-600 text-white">
                     {funcionarios.map((func) => (
                       <SelectItem key={func.id} value={func.id}>
-                        {func.valores?.nome || `Funcionário ${func.id}`}
+                        {func.nome || func.valores?.nome || func.nome_completo || `Funcionário ${func.id}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1363,10 +1480,11 @@ const DescontosBeneficiosPage = () => {
             </Button>
             <Button 
               onClick={salvarBeneficio}
-              disabled={loading || !nome || !tipo || !categoria || !dataInicio}
+              disabled={loadingSubmit || !nome || !tipo || !categoria || !dataInicio}
               className="bg-green-600 hover:bg-green-700"
             >
-              {loading ? "Salvando..." : modoEdicao ? "Atualizar" : "Criar"} Benefício
+              {loadingSubmit && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {loadingSubmit ? "Salvando..." : modoEdicao ? "Atualizar" : "Criar"} Benefício
             </Button>
           </DialogFooter>
         </DialogContent>

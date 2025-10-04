@@ -29,12 +29,10 @@ import {
   FiSearch,
   FiSave,
   FiClock,
-  FiMail,
-  FiPhone,
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi"
-import { Users, Building, UserCheck, DollarSign, ArrowUpDown } from "lucide-react"
+import { Users, Building, DollarSign, ArrowUpDown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -153,6 +151,10 @@ const PerfilFuncionarioModal = ({
 }) => {
   if (!funcionario) return null
 
+  const getValor = (campo: string) => {
+    return funcionario.valores?.[campo] || "Não informado"
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
@@ -180,18 +182,18 @@ const PerfilFuncionarioModal = ({
             <Avatar className="w-20 h-20 border-4 border-slate-700 shadow-md">
               <AvatarImage src={funcionario.foto || "/placeholder-user.jpg"} />
               <AvatarFallback className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-lg font-semibold">
-                {funcionario.nome?.charAt(0).toUpperCase()}
+                {getValor("Nome")?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-white">{funcionario.nome || "Nome não informado"}</h3>
-              <p className="text-slate-400">{funcionario.cargo || "Cargo não informado"}</p>
+              <h3 className="text-xl font-bold text-white">{getValor("Nome")}</h3>
+              <p className="text-slate-400">{getValor("Cargo")}</p>
               <div className="flex gap-2 mt-2">
                 <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
                   {funcionario.departamento || "Sem departamento"}
                 </Badge>
                 <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
-                  {funcionario.status || "Ativo"}
+                  Ativo
                 </Badge>
               </div>
             </div>
@@ -232,7 +234,7 @@ const PerfilFuncionarioModal = ({
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-slate-700/50 rounded-lg">
                   <Label className="text-sm font-medium text-slate-400">Cargo</Label>
-                  <p className="text-white font-medium mt-1">{funcionario.cargo || "Não informado"}</p>
+                  <p className="text-white font-medium mt-1">{getValor("Cargo")}</p>
                 </div>
                 <div className="p-3 bg-slate-700/50 rounded-lg">
                   <Label className="text-sm font-medium text-slate-400">Departamento</Label>
@@ -240,76 +242,17 @@ const PerfilFuncionarioModal = ({
                 </div>
                 <div className="p-3 bg-slate-700/50 rounded-lg">
                   <Label className="text-sm font-medium text-slate-400">Data de Admissão</Label>
-                  <p className="text-white font-medium mt-1">{funcionario.data_admissao || "Não informada"}</p>
+                  <p className="text-white font-medium mt-1">{getValor("data_admissao")}</p>
                 </div>
                 <div className="p-3 bg-slate-700/50 rounded-lg">
                   <Label className="text-sm font-medium text-slate-400">Salário</Label>
                   <p className="text-white font-medium mt-1">
                     {funcionario.salario_bruto
                       ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                          funcionario.salario_bruto,
+                          Number(funcionario.salario_bruto),
                         )
                       : "Não informado"}
                   </p>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="documentos" className="p-4">
-              <div className="space-y-3">
-                {funcionario.arquivos && funcionario.arquivos.length > 0 ? (
-                  funcionario.arquivos.map((arquivo: any, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 border border-slate-700 rounded-lg bg-slate-700/30"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FiFile className="w-5 h-5 text-cyan-400" />
-                        <div>
-                          <p className="font-medium text-white">{arquivo.nome}</p>
-                          <p className="text-sm text-slate-400">Documento</p>
-                        </div>
-                      </div>
-                      <VisualizadorArquivo url={arquivo.arquivo} nome={arquivo.nome} />
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-slate-400">
-                    <FiFile className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-                    <p>Nenhum documento cadastrado</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="historico" className="p-4">
-              <div className="space-y-4">
-                <div className="flex gap-4 p-3 border-l-4 border-l-cyan-500 bg-cyan-500/10 rounded">
-                  <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2"></div>
-                  <div>
-                    <p className="font-medium text-white">Admitido</p>
-                    <p className="text-sm text-slate-400">
-                      Data de admissão: {funcionario.data_admissao || "Não informada"}
-                    </p>
-                    <p className="text-xs text-slate-500">Sistema de RH</p>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="contato" className="p-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-slate-700/50 rounded-lg">
-                  <Label className="text-sm font-medium text-slate-400 flex items-center gap-2">
-                    <FiMail className="w-4 h-4" /> Email
-                  </Label>
-                  <p className="text-white font-medium mt-1">{funcionario.email || "Não informado"}</p>
-                </div>
-                <div className="p-3 bg-slate-700/50 rounded-lg">
-                  <Label className="text-sm font-medium text-slate-400 flex items-center gap-2">
-                    <FiPhone className="w-4 h-4" /> Telefone
-                  </Label>
-                  <p className="text-white font-medium mt-1">{funcionario.telefone || "Não informado"}</p>
                 </div>
               </div>
             </TabsContent>
@@ -346,19 +289,26 @@ export default function EmployeeDashboard() {
   const router = useRouter()
   const [abrir, setAbrir] = useState(abrirDialog)
   const [apresentar, setApresentar] = useState(false)
+  const [mapaDepartamentos, setMapaDepartamentos] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [departamentoSelecionado, setDepartamentoSelecionado] = useState<string>("")
   const [funcionarioSelecionado, setFuncionarioSelecionado] = useState<any>(null)
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false)
   const [pesquisa, setPesquisa] = useState("")
   const [editandoId, setEditandoId] = useState<string | null>(null)
-
+  console.log(departamentoSelecionado)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [sortField, setSortField] = useState<string>("")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    console.log("Mapa de departamentos:", mapaDepartamentos)
+  }, [mapaDepartamentos])
 
+  useEffect(() => {
+    console.log("Funcionário selecionado:", funcionarioSelecionado)
+  }, [funcionarioSelecionado])
   const [stats, setStats] = useState({
     totalFuncionarios: 0,
     totalDepartamentos: 0,
@@ -438,6 +388,7 @@ export default function EmployeeDashboard() {
     const rowData: Record<string, any> = {
       id: i.id,
       departamento: i.departamento || "Sem Departamento",
+      departamentoId: i.departamento,
       salario_bruto: Number.parseFloat(i.valores.salario_bruto || "0"),
       ...i.valores,
     }
@@ -513,7 +464,7 @@ export default function EmployeeDashboard() {
     }
   }
 
-  const handleExcluir = async (id: string) => {
+  const handleExcluir = async (pk: string) => {
     const result = await Swal.fire({
       title: "Tem certeza?",
       text: "Esta ação não pode ser revertida!",
@@ -529,7 +480,7 @@ export default function EmployeeDashboard() {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`http://localhost:8000/valores/${id}`, {
+        const res = await fetch(`http://localhost:8000/valores/${pk}/`, {
           method: "DELETE",
           credentials: "include",
         })
@@ -544,6 +495,7 @@ export default function EmployeeDashboard() {
             confirmButtonColor: "#0ea5e9",
           })
           Pegar()
+
         } else {
           throw new Error("Falha ao excluir")
         }
@@ -577,7 +529,7 @@ export default function EmployeeDashboard() {
     formData.append("departamento", departamentoSelecionado)
     formData.append("salario_bruto", JSON.stringify(salario_bruto))
 
-    const url = editandoId ? `http://localhost:8000/valores/${editandoId}` : "http://localhost:8000/valores/"
+    const url = editandoId ? `http://localhost:8000/valores/${editandoId}/` : "http://localhost:8000/valores/"
     const method = editandoId ? "PUT" : "POST"
 
     try {
@@ -667,14 +619,39 @@ export default function EmployeeDashboard() {
         method: "GET",
         credentials: "include",
       })
-      const data = await res.json()
-      if (res.ok) {
-        setDepartamentos(data.dados)
-      } else {
-        throw new Error("Falha ao buscar Departamentos")
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
       }
+
+      const data = await res.json()
+      console.log("Resposta completa da API:", data)
+
+      let departamentosData: Departamento[] = []
+
+      if (Array.isArray(data)) {
+        departamentosData = data
+      } else if (data.dados && Array.isArray(data.dados)) {
+        departamentosData = data.dados
+      } else if (data.data && Array.isArray(data.data)) {
+        departamentosData = data.data
+      } else {
+        console.warn("Estrutura de dados inesperada:", data)
+        departamentosData = []
+      }
+
+      setDepartamentos(departamentosData)
+
+      const mapa: Record<string, string> = {}
+      departamentosData.forEach((dept) => {
+        mapa[dept.id] = dept.nome
+      })
+      setMapaDepartamentos(mapa)
+      console.log("Mapa de departamentos criado:", mapa)
     } catch (err) {
-      Swal.fire("Erro", "Falha ao buscar dados dos funcionários", "error")
+      console.error("Erro ao carregar departamentos:", err)
+      Swal.fire("Erro", "Falha ao buscar departamentos", "error")
+      setDepartamentos([])
     }
   }
 
@@ -730,58 +707,67 @@ export default function EmployeeDashboard() {
                     title="Salário Médio"
                     value={new Intl.NumberFormat("pt-BR", {
                       style: "currency",
-                      currency: "BRL",
+                      currency: "AOA",
                       maximumFractionDigits: 0,
                     }).format(stats.salarioMedio)}
                     icon={DollarSign}
                     description="Média salarial"
                     trend={{ value: 3.5, isPositive: true }}
                   />
-                  <MetricCard
-                    title="Admissões"
-                    value="12"
-                    icon={UserCheck}
-                    description="Este mês"
-                    trend={{ value: 8, isPositive: true }}
-                  />
                 </div>
               </div>
 
               <Card className="border-0 shadow-lg bg-slate-800/50 backdrop-blur-sm border-slate-700">
-                <CardHeader className="pb-4">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <CardTitle className="text-xl font-semibold text-white">Lista de Funcionários</CardTitle>
-                      <CardDescription className="text-slate-400 text-sm mt-1">
-                        Gerencie e visualize todos os funcionários do sistema
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                        <Input
-                          placeholder="Pesquisar funcionários..."
-                          value={pesquisa}
-                          onChange={(e) => setPesquisa(e.target.value)}
-                          className="pl-10 pr-4 py-2 w-64 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                        />
-                      </div>
-                      <Badge variant="secondary" className="px-3 py-1.5 text-sm bg-slate-700 text-slate-300">
-                        {filteredRows.length} {filteredRows.length === 1 ? "funcionário" : "funcionários"}
-                      </Badge>
-                      <Button
-                        className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white flex items-center gap-2 shadow-sm"
-                        onClick={() => {
-                          setEditandoId(null)
-                          setValores({})
-                          setAbrir(true)
-                        }}
-                      >
-                        <FiPlus className="w-4 h-4" /> Adicionar Funcionário
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
+               <CardHeader className="pb-4">
+    <div className="flex flex-col gap-4">
+      {/* TÍTULO E DESCRIÇÃO */}
+      <div>
+        <CardTitle className="text-xl font-semibold text-white">Lista de Funcionários</CardTitle>
+        <CardDescription className="text-slate-400 text-sm mt-1">
+          Gerencie e visualize todos os funcionários do sistema
+        </CardDescription>
+      </div>
+      
+      {/* CONTROLES - AGORA EM GRID QUE MANTÉM TUDO DENTRO DOS LIMITES */}
+      <div className="grid grid-cols-1 xs:grid-cols-[1fr_auto] gap-3 items-center w-full">
+        
+        {/* BARRA DE PESQUISA - OCUPA O ESPAÇO DISPONÍVEL */}
+        <div className="relative w-full min-w-0">
+          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <Input
+            placeholder="Pesquisar funcionários..."
+            value={pesquisa}
+            onChange={(e) => setPesquisa(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+          />
+        </div>
+
+        {/* GRUPO BADGE + BOTÃO - NUNCA SAI DA ÁREA */}
+        <div className="flex items-center gap-2 justify-end xs:justify-start w-full xs:w-auto">
+          <Badge 
+            variant="secondary" 
+            className="px-3 py-1.5 text-sm bg-slate-700 text-slate-300 whitespace-nowrap flex-shrink-0"
+          >
+            {filteredRows.length} {filteredRows.length === 1 ? "funcionário" : "funcionários"}
+          </Badge>
+
+          <Button
+            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white flex items-center gap-2 shadow-sm whitespace-nowrap flex-shrink-0 min-w-0"
+            onClick={() => {
+              setEditandoId(null)
+              setValores({})
+              setAbrir(true)
+            }}
+            size="sm"
+          >
+            <FiPlus className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate hidden sm:inline">Adicionar Funcionário</span>
+            <span className="truncate sm:hidden">Adicionar</span>
+          </Button>
+        </div>
+      </div>
+    </div>
+  </CardHeader>
 
                 <CardContent className="px-0">
                   <Dialog open={abrir} onOpenChange={setAbrir}>
@@ -1023,7 +1009,7 @@ export default function EmployeeDashboard() {
                                       variant="secondary"
                                       className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
                                     >
-                                      {rowData.departamento}
+                                      {rowData.departamento || "Sem Departamento"}
                                     </Badge>
                                   </TableCell>
                                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
