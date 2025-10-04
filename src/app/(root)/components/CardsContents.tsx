@@ -29,7 +29,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ title, description, imageSrc, o
       
       <div className="p-6">
         <h3 className="text-xl font-bold text-slate-800 mb-3">{title}</h3>
-        <p className="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-3">
+        <p className="text-slate-600 sm:text-2xl leading-relaxed mb-4 line-clamp-3">
           {description}
         </p>
         

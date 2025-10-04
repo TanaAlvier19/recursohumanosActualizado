@@ -85,7 +85,7 @@ const menuItems = [
       {
         icon: <Network className="w-5 h-5" />,
         label: "Analytics",
-        href: "/analytics",
+        href: "/list/analytics",
       },
     ],
   },
@@ -95,17 +95,17 @@ const menuItems = [
       {
         icon: <LifeBuoy className="w-5 h-5" />,
         label: "Suporte",
-        href: "/suporte",
+        href: "/list/suporte",
       },
       {
         icon: <Settings className="w-5 h-5" />,
         label: "Definições",
-        href: "/definicoes",
+        href: "/list/configuracoes",
       },
       {
         icon: <LogOut className="w-5 h-5" />,
         label: "Sair",
-        href: "/logout",
+        href: "/",
       },
     ],
   },

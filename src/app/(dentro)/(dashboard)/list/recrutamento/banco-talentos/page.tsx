@@ -1,0 +1,401 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Users,
+  Search,
+  Filter,
+  Star,
+  Briefcase,
+  MapPin,
+  Mail,
+  Phone,
+  Eye,
+  Send,
+  Tag,
+  Calendar,
+  Award,
+  TrendingUp,
+} from "lucide-react"
+
+export default function BancoTalentosPage() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedTalento, setSelectedTalento] = useState<any>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+
+  const talentos = [
+    {
+      id: 1,
+      nome: "Ana Silva",
+      cargo: "Desenvolvedor Full Stack",
+      localizacao: "São Paulo, SP",
+      email: "ana.silva@email.com",
+      telefone: "(11) 98765-4321",
+      experiencia: "5 anos",
+      rating: 4.8,
+      skills: ["React", "Node.js", "TypeScript", "PostgreSQL"],
+      disponibilidade: "Imediato",
+      pretensaoSalarial: "R$ 12.000",
+      ultimoContato: "2024-01-10",
+      fonte: "LinkedIn",
+      status: "Ativo",
+      tags: ["Senior", "Full Stack", "Remote"],
+    },
+    {
+      id: 2,
+      nome: "Carlos Santos",
+      cargo: "Analista de Dados",
+      localizacao: "Rio de Janeiro, RJ",
+      email: "carlos.santos@email.com",
+      telefone: "(21) 97654-3210",
+      experiencia: "3 anos",
+      rating: 4.5,
+      skills: ["Python", "SQL", "Power BI", "Machine Learning"],
+      disponibilidade: "30 dias",
+      pretensaoSalarial: "R$ 8.000",
+      ultimoContato: "2024-01-08",
+      fonte: "Indicação",
+      status: "Ativo",
+      tags: ["Pleno", "Data", "Híbrido"],
+    },
+    {
+      id: 3,
+      nome: "Maria Oliveira",
+      cargo: "Designer UX/UI",
+      localizacao: "Belo Horizonte, MG",
+      email: "maria.oliveira@email.com",
+      telefone: "(31) 96543-2109",
+      experiencia: "4 anos",
+      rating: 4.7,
+      skills: ["Figma", "Adobe XD", "User Research", "Prototyping"],
+      disponibilidade: "Imediato",
+      pretensaoSalarial: "R$ 9.000",
+      ultimoContato: "2023-12-20",
+      fonte: "Site Carreira",
+      status: "Inativo",
+      tags: ["Pleno", "Design", "Remote"],
+    },
+    {
+      id: 4,
+      nome: "João Costa",
+      cargo: "Gerente de Projetos",
+      localizacao: "Curitiba, PR",
+      email: "joao.costa@email.com",
+      telefone: "(41) 95432-1098",
+      experiencia: "8 anos",
+      rating: 4.9,
+      skills: ["Scrum", "Agile", "Jira", "Liderança"],
+      disponibilidade: "60 dias",
+      pretensaoSalarial: "R$ 15.000",
+      ultimoContato: "2024-01-05",
+      fonte: "Recrutador",
+      status: "Ativo",
+      tags: ["Senior", "Gestão", "Presencial"],
+    },
+  ]
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Ativo":
+        return "bg-green-500/10 text-green-400 border-green-500/20"
+      case "Inativo":
+        return "bg-slate-500/10 text-slate-400 border-slate-500/20"
+      case "Em Processo":
+        return "bg-blue-500/10 text-blue-400 border-blue-500/20"
+      default:
+        return "bg-slate-500/10 text-slate-400 border-slate-500/20"
+    }
+  }
+
+  const handleViewDetails = (talento: any) => {
+    setSelectedTalento(talento)
+    setIsDetailModalOpen(true)
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Banco de Talentos</h1>
+          <p className="text-slate-400">Gerencie seu pool de candidatos qualificados</p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="bg-slate-800/50 border-slate-700 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Total de Talentos</p>
+                <p className="text-2xl font-bold text-white mt-1">1,247</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center">
+                <Users className="w-6 h-6 text-cyan-400" />
+              </div>
+            </div>
+          </Card>
+          <Card className="bg-slate-800/50 border-slate-700 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Talentos Ativos</p>
+                <p className="text-2xl font-bold text-white mt-1">856</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-green-400" />
+              </div>
+            </div>
+          </Card>
+          <Card className="bg-slate-800/50 border-slate-700 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Rating Médio</p>
+                <p className="text-2xl font-bold text-white mt-1">4.6</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center">
+                <Star className="w-6 h-6 text-yellow-400" />
+              </div>
+            </div>
+          </Card>
+          <Card className="bg-slate-800/50 border-slate-700 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Contratados</p>
+                <p className="text-2xl font-bold text-white mt-1">143</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                <Award className="w-6 h-6 text-purple-400" />
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card className="bg-slate-800/50 border-slate-700 p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <Input
+                placeholder="Buscar por nome, cargo ou skills..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-slate-700 border-slate-600"
+              />
+            </div>
+            <Select>
+              <SelectTrigger className="w-full md:w-[200px] bg-slate-700 border-slate-600">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="ativo">Ativo</SelectItem>
+                <SelectItem value="inativo">Inativo</SelectItem>
+                <SelectItem value="processo">Em Processo</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select>
+              <SelectTrigger className="w-full md:w-[200px] bg-slate-700 border-slate-600">
+                <SelectValue placeholder="Experiência" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="junior">Júnior (0-2 anos)</SelectItem>
+                <SelectItem value="pleno">Pleno (3-5 anos)</SelectItem>
+                <SelectItem value="senior">Sênior (6+ anos)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select>
+              <SelectTrigger className="w-full md:w-[200px] bg-slate-700 border-slate-600">
+                <SelectValue placeholder="Disponibilidade" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="imediato">Imediato</SelectItem>
+                <SelectItem value="30dias">Até 30 dias</SelectItem>
+                <SelectItem value="60dias">Até 60 dias</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </Card>
+
+        {/* Talentos Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {talentos.map((talento) => (
+            <Card
+              key={talento.id}
+              className="bg-slate-800/50 border-slate-700 p-6 hover:border-cyan-500/50 transition-all"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-semibold">
+                    {talento.nome
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-lg">{talento.nome}</h3>
+                    <p className="text-slate-400 text-sm">{talento.cargo}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                      <span className="text-yellow-400 text-sm font-medium">{talento.rating}</span>
+                    </div>
+                  </div>
+                </div>
+                <Badge className={getStatusColor(talento.status)}>{talento.status}</Badge>
+              </div>
+
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-slate-300 text-sm">
+                  <MapPin className="w-4 h-4 text-slate-400" />
+                  {talento.localizacao}
+                </div>
+                <div className="flex items-center gap-2 text-slate-300 text-sm">
+                  <Briefcase className="w-4 h-4 text-slate-400" />
+                  {talento.experiencia} de experiência
+                </div>
+                <div className="flex items-center gap-2 text-slate-300 text-sm">
+                  <Mail className="w-4 h-4 text-slate-400" />
+                  {talento.email}
+                </div>
+                <div className="flex items-center gap-2 text-slate-300 text-sm">
+                  <Phone className="w-4 h-4 text-slate-400" />
+                  {talento.telefone}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-slate-400 text-xs mb-2">Skills</p>
+                <div className="flex flex-wrap gap-2">
+                  {talento.skills.map((skill, idx) => (
+                    <Badge key={idx} className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-slate-400 text-xs mb-2">Tags</p>
+                <div className="flex flex-wrap gap-2">
+                  {talento.tags.map((tag, idx) => (
+                    <Badge key={idx} className="bg-slate-700 text-slate-300 border-slate-600">
+                      <Tag className="w-3 h-3 mr-1" />
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-slate-900/50 rounded-lg text-sm">
+                <div>
+                  <p className="text-slate-400 text-xs">Disponibilidade</p>
+                  <p className="text-white font-medium">{talento.disponibilidade}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs">Pretensão</p>
+                  <p className="text-white font-medium">{talento.pretensaoSalarial}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs">Último Contato</p>
+                  <p className="text-white font-medium">
+                    {new Date(talento.ultimoContato).toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs">Fonte</p>
+                  <p className="text-white font-medium">{talento.fonte}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                  onClick={() => handleViewDetails(talento)}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Ver Perfil
+                </Button>
+                <Button variant="outline" className="border-slate-600 hover:bg-slate-700 bg-transparent">
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Detail Modal */}
+        <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+          <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">{selectedTalento?.nome}</DialogTitle>
+              <DialogDescription className="text-slate-400">{selectedTalento?.cargo}</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Informações Básicas */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Informações de Contato</h3>
+                <Card className="bg-slate-900/50 border-slate-700 p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-slate-400" />
+                    <span className="text-slate-300">{selectedTalento?.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-slate-400" />
+                    <span className="text-slate-300">{selectedTalento?.telefone}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-slate-400" />
+                    <span className="text-slate-300">{selectedTalento?.localizacao}</span>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Skills */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Competências</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTalento?.skills.map((skill: string, idx: number) => (
+                    <Badge key={idx} className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Histórico */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Histórico de Interações</h3>
+                <Card className="bg-slate-900/50 border-slate-700 p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Calendar className="w-4 h-4 text-cyan-400 mt-1" />
+                      <div>
+                        <p className="text-white font-medium">Entrevista Técnica</p>
+                        <p className="text-slate-400 text-sm">15/01/2024 - Aprovado com nota 8.5</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Calendar className="w-4 h-4 text-cyan-400 mt-1" />
+                      <div>
+                        <p className="text-white font-medium">Primeiro Contato</p>
+                        <p className="text-slate-400 text-sm">10/01/2024 - Interesse demonstrado</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  )
+}

@@ -38,7 +38,7 @@ const sliderImages = [
 const CardContents: ModuleContent[] = [
   {
     title: 'Gestão de Dados',
-    description: 'Transforme dados em insights valiosos para decisões mais inteligentes. Garanta segurança e conformidade com leis de proteção de dados.',
+    description: 'Transforme dados em insights valiosos para decisões mais inteligentes.',
     longDescription: 'Nossa solução de Gestão de Dados oferece uma plataforma completa para coleta, análise e visualização de informações críticas do RH. Transforme dados brutos em insights acionáveis que impulsionam a tomada de decisão estratégica com conformidade total à LGPD.',
     imageSrc: "/peer-to-peer1.png",
     color: "blue",
@@ -488,7 +488,6 @@ useEffect(()=>{
           </motion.p>
         </motion.div>
 
-        {/* Carousel */}
         <motion.div
           variants={fadeIn('up', 'spring', 0.6, 0.75)}
           initial="hidden"
@@ -522,7 +521,6 @@ useEffect(()=>{
           </div>
         </motion.div>
 
-        {/* Modules Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
           {CardContents.map((content, index) => (
             <motion.div
@@ -542,14 +540,12 @@ useEffect(()=>{
           ))}
         </div>
 
-        {/* Modal */}
         <ModuleModal
           isOpen={isModalOpen}
           onClose={closeModal}
           module={selectedModule}
         />
 
-        {/* CTA Section */}
         <motion.div 
           variants={fadeIn('up', 'spring', 0.8, 0.75)}
           initial="hidden"

@@ -1,506 +1,395 @@
 "use client"
-import { useEffect, useState, useRef, useContext } from "react"
-import type React from "react"
 
-import jsPDF from "jspdf"
-import autoTable from "jspdf-autotable"
-import { FileText, LogIn, LogOut, Loader2 } from "lucide-react"
-import { AuthContext } from "@/app/context/AuthContext"
-import Swal from "sweetalert2"
-import { useRouter } from "next/navigation"
-
-// Shadcn UI Components
+import { useState } from "react"
+import Link from "next/link"
+import { MetricCard } from "@/components/metrcCard"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  TrendingUp,
+  Calendar,
+  Fingerprint,
+  FileText,
+  BarChart3,
+  Timer,
+  AlertCircle,
+  ArrowRight,
+} from "lucide-react"
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts"
 
-interface Assiduidade {
-  id: number
-  funcionario: number
-  funcionario_nome: string
-  entrada: string
-  saida: string | null
-  data: string
-  duracao: string
-}
+const presencaData = [
+  { mes: "Jan", presentes: 285, ausentes: 15, atrasados: 25 },
+  { mes: "Fev", presentes: 290, ausentes: 10, atrasados: 20 },
+  { mes: "Mar", presentes: 288, ausentes: 12, atrasados: 22 },
+  { mes: "Abr", presentes: 292, ausentes: 8, atrasados: 18 },
+  { mes: "Mai", presentes: 295, ausentes: 5, atrasados: 15 },
+  { mes: "Jun", presentes: 298, ausentes: 2, atrasados: 12 },
+]
 
-interface Funcionario {
-  id: number
-  nome: string
-}
+const departamentoData = [
+  { nome: "TI", taxa: 98.5 },
+  { nome: "RH", taxa: 97.2 },
+  { nome: "Vendas", taxa: 95.8 },
+  { nome: "Financeiro", taxa: 99.1 },
+  { nome: "Operações", taxa: 94.3 },
+]
 
-export default function FormModalAssiduidade() {
-  const { accessToken } = useContext(AuthContext)
-  const router = useRouter()
-  const [listaFuncionarios, definirListaFuncionarios] = useState<Funcionario[]>([])
-  const [listaAssiduidade, definirListaAssiduidade] = useState<Assiduidade[]>([])
-  const [dadosFormulario, definirDadosFormulario] = useState({ funcionario: "", entrada: "", data: "" })
-  const [localizar, definirLocalizar] = useState<{ lat: number | null; long: number | null }>({ lat: null, long: null })
-  const [carregando, definirCarregando] = useState(false)
-  const [modalAberto, definirModalAberto] = useState(false)
-  const [erro, definirErro] = useState<string | null>(null)
-  const [hora, setHora] = useState<string>("")
-  const [idEdicao, definirIdEdicao] = useState<number | null>(null)
-  const [saidaEditada, definirSaidaEditada] = useState<string>("")
-  const [contando, setcontador] = useState(false)
-  const [cameraAberta, definirCameraAberta] = useState(false)
-  const [registrandoEntrada, definirRegistrandoEntrada] = useState(false)
-  const [registrandoSaida, definirRegistrandoSaida] = useState(false)
-  const [contagem, setContagem] = useState<number>(0)
-  const [loading, setLoading] = useState(true)
+const distribuicaoData = [
+  { name: "Presentes", value: 298, color: "#10b981" },
+  { name: "Ausentes", value: 2, color: "#ef4444" },
+  { name: "Atrasados", value: 12, color: "#f59e0b" },
+  { name: "Justificados", value: 8, color: "#3b82f6" },
+]
 
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+const registrosRecentes = [
+  {
+    id: 1,
+    funcionario: "João Silva",
+    departamento: "TI",
+    entrada: "08:00",
+    saida: "17:00",
+    status: "normal",
+  },
+  {
+    id: 2,
+    funcionario: "Maria Santos",
+    departamento: "RH",
+    entrada: "08:15",
+    saida: "17:15",
+    status: "atraso",
+  },
+  {
+    id: 3,
+    funcionario: "Pedro Costa",
+    departamento: "Vendas",
+    entrada: "08:00",
+    saida: "-",
+    status: "trabalhando",
+  },
+  {
+    id: 4,
+    funcionario: "Ana Oliveira",
+    departamento: "Financeiro",
+    entrada: "-",
+    saida: "-",
+    status: "ausente",
+  },
+  {
+    id: 5,
+    funcionario: "Carlos Mendes",
+    departamento: "Operações",
+    entrada: "08:00",
+    saida: "17:00",
+    status: "normal",
+  },
+]
 
-  
-
-  const carregarAssiduidade = async () => {
-    setLoading(true)
-    try {
-      const resposta = await fetch("https://backend-django-2-7qpl.onrender.com/api/assiduidade/todos/")
-      if (!resposta.ok) {
-        throw new Error("Erro ao carregar assiduidade.")
-      }
-      const dados = await resposta.json()
-      definirListaAssiduidade(dados)
-    } catch (err: any) {
-      definirErro(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const aoMudarInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    definirDadosFormulario((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const registrarEntrada = async (payload: { funcionario: any; entrada: string; data: string }) => {
-    try {
-      const resposta = await fetch("https://backend-django-2-7qpl.onrender.com/api/assiduidade/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify(payload),
-      })
-      if (!resposta.ok) {
-        const errorData = await resposta.json()
-        throw new Error(errorData.error || "Erro ao registrar entrada")
-      }
-      await carregarAssiduidade()
-    } catch (erro: any) {
-      definirErro(erro.message)
-      Swal.fire("Erro", erro.message, "error")
-    }
-  }
-
-  useEffect(() => {
-    let intervalo: ReturnType<typeof setInterval>
-    if (contando) {
-      intervalo = setInterval(() => {
-        setContagem((prev) => prev + 1)
-      }, 1000)
-    }
-    return () => clearInterval(intervalo)
-  }, [contando])
-
-  const editarSaida = async (id: number, saida: string) => {
-    definirCarregando(true)
-    try {
-      const resposta = await fetch(`https://backend-django-2-7qpl.onrender.com/api/assiduidade/${id}/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ saida }),
-      })
-      if (!resposta.ok) {
-        const erroDados = await resposta.json()
-        throw new Error(erroDados.error || "Erro ao registrar saída")
-      }
-      await carregarAssiduidade()
-      definirIdEdicao(null)
-      definirSaidaEditada("")
-    } catch (err: any) {
-      definirErro(err.message)
-      Swal.fire("Erro", err.message, "error")
-    } finally {
-      definirCarregando(false)
-    }
-  }
-
-  const exportarPDF = () => {
-    const doc = new jsPDF()
-    doc.text("Relatório de Assiduidade", 14, 16)
-    autoTable(doc, {
-      head: [["Funcionário", "Entrada", "Saída", "Data", "Duração"]],
-      body: listaAssiduidade.map((a) => [a.funcionario_nome, a.entrada, a.saida || "-", a.data, a.duracao || "-"]),
-      startY: 20,
-    })
-    doc.save("relatorio-assiduidade.pdf")
-  }
-
-  const abrirCamera = async () => {
-    definirCameraAberta(true)
-    definirErro(null) // Limpa erros anteriores
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-      streamRef.current = stream
-      if (videoRef.current) videoRef.current.srcObject = stream
-    } catch (err) {
-      definirErro("Erro ao acessar a câmera: " + (err as Error).message + ". Por favor, permita o acesso à câmera.")
-      definirCameraAberta(false) // Fecha o modal se o acesso à câmera falhar
-    }
-  }
-
-  const capturarImagem = (): string | null => {
-    if (!videoRef.current) return null
-    const canvas = document.createElement("canvas")
-    canvas.width = videoRef.current.videoWidth
-    canvas.height = videoRef.current.videoHeight
-    const ctx = canvas.getContext("2d")
-    if (ctx) {
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
-      return canvas.toDataURL("image/jpeg")
-    }
-    return null
-  }
-
-  const fecharCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
-      streamRef.current = null
-    }
-    setContagem(0)
-    setcontador(false)
-    definirCameraAberta(false)
-    definirRegistrandoEntrada(false)
-    definirRegistrandoSaida(false)
-    definirModalAberto(false) // Garante que modalAberto também seja resetado
-  }
-
-
-  const reconhecerFace = async () => {
-    definirCarregando(true)
-    definirErro(null) // Limpa erros anteriores
-    const imagem = capturarImagem()
-    if (!imagem) {
-      definirErro("Falha ao capturar imagem")
-      definirCarregando(false)
-      return
-    }
-
-    try {
-      const resposta = await fetch("https://3b63-102-214-36-178.ngrok-free.app/api/facial/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imagem }),
-      })
-
-      if (!resposta.ok) {
-        const erroData = await resposta.json().catch(() => ({}))
-        throw new Error(erroData?.error || "Funcionário não reconhecido")
-      }
-
-      const dados = await resposta.json()
-      if (!dados.funcionario_id) {
-        throw new Error("Funcionário não identificado na imagem.")
-      }
-
-      const agora = new Date()
-      const hora = agora.toTimeString().slice(0, 5)
-      const dataAtual = agora.toISOString().split("T")[0]
-
-      if (registrandoSaida) {
-        const registroAberto = listaAssiduidade.find(
-          (item) =>
-            item.funcionario.toString() === dados.funcionario_id.toString() &&
-            item.data === dataAtual &&
-            item.saida === null,
-        )
-        if (!registroAberto) {
-          Swal.fire("Erro", "Não há entrada registrada hoje para esse funcionário.", "warning")
-          return
-        }
-        await registrarSaida(dados.funcionario_id, hora)
-        Swal.fire("Sucesso", "Saída registrada com sucesso!", "success")
-      } else {
-        // registrandoEntrada
-        const entradaExistente = listaAssiduidade.find(
-          (item) => item.funcionario.toString() === dados.funcionario_id.toString() && item.data === dataAtual,
-        )
-        if (entradaExistente) {
-          Swal.fire("Erro", "Este funcionário já tem entrada registrada hoje.", "warning")
-          return
-        }
-        await registrarEntrada({
-          funcionario: dados.funcionario_id.toString(),
-          entrada: hora,
-          data: dataAtual,
-        })
-        Swal.fire("Sucesso", "Entrada registrada com sucesso!", "success")
-      }
-      await carregarAssiduidade()
-    } catch (err: any) {
-      definirErro("Erro: " + err.message)
-      Swal.fire("Erro", err.message, "error")
-    } finally {
-      fecharCamera()
-      definirCarregando(false)
-    }
-  }
-
-  async function registrarSaida(funcionarioId: number, horaSaida: string) {
-    try {
-      const existente = listaAssiduidade.find(
-        (item) => item.funcionario.toString() === funcionarioId.toString() && item.saida === null,
-      )
-      if (existente) {
-        await editarSaida(existente.id, horaSaida)
-      } else {
-        const agora = new Date()
-        const dataAtual = agora.toISOString().split("T")[0]
-        const resposta = await fetch("https://backend-django-2-7qpl.onrender.com/api/assiduidade/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ funcionario: funcionarioId, entrada: "00:00", saida: horaSaida, data: dataAtual }),
-        })
-        if (!resposta.ok) {
-          const errorData = await resposta.json()
-          throw new Error(errorData.error || "Tente Novamente ou verifique se o serviço está ativo!")
-        }
-        Swal.fire("Sucesso", "Saída registrada com sucesso!", "success")
-        await carregarAssiduidade()
-      }
-    } catch (err: any) {
-      definirErro(err.message)
-      Swal.fire("Ops..", err.message, "error")
-    }
-  }
-
-  const abrirModalEntrada = async () => {
-    definirRegistrandoEntrada(true)
-    definirRegistrandoSaida(false) // Garante que apenas um seja verdadeiro
-    definirModalAberto(true)
-    await abrirCamera()
-  }
-
-  const abrirModalSaida = async () => {
-    definirRegistrandoSaida(true)
-    definirRegistrandoEntrada(false) // Garante que apenas um seja verdadeiro
-    definirModalAberto(false) // ModalAberto é apenas para entrada, então mantém falso para saída
-    await abrirCamera()
-  }
-
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) streamRef.current.getTracks().forEach((track) => track.stop())
-    }
-  }, [])
+export default function AssiduidadePage() {
+  const [periodo, setPeriodo] = useState("hoje")
 
   return (
-    <div className="mx-auto max-w-5xl p-6 space-y-6">
-      {/* Informações de Localização */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle>Localização Atual</CardTitle>
-          <CardDescription>
-            {localizar.lat !== null && localizar.long !== null
-              ? `Lat: ${localizar.lat}, Long: ${localizar.long}`
-              : "Localização não disponível"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {localizar.lat !== null && localizar.long !== null && (
-            <Button asChild variant="link" className="p-0 h-auto">
-              <a
-                href={`https://www.google.com/maps?q=${localizar.lat},${localizar.long}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Ver a localização no mapa
-              </a>
-            </Button>
-          )}
-        </CardContent>
-      </Card> */}
-
-      {/* Cabeçalho e Exportar PDF */}
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-800">Gestão de Assiduidade</CardTitle>
-            <CardDescription className="text-sm text-yellow-800 mt-2">
-              {/* Os registros de assiduidades serão apagados depois de 20h e será gerado um relatório. */}
-            </CardDescription>
+            <h1 className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-4xl font-bold text-transparent">
+              Assiduidade e Ponto
+            </h1>
+            <p className="mt-2 text-slate-400">Sistema de controle de frequência com biometria</p>
           </div>
-          <Button onClick={exportarPDF} className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Exportar PDF
-          </Button>
-        </CardHeader>
-      </Card>
-
-      {/* Botões de Entrada/Saída */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Button onClick={abrirModalEntrada} className="flex items-center gap-2">
-          <LogIn className="w-5 h-5" />
-          Registrar Entrada
-        </Button>
-        <Button onClick={abrirModalSaida} className="flex items-center gap-2">
-          <LogOut className="w-5 h-5" />
-          Registrar Saída
-        </Button>
-      </div>
-
-      {/* Exibição de Erro */}
-      {erro && (
-        <Alert variant="destructive">
-          <AlertTitle>Erro</AlertTitle>
-          <AlertDescription>{erro}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Spinner de Carregamento para o conteúdo principal */}
-      {loading && (
-        <div className="flex justify-center items-center py-8">
-          <Loader2 className="h-10 w-10 animate-spin text-gray-500" />
-          <span className="sr-only">Carregando...</span>
+          <div className="flex gap-3">
+            <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700">
+              <Fingerprint className="mr-2 h-4 w-4" />
+              Registrar Ponto
+            </Button>
+            <Button variant="outline" className="border-slate-700 bg-slate-800/50 text-white hover:bg-slate-700">
+              <FileText className="mr-2 h-4 w-4" />
+              Exportar Relatório
+            </Button>
+          </div>
         </div>
-      )}
 
-      {/* Lista de Assiduidade (Mobile) */}
-      {!loading && (
-        <div className="block sm:hidden space-y-4">
-          {listaAssiduidade.length === 0 ? (
-            <p className="text-center text-gray-500">Nenhum registro de assiduidade encontrado.</p>
-          ) : (
-            listaAssiduidade.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-4 space-y-2">
-                  <p>
-                    <strong>Funcionário:</strong> {item.funcionario_nome}
-                  </p>
-                  <p>
-                    <strong>Entrada:</strong> {item.entrada}
-                  </p>
-                  <p>
-                    <strong>Saída:</strong>{" "}
-                    {idEdicao === item.id ? (
-                      <Input type="time" value={saidaEditada} onChange={(e) => definirSaidaEditada(e.target.value)} />
-                    ) : (
-                      item.saida || "-"
-                    )}
-                  </p>
-                  <p>
-                    <strong>Data:</strong> {item.data}
-                  </p>
-                  <p>
-                    <strong>Duração:</strong> {item.duracao || "-"}
-                  </p>
-                </CardContent>
-              </Card>
-            ))
-          )}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            title="Presentes Hoje"
+            value="298"
+            subtitle="de 320 funcionários"
+            icon={CheckCircle2}
+            trend={{ value: 2.5, isPositive: true }}
+            className="border-green-500/20 bg-gradient-to-br from-green-500/10 to-transparent"
+          />
+          <MetricCard
+            title="Taxa de Presença"
+            value="93.1%"
+            subtitle="média mensal"
+            icon={TrendingUp}
+            trend={{ value: 1.2, isPositive: true }}
+            className="border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-transparent"
+          />
+          <MetricCard
+            title="Atrasos Hoje"
+            value="12"
+            subtitle="funcionários"
+            icon={Clock}
+            trend={{ value: 3, isPositive: false }}
+            className="border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-transparent"
+          />
+          <MetricCard
+            title="Ausências"
+            value="2"
+            subtitle="não justificadas"
+            icon={AlertTriangle}
+            trend={{ value: 1, isPositive: false }}
+            className="border-red-500/20 bg-gradient-to-br from-red-500/10 to-transparent"
+          />
         </div>
-      )}
 
-      {/* Lista de Assiduidade (Desktop) */}
-      {!loading && (
-        <Card className="hidden sm:block overflow-x-auto">
-          {listaAssiduidade.length === 0 ? (
-            <CardContent className="p-4 text-center text-gray-500">
-              Nenhum registro de assiduidade encontrado.
-            </CardContent>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Funcionário</TableHead>
-                  <TableHead>Entrada</TableHead>
-                  <TableHead>Saída</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Duração</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {listaAssiduidade.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.funcionario_nome}</TableCell>
-                    <TableCell>{item.entrada}</TableCell>
-                    <TableCell>{item.saida || "-"}</TableCell>
-                    <TableCell>{item.data}</TableCell>
-                    <TableCell>{item.duracao || "-"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+        <Card className="border-slate-700 bg-slate-800/50 p-6 backdrop-blur-sm">
+          <h2 className="mb-6 text-xl font-semibold text-white">Módulos do Sistema</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Link
+              href="/list/assiduidade/registro-ponto"
+              className="group relative overflow-hidden rounded-lg border border-slate-700 bg-slate-800/50 p-6 transition-all hover:border-cyan-500/50 hover:bg-slate-700/50"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
+                    <Fingerprint className="h-6 w-6 text-cyan-400" />
+                  </div>
+                  <h3 className="mb-2 font-semibold text-white">Registro de Ponto</h3>
+                  <p className="text-sm text-slate-400">Marcação biométrica de entrada, saída e intervalos</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-cyan-400" />
+              </div>
+            </Link>
+
+            <Link
+              href="/list/assiduidade/horarios-escalas"
+              className="group relative overflow-hidden rounded-lg border border-slate-700 bg-slate-800/50 p-6 transition-all hover:border-blue-500/50 hover:bg-slate-700/50"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/20 to-indigo-500/20">
+                    <Calendar className="h-6 w-6 text-blue-400" />
+                  </div>
+                  <h3 className="mb-2 font-semibold text-white">Horários e Escalas</h3>
+                  <p className="text-sm text-slate-400">Gestão de turnos, escalas e horários flexíveis</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-blue-400" />
+              </div>
+            </Link>
+
+            <Link
+              href="/list/assiduidade/justificativas"
+              className="group relative overflow-hidden rounded-lg border border-slate-700 bg-slate-800/50 p-6 transition-all hover:border-purple-500/50 hover:bg-slate-700/50"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20">
+                    <FileText className="h-6 w-6 text-purple-400" />
+                  </div>
+                  <h3 className="mb-2 font-semibold text-white">Justificativas e Abonos</h3>
+                  <p className="text-sm text-slate-400">Sistema de justificativas com aprovação e documentos</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-purple-400" />
+              </div>
+            </Link>
+
+            <Link
+              href="/list/assiduidade/banco-horas"
+              className="group relative overflow-hidden rounded-lg border border-slate-700 bg-slate-800/50 p-6 transition-all hover:border-green-500/50 hover:bg-slate-700/50"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/20">
+                    <Timer className="h-6 w-6 text-green-400" />
+                  </div>
+                  <h3 className="mb-2 font-semibold text-white">Banco de Horas</h3>
+                  <p className="text-sm text-slate-400">Saldo de horas extras, devidas e compensações</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-green-400" />
+              </div>
+            </Link>
+
+            <Link
+              href="/list/assiduidade/relatorios"
+              className="group relative overflow-hidden rounded-lg border border-slate-700 bg-slate-800/50 p-6 transition-all hover:border-amber-500/50 hover:bg-slate-700/50"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20">
+                    <BarChart3 className="h-6 w-6 text-amber-400" />
+                  </div>
+                  <h3 className="mb-2 font-semibold text-white">Relatórios de Frequência</h3>
+                  <p className="text-sm text-slate-400">Espelho de ponto, relatórios individuais e consolidados</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-amber-400" />
+              </div>
+            </Link>
+
+            <Link
+              href="/list/assiduidade/alertas"
+              className="group relative overflow-hidden rounded-lg border border-slate-700 bg-slate-800/50 p-6 transition-all hover:border-red-500/50 hover:bg-slate-700/50"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-red-500/20 to-rose-500/20">
+                    <AlertCircle className="h-6 w-6 text-red-400" />
+                  </div>
+                  <h3 className="mb-2 font-semibold text-white">Alertas e Inconsistências</h3>
+                  <p className="text-sm text-slate-400">Detecção de problemas e notificações automáticas</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-red-400" />
+              </div>
+            </Link>
+          </div>
         </Card>
-      )}
 
-      {/* Modal de Entrada */}
-      <Dialog open={modalAberto && registrandoEntrada && cameraAberta} onOpenChange={fecharCamera}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Nova Entrada</DialogTitle>
-            <DialogDescription>Posicione seu rosto na câmera para registrar sua entrada.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <video ref={videoRef} autoPlay playsInline className="w-full h-auto border rounded" />
-            {contando && <p className="text-green-600 text-sm text-center">{contagem} segundos</p>}
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => {
-                reconhecerFace()
-                setcontador(true)
-              }}
-              disabled={carregando}
-            >
-              {carregando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Reconhecer"}
-            </Button>
-            <Button variant="outline" onClick={fecharCamera}>
-              Cancelar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="border-slate-700 bg-slate-800/50 p-6 backdrop-blur-sm">
+            <h3 className="mb-4 text-lg font-semibold text-white">Evolução de Presença</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={presencaData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="mes" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #334155",
+                    borderRadius: "8px",
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="presentes" fill="#10b981" name="Presentes" />
+                <Bar dataKey="ausentes" fill="#ef4444" name="Ausentes" />
+                <Bar dataKey="atrasados" fill="#f59e0b" name="Atrasados" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
 
-      {/* Modal de Saída */}
-      <Dialog open={registrandoSaida && cameraAberta} onOpenChange={fecharCamera}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Registrar Saída</DialogTitle>
-            <DialogDescription>Posicione seu rosto na câmera para registrar sua saída.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <video ref={videoRef} autoPlay playsInline className="w-full h-auto border rounded" />
-            {contando && <p className="text-green-600 text-sm text-center">{contagem} segundos</p>}
+          {/* Distribuição Atual */}
+          <Card className="border-slate-700 bg-slate-800/50 p-6 backdrop-blur-sm">
+            <h3 className="mb-4 text-lg font-semibold text-white">Distribuição Hoje</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={distribuicaoData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {distribuicaoData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #334155",
+                    borderRadius: "8px",
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+
+        {/* Taxa de Presença por Departamento */}
+        <Card className="border-slate-700 bg-slate-800/50 p-6 backdrop-blur-sm">
+          <h3 className="mb-4 text-lg font-semibold text-white">Taxa de Presença por Departamento</h3>
+          <div className="space-y-4">
+            {departamentoData.map((dept) => (
+              <div key={dept.nome}>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-300">{dept.nome}</span>
+                  <span className="text-sm font-semibold text-cyan-400">{dept.taxa}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-700">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500"
+                    style={{ width: `${dept.taxa}%` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-          <DialogFooter>
+        </Card>
+
+        {/* Registros Recentes */}
+        <Card className="border-slate-700 bg-slate-800/50 p-6 backdrop-blur-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">Registros Recentes</h3>
             <Button
-              onClick={() => {
-                reconhecerFace()
-                setcontador(true)
-              }}
-              disabled={carregando}
+              variant="outline"
+              size="sm"
+              className="border-slate-700 bg-slate-800/50 text-white hover:bg-slate-700"
             >
-              {carregando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Reconhecer"}
+              Ver Todos
             </Button>
-            <Button variant="outline" onClick={fecharCamera}>
-              Cancelar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="pb-3 text-left text-sm font-medium text-slate-400">Funcionário</th>
+                  <th className="pb-3 text-left text-sm font-medium text-slate-400">Departamento</th>
+                  <th className="pb-3 text-left text-sm font-medium text-slate-400">Entrada</th>
+                  <th className="pb-3 text-left text-sm font-medium text-slate-400">Saída</th>
+                  <th className="pb-3 text-left text-sm font-medium text-slate-400">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {registrosRecentes.map((registro) => (
+                  <tr
+                    key={registro.id}
+                    className="border-b border-slate-700/50 transition-colors hover:bg-slate-700/30"
+                  >
+                    <td className="py-3 text-sm text-white">{registro.funcionario}</td>
+                    <td className="py-3 text-sm text-slate-300">{registro.departamento}</td>
+                    <td className="py-3 text-sm text-slate-300">{registro.entrada}</td>
+                    <td className="py-3 text-sm text-slate-300">{registro.saida}</td>
+                    <td className="py-3">
+                      {registro.status === "normal" && (
+                        <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30">Normal</Badge>
+                      )}
+                      {registro.status === "atraso" && (
+                        <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30">Atraso</Badge>
+                      )}
+                      {registro.status === "trabalhando" && (
+                        <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30">Trabalhando</Badge>
+                      )}
+                      {registro.status === "ausente" && (
+                        <Badge className="bg-red-500/20 text-red-400 hover:bg-red-500/30">Ausente</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }

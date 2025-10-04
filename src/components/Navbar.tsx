@@ -178,7 +178,6 @@ const NavbarRH = ({
             )}
           </div>
           
-          {/* Barra de Pesquisa - Central */}
           <div className="hidden md:flex items-center bg-slate-700 rounded-lg px-3 py-1.5 w-1/3 max-w-md transition-all duration-300">
             <Search size={18} className="text-gray-400 mr-2" />
             <Input 

@@ -1,480 +1,442 @@
-'use client';
-import dynamic from "next/dynamic";
-import { useEffect, useState, useContext } from 'react';
-import { AuthContext } from '@/app/context/AuthContext';
-import { useRouter } from 'next/navigation';
-import { buscarDados } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+"use client"
+
+import { useState } from "react"
+import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton";
-import {motion} from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { MetricCard } from "@/components/metrcCard";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  UserCheck, 
-  FileBadge, 
-  GraduationCap,
-  Mail,
-  Phone,
-  MapPin,
-  MessageCircle,
-  FileText,
-  Banknote,CalendarCheck,UserPlus,
-  Info,
   Users,
-  Gift,
   Briefcase,
-  Settings,
-  LogOut,
-  BarChart4,
-  LayoutDashboard,
-  Plus,
-  FileInputIcon,
+  GraduationCap,
   DollarSign,
-  RefreshCw,
-  Building,
+  Calendar,
+  Building2,
+  AlertCircle,
+  UserCheck,
+  Settings,
+  Bell,
+  ArrowRight,
+  Activity,
 } from "lucide-react"
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from 'recharts';
-import { date } from "zod";
-import React from "react";
-import { Smile, UserCog, TrendingUp, CalendarDays } from "lucide-react";
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts"
 
-type DataItem = {
-  departamento: string;
-  presencas: number;
-};
-const rhData = [
-  { name: '1° Tri', hiring: 45, turnover: 9.2, payroll: 1280000 },
-  { name: '2° Tri', hiring: 32, turnover: 7.1, payroll: 1320000 },
-  { name: '3° Tri', hiring: 28, turnover: 6.5, payroll: 1350000 },
-  { name: '4° Tri', hiring: 51, turnover: 5.8, payroll: 1420000 }
-];
-type Pagamento = {
-  id: string;
-  nome: string;
-  cargo: string;
-  departamento: string;
-  salario_bruto: number;
-  descontos: number;
-  salario_liquido: number;
-  mes_referenca: string;
-  status: 'pago' | 'pendente' | 'atrasado';
-};
-const indicadoresRH = [
-  {
-    titulo: "Turnover",
-    valor: "7.1%",
-    descricao: "Taxa de rotatividade no último trimestre",
-    cor: "bg-amber-500",
-    icone: <RefreshCw className="h-5 w-5 text-white" />,
-  },
-  {
-    titulo: "Satisfação",
-    valor: "84%",
-    descricao: "Índice de satisfação dos colaboradores",
-    cor: "bg-emerald-500",
-    icone: <Smile className="h-5 w-5 text-white" />,
-  },
-  {
-    titulo: "Treinamentos",
-    valor: "62%",
-    descricao: "Colaboradores treinados este ano",
-    cor: "bg-indigo-500",
-    icone: <GraduationCap className="h-5 w-5 text-white" />,
-  },
-];
+export default function AdminDashboard() {
+  const [selectedPeriod, setSelectedPeriod] = useState("month")
 
-const AdminDashboard = () => {
-  const { accessToken, userName, userLoading } = useContext(AuthContext);
-  const router = useRouter();
-  const [nome, setnome]=useState('')
-  const [funcionarios, setFuncionarios] = useState(0);
-  const [totalDispensas, setTotalDispensas] = useState(0);
-  const [totalPresencas, setTotalPresencas] = useState(0);
-  const [departamentos, setDepartamentos] = useState(0);
-  const [Formando, setFormando] = useState(0);
-  const [Pagamento, setPagamento] = useState<Pagamento[]>([]);
-  const [Candidatura,setCandidatura]=useState(0)
-  const [folha,setfolha]=useState(0)
-  const [carregar,setcarregar]=useState(true)
-  const [DispensasAprovadas, setDispensasAprovadas]=useState(0)
-  // const chartData = departamentos.map(dept => ({
-  //   name: dept.nome,
-  //   funcionarios: dept.funcionarios,
-  //   orcamento: dept.orcamento / 1000, 
-  // }))
-  // }))
-  useEffect(() => {
-    const carregar=async()=>{
-      
-      const res= await buscarDados()
-      if(res){
-        setnome(res.user.nomeRep)
-        console.log(res.user.nomeRep)
+  // Dados consolidados de todos os módulos
+  const overallMetrics = [
+    {
+      title: "Total de Funcionários",
+      value: "1.247",
+      change: "+12",
+      trend: "up",
+      icon: Users,
+      color: "cyan",
+    },
+    {
+      title: "Folha de Pagamento Mensal",
+      value: "R$ 2.8M",
+      change: "+5.2%",
+      trend: "up",
+      icon: DollarSign,
+      color: "green",
+    },
+    {
+      title: "Taxa de Assiduidade",
+      value: "96.8%",
+      change: "+2.1%",
+      trend: "up",
+      icon: UserCheck,
+      color: "blue",
+    },
+    {
+      title: "Vagas Abertas",
+      value: "23",
+      change: "-5",
+      trend: "down",
+      icon: Briefcase,
+      color: "purple",
+    },
+  ]
 
-      }
-    }
-    carregar()
-    
-  }, []);
- useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res= await fetch("http://localhost:8000/pagamentos/",
-          {
-            credentials:"include"
-          }
-        );
-        
-        if(res.ok){
-          const data = await res.json();
-          setPagamento(Array.isArray(data) ? data : [data]);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar dados:", error);
-      } finally {
-        // setLoading(false);
-      }
-    };
+  const modules = [
+    {
+      name: "Folha de Pagamento",
+      icon: DollarSign,
+      description: "Gestão de salários e benefícios",
+      href: "/list/folha-pagamento",
+      stats: { active: "1.247 funcionários", pending: "12 pendências" },
+      color: "from-green-500 to-emerald-600",
+    },
+    {
+      name: "Assiduidade",
+      icon: Calendar,
+      description: "Controle de presenças e faltas",
+      href: "/admin/assiduidade",
+      stats: { active: "96.8% presença", pending: "8 justificativas" },
+      color: "from-blue-500 to-cyan-600",
+    },
+    {
+      name: "Departamentos",
+      icon: Building2,
+      description: "Gestão de departamentos",
+      href: "/admin/departamentos",
+      stats: { active: "18 departamentos", pending: "3 reestruturações" },
+      color: "from-purple-500 to-pink-600",
+    },
+    {
+      name: "Formações",
+      icon: GraduationCap,
+      description: "Treinamentos e desenvolvimento",
+      href: "/admin/formacoes",
+      stats: { active: "45 formações ativas", pending: "67 inscrições" },
+      color: "from-cyan-500 to-blue-600",
+    },
+    {
+      name: "Recrutamento",
+      icon: Users,
+      description: "Processos seletivos",
+      href: "/admin/recrutamento",
+      stats: { active: "23 vagas abertas", pending: "156 candidatos" },
+      color: "from-orange-500 to-red-600",
+    },
+  ]
 
-    fetchData();
-  }, []);
-  useEffect(() => {
-   const dadosAdmin=async()=>{
-  try{
-    const res=await fetch("http://localhost:8000/painel/",{
-    credentials:"include"
-  })
-    const data=await res.json()
-  if(res.ok){
-    console.log("Dados",data)
-    setFuncionarios(data.funcionarios)
-     setDepartamentos(data.departamento)
-    // setTotalDispensas(data.Dispensas)
-    setCandidatura(data.Candidatura)
-    // setTotalPresencas(data.Presentes)
-    // setFormando(data.Formando)
-    setfolha(data.folha)
-    setcarregar(false)
-    // setDispensasAprovadas(data.aprovadas)
-  }
-  }
-  catch(err){
-    alert("erro")
-  }
-}
+  const alerts = [
+    {
+      type: "urgent",
+      module: "Folha de Pagamento",
+      message: "Fechamento da folha em 3 dias",
+      time: "Hoje",
+    },
+    {
+      type: "warning",
+      module: "Assiduidade",
+      message: "8 justificativas de falta pendentes",
+      time: "Há 2 horas",
+    },
+    {
+      type: "info",
+      module: "Formações",
+      message: "67 novas inscrições para aprovação",
+      time: "Há 5 horas",
+    },
+    {
+      type: "info",
+      module: "Recrutamento",
+      message: "15 entrevistas agendadas esta semana",
+      time: "Ontem",
+    },
+  ]
 
-    dadosAdmin();
-  }, []);
+  const evolutionData = [
+    { month: "Jan", funcionarios: 1180, folha: 2.4, formacoes: 32 },
+    { month: "Fev", funcionarios: 1195, folha: 2.5, formacoes: 38 },
+    { month: "Mar", funcionarios: 1210, folha: 2.6, formacoes: 41 },
+    { month: "Abr", funcionarios: 1225, folha: 2.7, formacoes: 43 },
+    { month: "Mai", funcionarios: 1247, folha: 2.8, formacoes: 45 },
+  ]
 
-const hoje= new Date()
-const hora=hoje.getHours();
-const cumprimento=`${(hora<12 && 'Bom Dia')||(hora<17 && 'Boa tarde')|| 'Boa Noite'}`
-  
+  const departmentData = [
+    { name: "TI", value: 245, color: "#06b6d4" },
+    { name: "Vendas", value: 312, color: "#3b82f6" },
+    { name: "Marketing", value: 156, color: "#8b5cf6" },
+    { name: "RH", value: 89, color: "#ec4899" },
+    { name: "Financeiro", value: 134, color: "#10b981" },
+    { name: "Operações", value: 311, color: "#f59e0b" },
+  ]
+
+  const recentActivities = [
+    {
+      user: "Ana Silva",
+      action: "aprovou folha de pagamento",
+      module: "Folha de Pagamento",
+      time: "Há 15 min",
+    },
+    {
+      user: "Carlos Santos",
+      action: "agendou entrevista",
+      module: "Recrutamento",
+      time: "Há 1 hora",
+    },
+    {
+      user: "Maria Oliveira",
+      action: "criou nova formação",
+      module: "Formações",
+      time: "Há 2 horas",
+    },
+    {
+      user: "João Costa",
+      action: "aprovou justificativa",
+      module: "Assiduidade",
+      time: "Há 3 horas",
+    },
+  ]
 
   return (
-    <div 
-    
-    className="  p-6 space-y-8">
-      <div className="flex justify-between items-center ">
-        {carregar ? (
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-80" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Dashboard Administrativo</h1>
+            <p className="text-slate-400">Visão geral de todos os módulos do sistema de RH</p>
           </div>
-        ) : (
-          <>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">{cumprimento}, {nome}</h1>
-            <p className="text-gray-600">Aqui está o resumo das operações de RH</p>
-          </>
-        )}
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {carregar ? (
-          Array(4).fill(0).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-xl" />
-          ))
-        ) : (
-          <>
-            <MetricCard 
-              title="Funcionários Cadastrados" 
-              value={funcionarios} 
-              icon={Users}
-            />
-            <MetricCard 
-              title="Departamentos" 
-              value={departamentos} 
-              icon={Building}
-              color="bg-amber-500"
-            />
-            <MetricCard 
-              title="Folha de Pagamento" 
-              value={`Kz ${folha.toLocaleString()}`} 
-              icon={DollarSign}
-              description="Total mensal"
-              color="bg-emerald-500"
-            />
-            <MetricCard 
-              title="Candidaturas" 
-              value={Candidatura} 
-              icon={FileText}
-              description="Em processo seletivo"
-              color="bg-indigo-500"
-            />
-          </>
-        )}
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              {carregar ? (
-                <Skeleton className="h-6 w-64" />
-              ) : (
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart4 className="h-5 w-5 text-purple-500" />
-                  Indicadores de RH
+          <div className="flex gap-3">
+            <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent">
+              <Bell className="w-4 h-4 mr-2" />
+              Notificações
+              <Badge className="ml-2 bg-red-500">4</Badge>
+            </Button>
+            <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent">
+              <Settings className="w-4 h-4 mr-2" />
+              Configurações
+            </Button>
+          </div>
+        </div>
+
+        {/* Métricas Principais */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {overallMetrics.map((metric, index) => {
+            const Icon = metric.icon
+            return (
+              <Card key={index} className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm text-slate-400 mb-1">{metric.title}</p>
+                      <p className="text-2xl font-bold text-white mb-2">{metric.value}</p>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={`${
+                            metric.trend === "up"
+                              ? "border-green-500/50 text-green-400"
+                              : "border-red-500/50 text-red-400"
+                          }`}
+                        >
+                          {metric.change}
+                        </Badge>
+                        <span className="text-xs text-slate-500">vs mês anterior</span>
+                      </div>
+                    </div>
+                    <div
+                      className={`p-3 rounded-lg bg-gradient-to-br from-${metric.color}-500/20 to-${metric.color}-600/20`}
+                    >
+                      <Icon className={`w-6 h-6 text-${metric.color}-400`} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+
+        {/* Alertas e Notificações */}
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-orange-400" />
+                  Alertas e Pendências
                 </CardTitle>
-              )}
+                <CardDescription className="text-slate-400">Itens que requerem sua atenção</CardDescription>
+              </div>
+              <Button variant="ghost" className="text-cyan-400 hover:text-cyan-300">
+                Ver todos
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {alerts.map((alert, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 rounded-lg bg-slate-900/50 border border-slate-700 hover:border-slate-600 transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        alert.type === "urgent"
+                          ? "bg-red-500"
+                          : alert.type === "warning"
+                            ? "bg-orange-500"
+                            : "bg-blue-500"
+                      }`}
+                    />
+                    <div>
+                      <p className="text-white font-medium">{alert.message}</p>
+                      <p className="text-sm text-slate-400">
+                        {alert.module} • {alert.time}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300">
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Módulos do Sistema */}
+        <div>
+          <h2 className="text-xl font-bold text-white mb-4">Módulos do Sistema</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {modules.map((module, index) => {
+              const Icon = module.icon
+              return (
+                <Link key={index} href={module.href}>
+                  <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-cyan-500/50 transition-all cursor-pointer group h-full">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className={`p-3 rounded-lg bg-gradient-to-br ${module.color}`}>
+                          <Icon className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-cyan-400 transition-colors">
+                            {module.name}
+                          </h3>
+                          <p className="text-sm text-slate-400 mb-3">{module.description}</p>
+                          <div className="space-y-1">
+                            <p className="text-xs text-slate-500">
+                              <span className="text-cyan-400 font-medium">{module.stats.active}</span>
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              <span className="text-orange-400 font-medium">{module.stats.pending}</span>
+                            </p>
+                          </div>
+                        </div>
+                        <ArrowRight className="w-5 h-5 text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Gráficos e Analytics */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Evolução Geral */}
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white">Evolução Geral</CardTitle>
+              <CardDescription className="text-slate-400">Crescimento dos principais indicadores</CardDescription>
             </CardHeader>
             <CardContent>
-              {carregar ? (
-                <Skeleton className="h-80 w-full rounded-md" />
-              ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={rhData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="turnover" name="Turnover (%)" fill="#f59e0b" />
-                    <Bar yAxisId="right" dataKey="satisfacao" name="Satisfação (%)" fill="#10b981" />
-                    <Bar yAxisId="right" dataKey="treinamento" name="Treinamentos (%)" fill="#6366f1" />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={evolutionData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="month" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1e293b",
+                      border: "1px solid #334155",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="funcionarios" stroke="#06b6d4" strokeWidth={2} name="Funcionários" />
+                  <Line type="monotone" dataKey="formacoes" stroke="#3b82f6" strokeWidth={2} name="Formações" />
+                </LineChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              {carregar ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-6 w-48" />
-                  <div className="space-y-3">
-                    {Array(5).fill(0).map((_, i) => (
-                      <div key={i} className="flex justify-between items-center py-3">
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-4 w-24" />
-                        </div>
-                        <Skeleton className="h-4 w-16" />
-                      </div>
+
+          {/* Distribuição por Departamento */}
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white">Distribuição por Departamento</CardTitle>
+              <CardDescription className="text-slate-400">Total de funcionários por área</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={departmentData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {departmentData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Pagamentos Recentes</h3>
-                    <Badge variant="outline" className="px-3 py-1">
-                      Último mês
-                    </Badge>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b text-left text-sm text-gray-600">
-                          <th className="pb-3 font-medium">Funcionário</th>
-                          <th className="pb-3 font-medium">Cargo</th>
-                          <th className="pb-3 font-medium">Valor Líquido</th>
-                          <th className="pb-3 font-medium">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Pagamento.map((pag, index) => (
-                          <tr key={index} className="border-b last:border-b-0 hover:bg-gray-50">
-                            <td className="py-3 text-sm font-medium">{pag.nome}</td>
-                            <td className="py-3 text-sm text-gray-600">{pag.cargo}</td>
-                            <td className="py-3 text-sm font-medium">
-                              Kz {pag.salario_liquido.toLocaleString('pt-BR')}
-                            </td>
-                            <td className="py-3">
-                              <Badge 
-                                variant={
-                                  pag.status === 'pago' ? 'default' :
-                                  pag.status === 'pendente' ? 'secondary' : 'destructive'
-                                }
-                              >
-                                {pag.status}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1e293b",
+                      border: "1px solid #334155",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
-        
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              {carregar ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-6 w-48" />
-                  <div className="space-y-4">
-                    {Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                        <Skeleton className="w-10 h-10 rounded-lg" />
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-6 w-16" />
-                          <Skeleton className="h-3 w-40" />
-                        </div>
-                      </div>
-                    ))}
+
+        {/* Atividades Recentes */}
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-cyan-400" />
+                  Atividades Recentes
+                </CardTitle>
+                <CardDescription className="text-slate-400">Últimas ações realizadas no sistema</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentActivities.map((activity, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-4 p-4 rounded-lg bg-slate-900/50 border border-slate-700"
+                >
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold">
+                    {activity.user
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white">
+                      <span className="font-medium">{activity.user}</span> {activity.action}
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      {activity.module} • {activity.time}
+                    </p>
                   </div>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 mb-4">
-                    <UserCog className="h-5 w-5 text-purple-500" />
-                    <h3 className="text-lg font-semibold">Indicadores de RH</h3>
-                  </div>
-                  <div className="space-y-4">
-                    {indicadoresRH.map((indicador, index) => (
-                      <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                        <div className={`${indicador.cor} w-10 h-10 rounded-lg flex items-center justify-center`}>
-                          {indicador.icone}
-                        </div>
-                        <div>
-                          <p className="font-medium">{indicador.titulo}</p>
-                          <p className="text-xl font-bold">{indicador.valor}</p>
-                          <p className="text-xs text-gray-600">{indicador.descricao}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              {carregar ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-6 w-48" />
-                  <div className="space-y-4">
-                    {Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-3 w-32" />
-                        </div>
-                        <Skeleton className="h-6 w-12" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-blue-500" />
-                    <h3 className="text-lg font-semibold">Tendências de RH</h3>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">Contratações</p>
-                        <p className="text-sm text-gray-600">Último trimestre</p>
-                      </div>
-                      <Badge className="bg-green-100 text-green-800">+12%</Badge>
-                    </div>
-                    
-                    <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">Retenção</p>
-                        <p className="text-sm text-gray-600">Taxa de permanência</p>
-                      </div>
-                      <Badge className="bg-green-100 text-green-800">91.5%</Badge>
-                    </div>
-                    
-                    <div className="flex justify-between items-center p-3 bg-amber-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">Diversidade</p>
-                        <p className="text-sm text-gray-600">Equidade de gênero</p>
-                      </div>
-                      <Badge className="bg-amber-100 text-amber-800">45/55</Badge>
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              {carregar ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-6 w-48" />
-                  <div className="space-y-4">
-                    {Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="pl-3 py-1">
-                        <Skeleton className="h-4 w-40 mb-2" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 mb-4">
-                    <CalendarDays className="h-5 w-5 text-red-500" />
-                    <h3 className="text-lg font-semibold">Próximos Eventos</h3>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="border-l-4 border-purple-500 pl-3 py-1">
-                      <p className="font-medium">Treinamento de Liderança</p>
-                      <p className="text-sm text-gray-600">15 Nov • 09:00 - 12:00</p>
-                    </div>
-                    
-                    <div className="border-l-4 border-green-500 pl-3 py-1">
-                      <p className="font-medium">Avaliação de Desempenho</p>
-                      <p className="text-sm text-gray-600">20-30 Nov</p>
-                    </div>
-                    
-                    <div className="border-l-4 border-blue-500 pl-3 py-1">
-                      <p className="font-medium">Evento de Integração</p>
-                      <p className="text-sm text-gray-600">5 Dez • 14:00 - 18:00</p>
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
-  );
-};
-
-export default AdminDashboard;
+  )
+}

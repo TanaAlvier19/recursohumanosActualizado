@@ -60,14 +60,14 @@ interface EmpresaData {
   tipoEmpresa: string
   setorAtuacao: string
   endereco: string
-  emailCorporativo: string
+  email_corporativo: string
   telefoneEmpresa: string
 }
 
 interface RepresentanteData {
   nomeCompleto: string
   email: string
-  telefone: string
+  tele: string
   cargo: string
   nivelAcesso: string
 }
@@ -83,21 +83,20 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   const [loading, setLoading] = useState(false)
   const [mostrarSenha, setMostrarSenha] = useState(false)
   
-  // Estados organizados por categoria
   const [empresa, setEmpresa] = useState<EmpresaData>({
     nome: "",
     nif: "",
     tipoEmpresa: "",
     setorAtuacao: "",
     endereco: "",
-    emailCorporativo: "",
+    email_corporativo: "",
     telefoneEmpresa: ""
   })
 
   const [representante, setRepresentante] = useState<RepresentanteData>({
     nomeCompleto: "",
     email: "",
-    telefone: "",
+    tele: "",
     cargo: "",
     nivelAcesso: ""
   })
@@ -186,11 +185,11 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
 
   // Validações de passo
   const passo1Valido = () => {
-    return empresa.nome && empresa.nif && empresa.endereco && empresa.emailCorporativo
+    return empresa.nome && empresa.nif && empresa.endereco && empresa.email_corporativo
   }
 
   const passo2Valido = () => {
-    return representante.nomeCompleto && representante.email && representante.telefone && representante.nivelAcesso
+    return representante.nomeCompleto && representante.email  && representante.nivelAcesso
   }
 
   const passo3Valido = () => {
@@ -221,25 +220,20 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
 
     try {
       const dadosEmpresa = {
-        empresa: {
+        
+        
           nome: empresa.nome,
           nif: empresa.nif.replace(/\D/g, ''), // Remove caracteres não numéricos
           tipo_empresa: empresa.tipoEmpresa,
           setor_atuacao: empresa.setorAtuacao,
           endereco: empresa.endereco,
-          email_corporativo: empresa.emailCorporativo,
-          telefone: empresa.telefoneEmpresa
-        },
-        representante: {
-          nome_completo: representante.nomeCompleto,
-          email: representante.email,
-          telefone: representante.telefone,
+          email_corporativo: empresa.email_corporativo,
+          telefone: empresa.telefoneEmpresa,
+          nomeRep: representante.nomeCompleto,
+          emailRep: representante.email,
           cargo: representante.cargo,
-          nivel_acesso: representante.nivelAcesso
-        },
-        seguranca: {
-          senha: seguranca.senha
-        }
+          nivel_acesso: representante.nivelAcesso,
+          password: seguranca.senha
       }
 
       const res = await fetch("http://localhost:8000/empresa/", {
@@ -269,7 +263,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
       }
     } catch (error) {
       console.error("Erro no cadastro:", error)
-      Swal.fire({
+      return Swal.fire({
         title: "Erro no Cadastro",
         text: "Ocorreu um erro ao processar seu cadastro. Por favor, tente novamente ou entre em contato com nosso suporte.",
         icon: "error",
@@ -280,7 +274,6 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
     }
   }
 
-  // Componente de critério de senha
   function CriterioSenha({ valido, texto }: { valido: boolean; texto: string }) {
     return (
       <div className="flex items-center gap-2 text-xs">
@@ -327,7 +320,6 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Barra de Progresso */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-slate-700">
@@ -337,7 +329,6 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
             </div>
             <Progress value={progresso} className="h-2" />
             
-            {/* Indicadores de Etapa */}
             <div className="flex justify-between">
               {PASSOS.map((passo, index) => {
                 const Icone = passo.icone
@@ -368,9 +359,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
             </div>
           </div>
 
-          {/* Conteúdo dos Passos */}
           <div className="space-y-6">
-            {/* Passo 1: Dados Empresariais */}
             {passoAtual === 0 && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -461,8 +450,8 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                       id="emailCorporativo"
                       type="email"
                       placeholder="contato@empresa.com"
-                      value={empresa.emailCorporativo}
-                      onChange={(e) => atualizarEmpresa('emailCorporativo', e.target.value)}
+                      value={empresa.email_corporativo}
+                      onChange={(e) => atualizarEmpresa('email_corporativo', e.target.value)}
                       className="h-10"
                     />
                   </div>
@@ -534,7 +523,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="telefoneRepresentante" className="text-sm font-medium">
                       Telefone/WhatsApp *
                     </Label>
@@ -545,7 +534,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                       onChange={(e) => atualizarRepresentante('telefone', e.target.value)}
                       className="h-10"
                     />
-                  </div>
+                  </div> */}
 
                   <div className="space-y-2">
                     <Label htmlFor="cargo" className="text-sm font-medium flex items-center gap-2">
