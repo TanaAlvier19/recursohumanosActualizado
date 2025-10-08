@@ -70,7 +70,7 @@ export default function BancoTalentosPage() {
   const fetchTalentos = async () => {
     try {
       setLoading(true)
-      const response = await fetch('https://avdserver.up.railway.app/candidatos/banco_talentos/',{
+      const response = await fetch('https://recursohumanosactualizado.onrender.com/candidatos/banco_talentos/',{
         credentials:"include"
       })
       if (response.ok) {
@@ -86,7 +86,7 @@ export default function BancoTalentosPage() {
 
   const fetchEstatisticas = async () => {
     try {
-      const response = await fetch('https://avdserver.up.railway.app/candidatos/estatisticas_banco_talentos/',{
+      const response = await fetch('https://recursohumanosactualizado.onrender.com/candidatos/estatisticas_banco_talentos/',{
         credentials:"include"
       })
       if (response.ok) {

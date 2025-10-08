@@ -74,7 +74,7 @@ export default function CriarCamposPersonalizados() {
   const carregarCamposExistentes = async () => {
     try {
       setCarregandoExistentes(true);
-      const res = await fetch('https://avdserver.up.railway.app/campos/empresa/com-uso/', {
+      const res = await fetch('https://recursohumanosactualizado.onrender.com/campos/empresa/com-uso/', {
         method: 'GET',
         credentials: 'include',
       });
@@ -149,7 +149,7 @@ export default function CriarCamposPersonalizados() {
           empresa: empresaId
         }));
       
-      const res = await fetch('https://avdserver.up.railway.app/campos/criar/', {
+      const res = await fetch('https://recursohumanosactualizado.onrender.com/campos/criar/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(camposParaEnviar),
@@ -184,7 +184,7 @@ export default function CriarCamposPersonalizados() {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`https://avdserver.up.railway.app/campos/${campoId}/`, {
+        const res = await fetch(`https://recursohumanosactualizado.onrender.com/campos/${campoId}/`, {
           method: 'DELETE',
           credentials: 'include',
         });

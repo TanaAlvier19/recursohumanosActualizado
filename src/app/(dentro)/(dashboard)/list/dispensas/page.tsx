@@ -88,7 +88,7 @@ export default function AdminLeavesPage() {
   const fetchLeaves = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:8000/dispensa/todas/", { credentials: "include" })
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/dispensa/todas/", { credentials: "include" })
 
       if (!response.ok) throw new Error("Falha ao carregar dispensas")
 
@@ -193,7 +193,7 @@ export default function AdminLeavesPage() {
     if (!confirmation.isConfirmed) return
 
     try {
-      const response = await fetch(`http://localhost:8000/deletar-dispensa/${id}/`, {
+      const response = await fetch(`https://recursohumanosactualizado.onrender.com/deletar-dispensa/${id}/`, {
         method: "DELETE",
         credentials: "include",
       })
@@ -230,7 +230,7 @@ export default function AdminLeavesPage() {
     if (!comment) return
 
     try {
-      const response = await fetch(`http://localhost:8000/actualizar/${id}/`, {
+      const response = await fetch(`https://recursohumanosactualizado.onrender.com/actualizar/${id}/`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

@@ -103,7 +103,7 @@ export default function TestesPage() {
   const fetchTestes = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch("https://avdserver.up.railway.app/testes/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/testes/", {
         credentials: "include"
       })
 
@@ -127,7 +127,7 @@ export default function TestesPage() {
 
   const fetchAplicacoes = useCallback(async () => {
     try {
-      const response = await fetch("https://avdserver.up.railway.app/aplicacoes/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/", {
         credentials: "include"
       })
 
@@ -142,7 +142,7 @@ export default function TestesPage() {
 
   const fetchResultados = useCallback(async () => {
     try {
-      const response = await fetch("https://avdserver.up.railway.app/testes/?status=CONCLUIDO", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/testes/?status=CONCLUIDO", {
         credentials: "include"
       })
 
@@ -189,7 +189,7 @@ export default function TestesPage() {
         prazo: formData.prazo || null,
       }
 
-      const response = await fetch("https://avdserver.up.railway.app/testes/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/testes/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -239,7 +239,7 @@ export default function TestesPage() {
       }
 
       const promises = sendFormData.aplicacoes.map(aplicacaoId =>
-        fetch("https://avdserver.up.railway.app/testes/", {
+        fetch("https://recursohumanosactualizado.onrender.com/testes/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -285,7 +285,7 @@ export default function TestesPage() {
 
   const handleConcluirTeste = async (testeId: string, nota: number) => {
     try {
-      const response = await fetch(`https://avdserver.up.railway.app/testes/${testeId}/concluir/`, {
+      const response = await fetch(`https://recursohumanosactualizado.onrender.com/testes/${testeId}/concluir/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -334,7 +334,7 @@ export default function TestesPage() {
 
     if (result.isConfirmed) {
       try {
-        const response = await fetch(`https://avdserver.up.railway.app/testes/${testeId}/`, {
+        const response = await fetch(`https://recursohumanosactualizado.onrender.com/testes/${testeId}/`, {
           method: "DELETE",
           credentials: "include",
         })

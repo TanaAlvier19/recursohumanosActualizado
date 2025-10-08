@@ -128,7 +128,7 @@ export default function CandidatosPage() {
   const fetchCandidatos = async () => {
     try {
       setLoading(true)
-      const response = await fetch("https://avdserver.up.railway.app/candidatos/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/candidatos/", {
         credentials: "include"
       })
       if (!response.ok) throw new Error("Erro ao buscar candidatos")
@@ -154,7 +154,7 @@ export default function CandidatosPage() {
 
   const fetchAplicacoes = async () => {
     try {
-      const response = await fetch("https://avdserver.up.railway.app/aplicacoes/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/", {
         credentials: "include"
       })
       if (!response.ok) throw new Error("Erro ao buscar aplicações")
@@ -271,7 +271,7 @@ export default function CandidatosPage() {
 
   const moverStatusAplicacao = async (aplicacaoId: string, novoStatus: string) => {
     try {
-      const response = await fetch(`https://avdserver.up.railway.app/aplicacoes/${aplicacaoId}/mover_status/`, {
+      const response = await fetch(`https://recursohumanosactualizado.onrender.com/aplicacoes/${aplicacaoId}/mover_status/`, {
         method: 'POST',
         credentials: 'include',
         headers: {

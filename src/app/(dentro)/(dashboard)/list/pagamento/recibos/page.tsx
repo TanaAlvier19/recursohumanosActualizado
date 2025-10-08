@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { FileText, Download, Search, DollarSign } from "lucide-react"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://avdserver.up.railway.app"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://recursohumanosactualizado.onrender.com"
 
 interface Recibo {
   id: number

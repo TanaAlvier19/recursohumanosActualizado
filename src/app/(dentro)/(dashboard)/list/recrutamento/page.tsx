@@ -149,12 +149,12 @@ export default function RecrutamentoDashboard() {
       aplicacoesRes,
       evolucaoMensalRes  
     ] = await Promise.all([
-      fetch("https://avdserver.up.railway.app/vagas/estatisticas/", { credentials: "include" }),
-      fetch("https://avdserver.up.railway.app/aplicacoes/estatisticas/", { credentials: "include" }),
-      fetch("https://avdserver.up.railway.app/vagas/", { credentials: "include" }),
-      fetch("https://avdserver.up.railway.app/candidatos/", { credentials: "include" }),
-      fetch("https://avdserver.up.railway.app/aplicacoes/", { credentials: "include" }),
-      fetch("https://avdserver.up.railway.app/aplicacoes/evolucao_mensal/", { credentials: "include" }) // Nova URL
+      fetch("https://recursohumanosactualizado.onrender.com/vagas/estatisticas/", { credentials: "include" }),
+      fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/estatisticas/", { credentials: "include" }),
+      fetch("https://recursohumanosactualizado.onrender.com/vagas/", { credentials: "include" }),
+      fetch("https://recursohumanosactualizado.onrender.com/candidatos/", { credentials: "include" }),
+      fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/", { credentials: "include" }),
+      fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/evolucao_mensal/", { credentials: "include" }) // Nova URL
     ])
 
     if (!vagasStatsRes.ok || !aplicacoesStatsRes.ok || !vagasRes.ok || !candidatosRes.ok || !aplicacoesRes.ok || !evolucaoMensalRes.ok) {

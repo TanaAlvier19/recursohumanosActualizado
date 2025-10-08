@@ -72,7 +72,7 @@ const useVagas = () => {
       setLoading(true)
       setError(null)
 
-      const response = await fetch("https://avdserver.up.railway.app/vagas/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/vagas/", {
         credentials: "include",
       })
 
@@ -136,7 +136,7 @@ const useDepartamentos = () => {
       setLoading(true)
       setError(null)
 
-      const response = await fetch("https://avdserver.up.railway.app/departamentos/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/departamentos/", {
         credentials: "include",
       })
 
@@ -184,7 +184,7 @@ const useEmpresa = () => {
   const fetchEmpresa = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch("https://avdserver.up.railway.app/usuariologado/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/usuariologado/", {
         credentials: "include",
       })
 
@@ -303,7 +303,7 @@ export default function VagasPage() {
 
       console.log("Enviando dados:", novaVaga)
 
-      const response = await fetch("https://avdserver.up.railway.app/vagas/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/vagas/", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -357,7 +357,7 @@ export default function VagasPage() {
 
     if (result.isConfirmed) {
       try {
-        const response = await fetch(`https://avdserver.up.railway.app/vagas/${vagaId}/`, {
+        const response = await fetch(`https://recursohumanosactualizado.onrender.com/vagas/${vagaId}/`, {
           method: "DELETE",
           credentials: "include",
         })

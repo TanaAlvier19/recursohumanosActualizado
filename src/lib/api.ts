@@ -1,6 +1,6 @@
 export const buscarDados = async () => {
         try {
-            const res = await fetch("https://avdserver.up.railway.app/usuariologado/",
+            const res = await fetch("https://recursohumanosactualizado.onrender.com/usuariologado/",
                 {
                     credentials:"include",
                 }
@@ -17,7 +17,7 @@ export const buscarDados = async () => {
     };
 export const buscarModulos = async () => {
         try {
-            const res = await fetch("https://avdserver.up.railway.app/modulos/",
+            const res = await fetch("https://recursohumanosactualizado.onrender.com/modulos/",
                 {
                     credentials:"include",
                 }

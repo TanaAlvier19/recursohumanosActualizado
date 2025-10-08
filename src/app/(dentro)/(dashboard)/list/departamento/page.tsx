@@ -98,9 +98,9 @@ const useDepartamentos = () => {
       setError(null)
 
       const [depResponse, funcResponse, vagasResponse] = await Promise.all([
-        fetch("https://avdserver.up.railway.app/departamentos/", { credentials: "include" }),
-        fetch("https://avdserver.up.railway.app/valores/", { credentials: "include" }),
-        fetch("https://avdserver.up.railway.app/vagas/", { credentials: "include" }),
+        fetch("https://recursohumanosactualizado.onrender.com/departamentos/", { credentials: "include" }),
+        fetch("https://recursohumanosactualizado.onrender.com/valores/", { credentials: "include" }),
+        fetch("https://recursohumanosactualizado.onrender.com/vagas/", { credentials: "include" }),
       ])
 
       if (!depResponse.ok) throw new Error(`Erro ${depResponse.status}`)
@@ -320,7 +320,7 @@ export default function DepartamentosDashboard() {
         status: statusDepartamento,
       }
 
-      const response = await fetch("https://avdserver.up.railway.app/departamentos/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/departamentos/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

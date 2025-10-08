@@ -482,7 +482,7 @@ export default function EmployeeDashboard() {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`https://avdserver.up.railway.app/valores/${pk}/`, {
+        const res = await fetch(`https://recursohumanosactualizado.onrender.com/valores/${pk}/`, {
           method: "DELETE",
           credentials: "include",
         })
@@ -531,7 +531,7 @@ export default function EmployeeDashboard() {
     formData.append("departamento", departamentoSelecionado)
     formData.append("salario_bruto", JSON.stringify(salario_bruto))
 
-    const url = editandoId ? `https://avdserver.up.railway.app/valores/${editandoId}/` : "https://avdserver.up.railway.app/valores/"
+    const url = editandoId ? `https://recursohumanosactualizado.onrender.com/valores/${editandoId}/` : "https://recursohumanosactualizado.onrender.com/valores/"
     const method = editandoId ? "PUT" : "POST"
 
     try {
@@ -583,7 +583,7 @@ export default function EmployeeDashboard() {
 
   const Campos = async () => {
     try {
-      const res = await fetch("https://avdserver.up.railway.app/campos/empresa/com-uso/", {
+      const res = await fetch("https://recursohumanosactualizado.onrender.com/campos/empresa/com-uso/", {
         method: "GET",
         credentials: "include",
       })
@@ -600,7 +600,7 @@ export default function EmployeeDashboard() {
 
   const Pegar = async () => {
     try {
-      const res = await fetch("https://avdserver.up.railway.app/valores/", {
+      const res = await fetch("https://recursohumanosactualizado.onrender.com/valores/", {
         method: "GET",
         credentials: "include",
       })
@@ -617,7 +617,7 @@ export default function EmployeeDashboard() {
 
   const Departamanto = async () => {
     try {
-      const res = await fetch("https://avdserver.up.railway.app/departamentos/", {
+      const res = await fetch("https://recursohumanosactualizado.onrender.com/departamentos/", {
         method: "GET",
         credentials: "include",
       })

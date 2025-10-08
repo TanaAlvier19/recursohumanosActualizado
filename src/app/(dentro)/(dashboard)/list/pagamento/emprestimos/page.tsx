@@ -122,7 +122,7 @@ const EmprestimosPage = () => {
   const carregarEmprestimos = async () => {
     try {
     
-      const response = await fetch('https://avdserver.up.railway.app/emprestimos/', {
+      const response = await fetch('https://recursohumanosactualizado.onrender.com/emprestimos/', {
         headers: {
           
           'Content-Type': 'application/json'
@@ -252,7 +252,7 @@ const EmprestimosPage = () => {
     setSolicitando(true)
     try {
     
-      const response = await fetch('https://avdserver.up.railway.app/emprestimos/', {
+      const response = await fetch('https://recursohumanosactualizado.onrender.com/emprestimos/', {
         method: 'POST',
         headers: {
           
@@ -300,7 +300,7 @@ const EmprestimosPage = () => {
     setAprovando(true)
     try {
       
-      const url = `https://avdserver.up.railway.app/emprestimos/${emprestimoSelecionado.id}/aprovar/`
+      const url = `https://recursohumanosactualizado.onrender.com/emprestimos/${emprestimoSelecionado.id}/aprovar/`
       
       const bodyData: any = {
         acao: aprovado ? 'aprovar' : 'rejeitar'
@@ -358,7 +358,7 @@ const EmprestimosPage = () => {
   const marcarParcelaPaga = async (parcelaId: number) => {
     try {
       
-      const response = await fetch(`https://avdserver.up.railway.app/parcelas-emprestimo/${parcelaId}/pagar/`, {
+      const response = await fetch(`https://recursohumanosactualizado.onrender.com/parcelas-emprestimo/${parcelaId}/pagar/`, {
         method: 'POST',
         headers: {
           

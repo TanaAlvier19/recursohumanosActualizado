@@ -108,7 +108,7 @@ interface EvolucaoFormacoes {
   conclusoes: number
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://avdserver.up.railway.app"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://recursohumanosactualizado.onrender.com"
 
 export default function AdminDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("month")

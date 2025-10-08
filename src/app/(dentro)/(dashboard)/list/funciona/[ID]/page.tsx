@@ -92,7 +92,7 @@ const formatFieldValue = (fieldName: string, value: string) => {
   if ((name.includes("foto") || name.includes("imagem") || name.includes("avatar")) && 
       (value.startsWith('http') || value.includes('.jpg') || value.includes('.png') || value.includes('.jpeg'))) {
     
-    const imageUrl = value.startsWith('http') ? value : `http://localhost:8000${value}`
+    const imageUrl = value.startsWith('http') ? value : `https://recursohumanosactualizado.onrender.com${value}`
     
     return (
       <div className="flex items-center gap-3">
@@ -153,7 +153,7 @@ export default function PerfilFuncionario() {
       try {
         setLoading(true)
         setError(null)
-        const res = await fetch(`http://localhost:8000/perfil/?id=${id}`)
+        const res = await fetch(`https://recursohumanosactualizado.onrender.com/perfil/?id=${id}`)
 
         if (!res.ok) {
           throw new Error("Funcionário não encontrado")
@@ -187,7 +187,7 @@ export default function PerfilFuncionario() {
         )
         
         if (arquivoFoto) {
-          setFotoPerfil(`http://localhost:8000${arquivoFoto.arquivo}`)
+          setFotoPerfil(`https://recursohumanosactualizado.onrender.com${arquivoFoto.arquivo}`)
           return
         }
       }
@@ -206,7 +206,7 @@ export default function PerfilFuncionario() {
       if (campoFoto && campoFoto[1]) {
         const fotoUrl = campoFoto[1].startsWith('http') 
           ? campoFoto[1] 
-          : `http://localhost:8000${campoFoto[1]}`
+          : `https://recursohumanosactualizado.onrender.com${campoFoto[1]}`
         setFotoPerfil(fotoUrl)
       }
     } catch (error) {

@@ -80,7 +80,7 @@ interface FolhaPagamento {
   dataPagamento?: string
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "avdserver.up.railway.app"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://recursohumanosactualizado.onrender.com"
 
 const PainelFuncionarioPage = () => {
   const [modalEmprestimoAberto, setModalEmprestimoAberto] = useState(false)

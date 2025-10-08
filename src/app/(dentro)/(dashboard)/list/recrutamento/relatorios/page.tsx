@@ -154,29 +154,23 @@ export default function RelatoriosRecrutamento() {
           candidatosRes,
           aplicacoesRes
         ] = await Promise.all([
-          fetch("https://avdserver.up.railway.app/vagas/estatisticas/", { 
+          fetch("https://recursohumanosactualizado.onrender.com/vagas/estatisticas/", { 
             credentials: "include",
-            headers: { 'Accept': 'application/json' }
           }),
-          fetch("https://avdserver.up.railway.app/aplicacoes/estatisticas/", { 
+          fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/estatisticas/", { 
             credentials: "include",
-            headers: { 'Accept': 'application/json' }
           }),
-          fetch("https://avdserver.up.railway.app/aplicacoes/evolucao_mensal/", { 
+          fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/evolucao_mensal/", { 
             credentials: "include",
-            headers: { 'Accept': 'application/json' }
           }),
-          fetch("https://avdserver.up.railway.app/vagas/", { 
+          fetch("https://recursohumanosactualizado.onrender.com/vagas/", { 
             credentials: "include",
-            headers: { 'Accept': 'application/json' }
           }),
-          fetch("https://avdserver.up.railway.app/candidatos/", { 
+          fetch("https://recursohumanosactualizado.onrender.com/candidatos/", { 
             credentials: "include",
-            headers: { 'Accept': 'application/json' }
           }),
-          fetch("https://avdserver.up.railway.app/aplicacoes/", { 
+          fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/", { 
             credentials: "include",
-            headers: { 'Accept': 'application/json' }
           })
         ])
 
@@ -475,7 +469,7 @@ export default function RelatoriosRecrutamento() {
       let aplicacoes: any[] = []
 
       try {
-        const estatisticasRes = await fetch("https://avdserver.up.railway.app/aplicacoes/estatisticas/", { 
+        const estatisticasRes = await fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/estatisticas/", { 
           credentials: "include" 
         })
         estatisticas = estatisticasRes.ok ? await estatisticasRes.json() : {}
@@ -484,7 +478,7 @@ export default function RelatoriosRecrutamento() {
       }
 
       try {
-        const evolucaoRes = await fetch("https://avdserver.up.railway.app/aplicacoes/evolucao_mensal/", { 
+        const evolucaoRes = await fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/evolucao_mensal/", { 
           credentials: "include" 
         })
         evolucaoMensal = evolucaoRes.ok ? await evolucaoRes.json() : []
@@ -493,7 +487,7 @@ export default function RelatoriosRecrutamento() {
       }
 
       try {
-        const aplicacoesRes = await fetch("https://avdserver.up.railway.app/aplicacoes/", { 
+        const aplicacoesRes = await fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/", { 
           credentials: "include" 
         })
         aplicacoes = aplicacoesRes.ok ? await aplicacoesRes.json() : []

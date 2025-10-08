@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import Swal from "sweetalert2"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://avdserver.up.railway.app"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://recursohumanosactualizado.onrender.com"
 
 interface Ferias {
   id: number

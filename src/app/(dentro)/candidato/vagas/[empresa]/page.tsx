@@ -105,7 +105,7 @@ export default function VagasEmpresaPage() {
       try {
         setLoading(true)
         
-        const empresaResponse = await fetch(`https://avdserver.up.railway.app/empresas/?slug=${empresaSlug}`, {
+        const empresaResponse = await fetch(`https://recursohumanosactualizado.onrender.com/empresas/?slug=${empresaSlug}`, {
           credentials: "include"
         })
         
@@ -115,7 +115,7 @@ export default function VagasEmpresaPage() {
             setEmpresaInfo(empresaData[0])
             console.log(empresaData[0])
             // Buscar vagas da empresa específica
-            const vagasResponse = await fetch(`https://avdserver.up.railway.app/vagas/?empresa=${empresaData[0].id}`, {
+            const vagasResponse = await fetch(`https://recursohumanosactualizado.onrender.com/vagas/?empresa=${empresaData[0].id}`, {
               credentials: "include"
             })
             
@@ -229,7 +229,7 @@ export default function VagasEmpresaPage() {
         formData.append('curriculo', candidatura.curriculo)
       }
 
-      const response = await fetch("https://avdserver.up.railway.app/candidatos/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/candidatos/", {
         method: "POST",
         body: formData,
         credentials: "include"

@@ -73,7 +73,7 @@ export default function PipelinePage() {
   const fetchVagas = async () => {
     try {
       setLoading(true)
-      const response = await fetch("https://avdserver.up.railway.app/vagas/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/vagas/", {
         credentials: "include"
       })
       
@@ -103,7 +103,7 @@ export default function PipelinePage() {
     try {
       setLoading(true)
       const response = await fetch(
-        `https://avdserver.up.railway.app/aplicacoes/pipeline/?vaga_id=${selectedVaga}`,
+        `https://recursohumanosactualizado.onrender.com/aplicacoes/pipeline/?vaga_id=${selectedVaga}`,
         {
           credentials: "include"
         }
@@ -130,7 +130,7 @@ export default function PipelinePage() {
   const fetchTodasAplicacoes = async () => {
     try {
       setLoading(true)
-      const response = await fetch("https://avdserver.up.railway.app/aplicacoes/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/", {
         credentials: "include"
       })
 
@@ -279,7 +279,7 @@ export default function PipelinePage() {
 
   const handleMoverStatus = async (aplicacaoId: number, novoStatus: string) => {
     try {
-      const response = await fetch(`https://avdserver.up.railway.app/aplicacoes/${aplicacaoId}/mover_status/`, {
+      const response = await fetch(`https://recursohumanosactualizado.onrender.com/aplicacoes/${aplicacaoId}/mover_status/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

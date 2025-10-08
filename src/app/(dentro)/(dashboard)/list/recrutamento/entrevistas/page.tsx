@@ -90,7 +90,7 @@ export default function EntrevistasPage() {
   const fetchEntrevistas = async () => {
     try {
       setLoading(true)
-      const response = await fetch("https://avdserver.up.railway.app/entrevistas/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/entrevistas/", {
         credentials: "include"
       })
       
@@ -114,7 +114,7 @@ export default function EntrevistasPage() {
 
   const fetchAplicacoes = async () => {
     try {
-      const response = await fetch("https://avdserver.up.railway.app/aplicacoes/?status=ENTREVISTA", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/?status=ENTREVISTA", {
         credentials: "include"
       })
       
@@ -130,7 +130,7 @@ export default function EntrevistasPage() {
   const handleAgendarEntrevista = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const response = await fetch("https://avdserver.up.railway.app/entrevistas/", {
+      const response = await fetch("https://recursohumanosactualizado.onrender.com/entrevistas/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -175,7 +175,7 @@ export default function EntrevistasPage() {
 
   const handleConcluirEntrevista = async (entrevistaId: string, feedback: string, nota: number) => {
     try {
-      const response = await fetch(`https://avdserver.up.railway.app/entrevistas/${entrevistaId}/concluir/`, {
+      const response = await fetch(`https://recursohumanosactualizado.onrender.com/entrevistas/${entrevistaId}/concluir/`, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -227,7 +227,7 @@ export default function EntrevistasPage() {
 
     if (result.isConfirmed) {
       try {
-        const response = await fetch(`https://avdserver.up.railway.app/entrevistas/${entrevistaId}/`, {
+        const response = await fetch(`https://recursohumanosactualizado.onrender.com/entrevistas/${entrevistaId}/`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

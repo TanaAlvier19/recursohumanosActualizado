@@ -33,7 +33,7 @@ import {
 import Image from "next/image"
 import { useToast } from "@/hooks/use-toast"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://avdserver.up.railway.app"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://recursohumanosactualizado.onrender.com"
 
 type Instrutor = {
   id: string | number

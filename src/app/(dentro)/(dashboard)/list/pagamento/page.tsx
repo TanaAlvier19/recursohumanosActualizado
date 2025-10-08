@@ -176,10 +176,10 @@ const FolhaPagamento = () => {
 
       // Buscar dados básicos em paralelo
       const [funcionariosRes, departamentosRes, beneficiosRes, recibosRes] = await Promise.all([
-        fetch("https://avdserver.up.railway.app/valores/", { credentials: "include" }),
-        fetch("https://avdserver.up.railway.app/departamentos/", { credentials: "include" }),
-        fetch("https://avdserver.up.railway.app/beneficios/", { credentials: "include" }),
-        fetch("https://avdserver.up.railway.app/recibos/", { credentials: "include" }),
+        fetch("https://recursohumanosactualizado.onrender.com/valores/", { credentials: "include" }),
+        fetch("https://recursohumanosactualizado.onrender.com/departamentos/", { credentials: "include" }),
+        fetch("https://recursohumanosactualizado.onrender.com/beneficios/", { credentials: "include" }),
+        fetch("https://recursohumanosactualizado.onrender.com/recibos/", { credentials: "include" }),
       ])
 
       if (funcionariosRes.ok) {
@@ -203,7 +203,7 @@ const FolhaPagamento = () => {
       }
 
       try {
-        const resumoRes = await fetch("https://avdserver.up.railway.app/resumo-folha-completo/", {
+        const resumoRes = await fetch("https://recursohumanosactualizado.onrender.com/resumo-folha-completo/", {
           credentials: "include",
         })
         if (resumoRes.ok) {
@@ -219,7 +219,7 @@ const FolhaPagamento = () => {
 
       // Buscar histórico
       try {
-        const historicoRes = await fetch("https://avdserver.up.railway.app/historico-folha/", {
+        const historicoRes = await fetch("https://recursohumanosactualizado.onrender.com/historico-folha/", {
           credentials: "include",
         })
         if (historicoRes.ok) {
@@ -232,7 +232,7 @@ const FolhaPagamento = () => {
 
       // Buscar relatório mensal
       try {
-        const relatorioRes = await fetch("https://avdserver.up.railway.app/relatorio-mensal-completo/", {
+        const relatorioRes = await fetch("https://recursohumanosactualizado.onrender.com/relatorio-mensal-completo/", {
           credentials: "include",
         })
         if (relatorioRes.ok) {
@@ -321,7 +321,7 @@ const FolhaPagamento = () => {
     }
 
     try {
-      const res = await fetch("https://avdserver.up.railway.app/folha-pagamento/processar/", {
+      const res = await fetch("https://recursohumanosactualizado.onrender.com/folha-pagamento/processar/", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -365,7 +365,7 @@ const FolhaPagamento = () => {
     }
 
     try {
-      const res = await fetch("https://avdserver.up.railway.app/folha-pagamento/aprovar/", {
+      const res = await fetch("https://recursohumanosactualizado.onrender.com/folha-pagamento/aprovar/", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -403,7 +403,7 @@ const FolhaPagamento = () => {
 
   const adicionarFuncionario = async () => {
     try {
-      const res = await fetch("https://avdserver.up.railway.app/valores/", {
+      const res = await fetch("https://recursohumanosactualizado.onrender.com/valores/", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -448,7 +448,7 @@ const FolhaPagamento = () => {
 
   const aplicarAjusteSalarial = async () => {
     try {
-      const res = await fetch(`https://avdserver.up.railway.app/valores/${ajusteSalarial.funcionario_id}/`, {
+      const res = await fetch(`https://recursohumanosactualizado.onrender.com/valores/${ajusteSalarial.funcionario_id}/`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
