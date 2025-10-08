@@ -301,13 +301,11 @@ class Login(TokenObtainPairView):
             secure=True,
             samesite=None,
             max_age=60*60,
-            partitioned=True
         )
         resposta.set_cookie(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            partitioned=True,
             secure=True,
             samesite=None,
             max_age=60*60*24*7
