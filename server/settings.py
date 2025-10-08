@@ -15,12 +15,7 @@ SECRET_KEY = ')ejit_78^2uwgj8@%l)+(_rqxyyt877)ahx@_tau(45(^5-u4&'
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = [
-    '.railway.app',
-    'localhost',
-    '127.0.0.1',
-    'recursohumanos-actualizado.vercel.app',
-    'avdserver.up.railway.app'
-]
+'*']
 
 # 📁 MEDIA FILES
 MEDIA_URL = '/media/'
