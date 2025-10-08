@@ -81,7 +81,8 @@ class ReciboPagamento(models.Model):
     
     folha = models.ForeignKey(FolhaPagamento, on_delete=models.CASCADE, related_name='recibos')
     funcionario = models.ForeignKey(Funcionario, on_delete=models.CASCADE, related_name='recibos')
-    mes_referencia = models.IntegerField()
+    mes_referencia = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(12)],
+        help_text="Mês de referência (1-12)")
     data_emissao = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='GERADO')
     ano_referencia = models.IntegerField(default=2025)
