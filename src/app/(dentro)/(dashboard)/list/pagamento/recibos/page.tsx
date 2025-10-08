@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { FileText, Download, Search, DollarSign } from "lucide-react"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://avdserver.up.railway.app"
 
 interface Recibo {
   id: number
@@ -149,7 +149,6 @@ export default function RecibosPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Recibos de Pagamento</h1>
@@ -157,7 +156,6 @@ export default function RecibosPage() {
           </div>
         </div>
 
-        {/* Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="pb-3">
@@ -205,7 +203,7 @@ export default function RecibosPage() {
                 <span className="text-2xl font-bold text-white">
                   {new Intl.NumberFormat("pt-BR", {
                     style: "currency",
-                    currency: "BRL",
+                    currency: "AOA",
                     minimumFractionDigits: 0,
                   }).format(estatisticas.valor_total_mes)}
                 </span>

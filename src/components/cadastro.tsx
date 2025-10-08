@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import type React from "react"
 import { useState } from "react"
@@ -67,7 +67,7 @@ interface EmpresaData {
 interface RepresentanteData {
   nomeCompleto: string
   email: string
-  tele: string
+  telefone: string
   cargo: string
   nivelAcesso: string
 }
@@ -77,7 +77,7 @@ interface SegurancaData {
   confirmarSenha: string
 }
 
-export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
+export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   const router = useRouter()
   const [passoAtual, setPassoAtual] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -96,7 +96,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   const [representante, setRepresentante] = useState<RepresentanteData>({
     nomeCompleto: "",
     email: "",
-    tele: "",
+    telefone: "",
     cargo: "",
     nivelAcesso: ""
   })
@@ -139,7 +139,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   // Validação de senha profissional
   function validarSenha(senha: string) {
     const criterios = {
-      comprimento: senha.length >= 12,
+      comprimento: senha.length >= 8,
       maiusculo: /[A-Z]/.test(senha),
       minusculo: /[a-z]/.test(senha),
       numero: /[0-9]/.test(senha),
@@ -189,7 +189,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   }
 
   const passo2Valido = () => {
-    return representante.nomeCompleto && representante.email  && representante.nivelAcesso
+    return representante.nomeCompleto && representante.email && representante.nivelAcesso
   }
 
   const passo3Valido = () => {
@@ -220,23 +220,22 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
 
     try {
       const dadosEmpresa = {
-        
-        
-          nome: empresa.nome,
-          nif: empresa.nif.replace(/\D/g, ''), // Remove caracteres não numéricos
-          tipo_empresa: empresa.tipoEmpresa,
-          setor_atuacao: empresa.setorAtuacao,
-          endereco: empresa.endereco,
-          email_corporativo: empresa.email_corporativo,
-          telefone: empresa.telefoneEmpresa,
-          nomeRep: representante.nomeCompleto,
-          emailRep: representante.email,
-          cargo: representante.cargo,
-          nivel_acesso: representante.nivelAcesso,
-          password: seguranca.senha
+        nome: empresa.nome,
+        nif: empresa.nif.replace(/\D/g, ''), // Remove caracteres não numéricos
+        tipo_empresa: empresa.tipoEmpresa,
+        setor_atuacao: empresa.setorAtuacao,
+        endereco: empresa.endereco,
+        email_corporativo: empresa.email_corporativo,
+        telefone: empresa.telefoneEmpresa,
+        nomeRep: representante.nomeCompleto,
+        emailRep: representante.email,
+        telefoneRep: representante.telefone,
+        cargo: representante.cargo,
+        nivel_acesso: representante.nivelAcesso,
+        password: seguranca.senha
       }
 
-      const res = await fetch("http://localhost:8000/empresa/", {
+      const res = await fetch("https://avdserver.up.railway.app/empresa/", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -245,10 +244,12 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
         body: JSON.stringify(dadosEmpresa),
       })
 
+      const data = await res.json()
+
       if (res.ok) {
         await Swal.fire({
           title: "Cadastro Realizado com Sucesso!",
-          text: "Sua empresa foi cadastrada com sucesso. Em breve nossa equipe entrará em contato para ativação da conta.",
+          text: data.message || "Sua empresa foi cadastrada com sucesso!",
           icon: "success",
           confirmButtonText: "Continuar",
           confirmButtonColor: "#2563eb",
@@ -258,12 +259,25 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
         onSuccess?.()
         router.push("/personaliza")
       } else {
-        const errorData = await res.json()
-        throw new Error(errorData.detail || "Erro ao processar cadastro")
+        // Tratamento de erros específicos
+        const errorMessage = data.message || "Erro ao processar cadastro"
+        const errorField = data.field || "general"
+        
+        if (errorField === "nif") {
+          Swal.fire("NIF Já Cadastrado", data.message, "error")
+        } else if (errorField === "email_corporativo") {
+          Swal.fire("Email Corporativo em Uso", data.message, "error")
+        } else if (errorField === "emailRep") {
+          Swal.fire("Email Pessoal em Uso", data.message, "error")
+        } else if (errorField === "password") {
+          Swal.fire("Senha Fraca", data.message, "error")
+        } else {
+          Swal.fire("Erro no Cadastro", errorMessage, "error")
+        }
       }
     } catch (error) {
       console.error("Erro no cadastro:", error)
-      return Swal.fire({
+      Swal.fire({
         title: "Erro no Cadastro",
         text: "Ocorreu um erro ao processar seu cadastro. Por favor, tente novamente ou entre em contato com nosso suporte.",
         icon: "error",
@@ -290,12 +304,18 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
 
   // Máscara de telefone
   const formatarTelefone = (valor: string) => {
-    const numbers = valor.replace(/\D/g, '')
-    if (numbers.length <= 11) {
-      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-    }
-    return valor
+  const numbers = valor.replace(/\D/g, '')
+  
+  if (numbers.length <= 3) {
+    return `+${numbers}`
+  } else if (numbers.length <= 6) {
+    return `+${numbers.slice(0, 3)} ${numbers.slice(3)}`
+  } else if (numbers.length <= 9) {
+    return `+${numbers.slice(0, 3)} ${numbers.slice(3, 6)} ${numbers.slice(6)}`
+  } else {
+    return `+${numbers.slice(0, 3)} ${numbers.slice(3, 6)} ${numbers.slice(6, 9)} ${numbers.slice(9, 12)}`
   }
+}
 
   // Máscara de NIF
   const formatarNIF = (valor: string) => {
@@ -305,7 +325,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   const progresso = ((passoAtual + 1) / PASSOS.length) * 100
 
   return (
-    <div className="w-full max-w-2xl mx-auto py-20 " >
+    <div className="w-full max-w-2xl mx-auto py-20">
       <Card className="border-0 shadow-xl">
         <CardHeader className="text-center pb-4">
           <div className="mx-auto w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center mb-3">
@@ -360,6 +380,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
           </div>
 
           <div className="space-y-6">
+            {/* Passo 1: Dados Empresariais */}
             {passoAtual === 0 && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -459,7 +480,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                   <div className="space-y-2">
                     <Label htmlFor="telefoneEmpresa" className="text-sm font-medium flex items-center gap-2">
                       <Phone className="w-4 h-4" />
-                      Telefone Comercial *
+                      Telefone Comercial
                     </Label>
                     <Input
                       id="telefoneEmpresa"
@@ -523,18 +544,18 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                     />
                   </div>
 
-                  {/* <div className="space-y-2">
+                  <div className="space-y-2">
                     <Label htmlFor="telefoneRepresentante" className="text-sm font-medium">
-                      Telefone/WhatsApp *
+                      Telefone/WhatsApp
                     </Label>
                     <Input
                       id="telefoneRepresentante"
-                      placeholder="(00) 00000-0000"
+                      placeholder="(244) 00000-0000"
                       value={formatarTelefone(representante.telefone)}
                       onChange={(e) => atualizarRepresentante('telefone', e.target.value)}
                       className="h-10"
                     />
-                  </div> */}
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="cargo" className="text-sm font-medium flex items-center gap-2">
@@ -605,7 +626,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                       <Input
                         id="senha"
                         type={mostrarSenha ? "text" : "password"}
-                        placeholder="Mínimo 12 caracteres"
+                        placeholder="Mínimo 8 caracteres"
                         value={seguranca.senha}
                         onChange={(e) => atualizarSeguranca('senha', e.target.value)}
                         className="h-10 pr-10"
@@ -648,7 +669,7 @@ export  function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                         </Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <CriterioSenha valido={criterios.comprimento} texto="12+ caracteres" />
+                        <CriterioSenha valido={criterios.comprimento} texto="8+ caracteres" />
                         <CriterioSenha valido={criterios.maiusculo} texto="Letra maiúscula" />
                         <CriterioSenha valido={criterios.minusculo} texto="Letra minúscula" />
                         <CriterioSenha valido={criterios.numero} texto="Número" />

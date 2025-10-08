@@ -97,18 +97,24 @@ const useDepartamentos = () => {
       setLoading(true)
       setError(null)
 
-      // Busca departamentos e funcionários em paralelo
-      const [depResponse, funcResponse] = await Promise.all([
-        fetch("http://localhost:8000/departamentos/", { credentials: "include" }),
-        fetch("http://localhost:8000/valores/", { credentials: "include" }),
+      const [depResponse, funcResponse, vagasResponse] = await Promise.all([
+        fetch("https://avdserver.up.railway.app/departamentos/", { credentials: "include" }),
+        fetch("https://avdserver.up.railway.app/valores/", { credentials: "include" }),
+        fetch("https://avdserver.up.railway.app/vagas/", { credentials: "include" }),
       ])
 
       if (!depResponse.ok) throw new Error(`Erro ${depResponse.status}`)
 
       const departamentosData = await depResponse.json()
       const funcionariosData = await funcResponse.json()
-
-      // Conta funcionários por departamento
+      const vagasData = await vagasResponse.json()
+      console.log(vagasData)
+      const vagasPorDep: Record<string, number> = {}
+      vagasData.forEach((vaga: any) => {
+        const depNome = vaga.departamento_nome
+        if (depNome) {
+          vagasPorDep[depNome] = (vagasPorDep[depNome] || 0) + 1
+        }})
       const funcionariosPorDep: Record<string, number> = {}
       funcionariosData.forEach((func: any) => {
         const depNome = func.departamento
@@ -117,7 +123,6 @@ const useDepartamentos = () => {
         }
       })
 
-      // Formata departamentos com contagem de funcionários
       const departamentosFormatados: Departamento[] = departamentosData.map((dep: any) => ({
         id: dep.id.toString(),
         nome: dep.nome || "Sem nome",
@@ -130,11 +135,12 @@ const useDepartamentos = () => {
         data_criacao: dep.data_criacao || new Date().toISOString(),
         orcamento: Number.parseFloat(dep.orcamento) || 0,
         totalFuncionarios: funcionariosPorDep[dep.nome] || 0,
-        vagasAbertas: 0,
+        vagasAbertas: vagasPorDep[dep.nome] || 0,
       }))
-
+      console.log(vagasPorDep)
       setDepartamentos(departamentosFormatados)
-    } catch (error) {
+    } 
+    catch (error) {
       console.error("Erro ao buscar departamentos:", error)
       setError("Falha ao carregar departamentos")
       Swal.fire({
@@ -314,7 +320,7 @@ export default function DepartamentosDashboard() {
         status: statusDepartamento,
       }
 
-      const response = await fetch("http://localhost:8000/departamentos/", {
+      const response = await fetch("https://avdserver.up.railway.app/departamentos/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -380,7 +386,6 @@ export default function DepartamentosDashboard() {
   return (
     <TooltipProvider>
       <div className="space-y-8">
-        {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="space-y-2">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
@@ -408,7 +413,6 @@ export default function DepartamentosDashboard() {
           </div>
         </div>
 
-        {/* Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
             title="Departamentos"
@@ -441,9 +445,7 @@ export default function DepartamentosDashboard() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Tabela e Gráficos */}
           <div className="xl:col-span-2 space-y-8">
-            {/* Tabela de Departamentos */}
             <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
               <CardHeader>
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -599,7 +601,6 @@ export default function DepartamentosDashboard() {
               </CardContent>
             </Card>
 
-            {/* Gráficos */}
             <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
@@ -672,9 +673,7 @@ export default function DepartamentosDashboard() {
             </Card>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Distribuição */}
             <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white">Distribuição</CardTitle>

@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { 
@@ -18,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://avdserver.up.railway.app"
 
 interface Desconto {
   id: string
@@ -134,6 +135,12 @@ const DescontosBeneficiosPage = () => {
       if (!response.ok) throw new Error("Erro ao carregar descontos")
       const data = await response.json()
       setDescontos(data)
+      console.log("Descontos",data)
+       const res = await fetch(`${API_URL}/descontos/estatisticas/`, {
+        credentials: "include",
+      })
+      const data1= await res.json()
+      console.log("Estatisitca", data1)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao carregar descontos")
       toast({
@@ -291,14 +298,12 @@ const DescontosBeneficiosPage = () => {
     </Badge>
   }
 
-  // Função melhorada para buscar nome do funcionário
   const getFuncionarioNome = (funcionarioId: string) => {
     if (!funcionarioId) return 'N/A'
     
     const funcionario = funcionarios.find(f => f.id === funcionarioId)
     if (!funcionario) return 'N/A'
     
-    // Tenta diferentes estruturas de dados possíveis
     return funcionario.nome || 
            funcionario.valores?.nome || 
            funcionario.nome_completo || 
@@ -385,7 +390,6 @@ const DescontosBeneficiosPage = () => {
     setItemSelecionado(null)
   }
 
-  // Validação melhorada do formulário
   const validarFormulario = (): boolean => {
     if (!nome.trim()) {
       toast({
@@ -638,6 +642,9 @@ const DescontosBeneficiosPage = () => {
             Gestão de Descontos e Benefícios
           </h1>
           <p className="text-lg text-slate-300">Configure descontos e benefícios aplicados na folha de pagamento</p>
+        <Link href="/admin/pagamento" className="text-sm text-slate-400 hover:text-cyan-400 mb-2 inline-block">
+                      ← Voltar ao Dashboard
+        </Link>
         </div>
       </div>
 
@@ -696,7 +703,6 @@ const DescontosBeneficiosPage = () => {
         </Card>
       </div>
 
-      {/* Filters */}
       <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
         <CardContent className="pt-6">
           <div className="flex flex-col lg:flex-row gap-4">
@@ -739,7 +745,6 @@ const DescontosBeneficiosPage = () => {
         </CardContent>
       </Card>
 
-      {/* Main Content - Tabs with tables */}
       <Tabs defaultValue="descontos" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700">
           <TabsTrigger value="descontos" className="text-slate-300 data-[state=active]:bg-slate-700">
@@ -752,7 +757,7 @@ const DescontosBeneficiosPage = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Descontos Tab */}
+
         <TabsContent value="descontos" className="mt-6">
           <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
             <CardHeader>
@@ -1000,7 +1005,6 @@ const DescontosBeneficiosPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Modal Desconto */}
       <Dialog open={modalDescontoAberto} onOpenChange={setModalDescontoAberto}>
         <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>

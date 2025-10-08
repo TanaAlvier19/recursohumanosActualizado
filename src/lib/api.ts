@@ -1,6 +1,6 @@
 export const buscarDados = async () => {
         try {
-            const res = await fetch("http://localhost:8000/usuariologado/",
+            const res = await fetch("https://avdserver.up.railway.app/usuariologado/",
                 {
                     credentials:"include",
                 }
@@ -17,7 +17,7 @@ export const buscarDados = async () => {
     };
 export const buscarModulos = async () => {
         try {
-            const res = await fetch("http://localhost:8000/modulos/",
+            const res = await fetch("https://avdserver.up.railway.app/modulos/",
                 {
                     credentials:"include",
                 }

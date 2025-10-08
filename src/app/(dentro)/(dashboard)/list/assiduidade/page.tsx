@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { MetricCard } from "@/components/metrcCard"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,7 @@ import {
   Timer,
   AlertCircle,
   ArrowRight,
+  Loader2,
 } from "lucide-react"
 import {
   BarChart,
@@ -32,76 +33,90 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
+import { fetchApi, getApiUrl } from "@/lib/api-config"
 
-const presencaData = [
-  { mes: "Jan", presentes: 285, ausentes: 15, atrasados: 25 },
-  { mes: "Fev", presentes: 290, ausentes: 10, atrasados: 20 },
-  { mes: "Mar", presentes: 288, ausentes: 12, atrasados: 22 },
-  { mes: "Abr", presentes: 292, ausentes: 8, atrasados: 18 },
-  { mes: "Mai", presentes: 295, ausentes: 5, atrasados: 15 },
-  { mes: "Jun", presentes: 298, ausentes: 2, atrasados: 12 },
-]
+interface EstatisticasAssiduidade {
+  presentes_hoje: number
+  total_funcionarios: number
+  taxa_presenca: number
+  atrasos_hoje: number
+  ausencias: number
+  evolucao_mensal: Array<{
+    mes: string
+    presentes: number
+    ausentes: number
+    atrasados: number
+  }>
+}
 
-const departamentoData = [
-  { nome: "TI", taxa: 98.5 },
-  { nome: "RH", taxa: 97.2 },
-  { nome: "Vendas", taxa: 95.8 },
-  { nome: "Financeiro", taxa: 99.1 },
-  { nome: "Operações", taxa: 94.3 },
-]
+interface RegistroRecente {
+  id: number
+  funcionario: string
+  departamento: string
+  entrada: string
+  saida: string
+  status: string
+}
 
-const distribuicaoData = [
-  { name: "Presentes", value: 298, color: "#10b981" },
-  { name: "Ausentes", value: 2, color: "#ef4444" },
-  { name: "Atrasados", value: 12, color: "#f59e0b" },
-  { name: "Justificados", value: 8, color: "#3b82f6" },
-]
+function useAssiduidadeData() {
+  const [estatisticas, setEstatisticas] = useState<EstatisticasAssiduidade | null>(null)
+  const [registrosRecentes, setRegistrosRecentes] = useState<RegistroRecente[]>([])
+  const [loading, setLoading] = useState(true)
 
-const registrosRecentes = [
-  {
-    id: 1,
-    funcionario: "João Silva",
-    departamento: "TI",
-    entrada: "08:00",
-    saida: "17:00",
-    status: "normal",
-  },
-  {
-    id: 2,
-    funcionario: "Maria Santos",
-    departamento: "RH",
-    entrada: "08:15",
-    saida: "17:15",
-    status: "atraso",
-  },
-  {
-    id: 3,
-    funcionario: "Pedro Costa",
-    departamento: "Vendas",
-    entrada: "08:00",
-    saida: "-",
-    status: "trabalhando",
-  },
-  {
-    id: 4,
-    funcionario: "Ana Oliveira",
-    departamento: "Financeiro",
-    entrada: "-",
-    saida: "-",
-    status: "ausente",
-  },
-  {
-    id: 5,
-    funcionario: "Carlos Mendes",
-    departamento: "Operações",
-    entrada: "08:00",
-    saida: "17:00",
-    status: "normal",
-  },
-]
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [estatisticasRes, registrosRes] = await Promise.all([
+          fetch("http://localhost:8000/registros-ponto/estatisticas/",{
+            credentials:"include"
+          }),
+          fetch("http://localhost:8000/registros-ponto/recentes/",{
+            credentials:"include"
+          }),
+        ])
+
+        const estatisticasData = await estatisticasRes.json()
+        const registrosData = await registrosRes.json()
+
+        setEstatisticas(estatisticasData)
+        setRegistrosRecentes(registrosData.registros || [])
+      } catch (error) {
+        console.error("[v0] Erro ao buscar dados de assiduidade:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  return { estatisticas, registrosRecentes, loading }
+}
 
 export default function AssiduidadePage() {
-  const [periodo, setPeriodo] = useState("hoje")
+  const { estatisticas, registrosRecentes, loading } = useAssiduidadeData()
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Loader2 className="h-12 w-12 animate-spin text-cyan-400" />
+      </div>
+    )
+  }
+
+  const distribuicaoData = [
+    { name: "Presentes", value: estatisticas?.presentes_hoje || 0, color: "#10b981" },
+    { name: "Ausentes", value: estatisticas?.ausencias || 0, color: "#ef4444" },
+    { name: "Atrasados", value: estatisticas?.atrasos_hoje || 0, color: "#f59e0b" },
+  ]
+
+  const departamentoData = [
+    { nome: "TI", taxa: 98.5 },
+    { nome: "RH", taxa: 97.2 },
+    { nome: "Vendas", taxa: 95.8 },
+    { nome: "Financeiro", taxa: 99.1 },
+    { nome: "Operações", taxa: 94.3 },
+  ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
@@ -114,29 +129,33 @@ export default function AssiduidadePage() {
             <p className="mt-2 text-slate-400">Sistema de controle de frequência com biometria</p>
           </div>
           <div className="flex gap-3">
-            <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700">
-              <Fingerprint className="mr-2 h-4 w-4" />
-              Registrar Ponto
-            </Button>
-            <Button variant="outline" className="border-slate-700 bg-slate-800/50 text-white hover:bg-slate-700">
-              <FileText className="mr-2 h-4 w-4" />
-              Exportar Relatório
-            </Button>
+            <Link href="/list/assiduidade/registro-ponto">
+              <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700">
+                <Fingerprint className="mr-2 h-4 w-4" />
+                Registrar Ponto
+              </Button>
+            </Link>
+            <Link href="/list/assiduidade/relatorios">
+              <Button variant="outline" className="border-slate-700 bg-slate-800/50 text-white hover:bg-slate-700">
+                <FileText className="mr-2 h-4 w-4" />
+                Exportar Relatório
+              </Button>
+            </Link>
           </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Presentes Hoje"
-            value="298"
-            subtitle="de 320 funcionários"
+            value={estatisticas?.presentes_hoje.toString() || "0"}
+            subtitle={`de ${estatisticas?.total_funcionarios || 0} funcionários`}
             icon={CheckCircle2}
             trend={{ value: 2.5, isPositive: true }}
             className="border-green-500/20 bg-gradient-to-br from-green-500/10 to-transparent"
           />
           <MetricCard
             title="Taxa de Presença"
-            value="93.1%"
+            value={`${estatisticas?.taxa_presenca.toFixed(1) || "0"}%`}
             subtitle="média mensal"
             icon={TrendingUp}
             trend={{ value: 1.2, isPositive: true }}
@@ -144,7 +163,7 @@ export default function AssiduidadePage() {
           />
           <MetricCard
             title="Atrasos Hoje"
-            value="12"
+            value={estatisticas?.atrasos_hoje.toString() || "0"}
             subtitle="funcionários"
             icon={Clock}
             trend={{ value: 3, isPositive: false }}
@@ -152,7 +171,7 @@ export default function AssiduidadePage() {
           />
           <MetricCard
             title="Ausências"
-            value="2"
+            value={estatisticas?.ausencias.toString() || "0"}
             subtitle="não justificadas"
             icon={AlertTriangle}
             trend={{ value: 1, isPositive: false }}
@@ -265,7 +284,7 @@ export default function AssiduidadePage() {
           <Card className="border-slate-700 bg-slate-800/50 p-6 backdrop-blur-sm">
             <h3 className="mb-4 text-lg font-semibold text-white">Evolução de Presença</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={presencaData}>
+              <BarChart data={estatisticas?.evolucao_mensal || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="mes" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
@@ -284,7 +303,6 @@ export default function AssiduidadePage() {
             </ResponsiveContainer>
           </Card>
 
-          {/* Distribuição Atual */}
           <Card className="border-slate-700 bg-slate-800/50 p-6 backdrop-blur-sm">
             <h3 className="mb-4 text-lg font-semibold text-white">Distribuição Hoje</h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -315,7 +333,6 @@ export default function AssiduidadePage() {
           </Card>
         </div>
 
-        {/* Taxa de Presença por Departamento */}
         <Card className="border-slate-700 bg-slate-800/50 p-6 backdrop-blur-sm">
           <h3 className="mb-4 text-lg font-semibold text-white">Taxa de Presença por Departamento</h3>
           <div className="space-y-4">
@@ -336,17 +353,18 @@ export default function AssiduidadePage() {
           </div>
         </Card>
 
-        {/* Registros Recentes */}
         <Card className="border-slate-700 bg-slate-800/50 p-6 backdrop-blur-sm">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Registros Recentes</h3>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-slate-700 bg-slate-800/50 text-white hover:bg-slate-700"
-            >
-              Ver Todos
-            </Button>
+            <Link href="/list/assiduidade/registro-ponto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-slate-700 bg-slate-800/50 text-white hover:bg-slate-700"
+              >
+                Ver Todos
+              </Button>
+            </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">

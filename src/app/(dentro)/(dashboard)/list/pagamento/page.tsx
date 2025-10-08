@@ -176,39 +176,34 @@ const FolhaPagamento = () => {
 
       // Buscar dados básicos em paralelo
       const [funcionariosRes, departamentosRes, beneficiosRes, recibosRes] = await Promise.all([
-        fetch("http://localhost:8000/valores/", { credentials: "include" }),
-        fetch("http://localhost:8000/departamentos/", { credentials: "include" }),
-        fetch("http://localhost:8000/beneficios/", { credentials: "include" }),
-        fetch("http://localhost:8000/recibos/", { credentials: "include" }),
+        fetch("https://avdserver.up.railway.app/valores/", { credentials: "include" }),
+        fetch("https://avdserver.up.railway.app/departamentos/", { credentials: "include" }),
+        fetch("https://avdserver.up.railway.app/beneficios/", { credentials: "include" }),
+        fetch("https://avdserver.up.railway.app/recibos/", { credentials: "include" }),
       ])
 
-      // Processar funcionários
       if (funcionariosRes.ok) {
         const funcionariosData = await funcionariosRes.json()
         setFuncionarios(Array.isArray(funcionariosData) ? funcionariosData : [])
       }
 
-      // Processar departamentos
       if (departamentosRes.ok) {
         const departamentosData = await departamentosRes.json()
         setDepartamentos(Array.isArray(departamentosData) ? departamentosData : [])
       }
 
-      // Processar benefícios
       if (beneficiosRes.ok) {
         const beneficiosData = await beneficiosRes.json()
         setBeneficios(Array.isArray(beneficiosData) ? beneficiosData : [])
       }
 
-      // Processar recibos
       if (recibosRes.ok) {
         const recibosData = await recibosRes.json()
         setRecibos(Array.isArray(recibosData) ? recibosData : [])
       }
 
-      // Buscar resumo da folha
       try {
-        const resumoRes = await fetch("http://localhost:8000/resumo-folha-completo/", {
+        const resumoRes = await fetch("https://avdserver.up.railway.app/resumo-folha-completo/", {
           credentials: "include",
         })
         if (resumoRes.ok) {
@@ -224,7 +219,7 @@ const FolhaPagamento = () => {
 
       // Buscar histórico
       try {
-        const historicoRes = await fetch("http://localhost:8000/historico-folha/", {
+        const historicoRes = await fetch("https://avdserver.up.railway.app/historico-folha/", {
           credentials: "include",
         })
         if (historicoRes.ok) {
@@ -237,7 +232,7 @@ const FolhaPagamento = () => {
 
       // Buscar relatório mensal
       try {
-        const relatorioRes = await fetch("http://localhost:8000/relatorio-mensal-completo/", {
+        const relatorioRes = await fetch("https://avdserver.up.railway.app/relatorio-mensal-completo/", {
           credentials: "include",
         })
         if (relatorioRes.ok) {
@@ -326,7 +321,7 @@ const FolhaPagamento = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/folha-pagamento/processar/", {
+      const res = await fetch("https://avdserver.up.railway.app/folha-pagamento/processar/", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -370,7 +365,7 @@ const FolhaPagamento = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/folha-pagamento/aprovar/", {
+      const res = await fetch("https://avdserver.up.railway.app/folha-pagamento/aprovar/", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -408,7 +403,7 @@ const FolhaPagamento = () => {
 
   const adicionarFuncionario = async () => {
     try {
-      const res = await fetch("http://localhost:8000/valores/", {
+      const res = await fetch("https://avdserver.up.railway.app/valores/", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -453,7 +448,7 @@ const FolhaPagamento = () => {
 
   const aplicarAjusteSalarial = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/valores/${ajusteSalarial.funcionario_id}/`, {
+      const res = await fetch(`https://avdserver.up.railway.app/valores/${ajusteSalarial.funcionario_id}/`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

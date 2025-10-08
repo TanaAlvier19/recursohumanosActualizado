@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -35,6 +35,177 @@ import {
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
+import { Skeleton } from "@/components/ui/skeleton"
+import Swal from "sweetalert2"
+
+interface Vaga {
+  id: number
+  titulo: string
+  departamento: string
+  localizacao: string
+  tipo: string
+  nivel: string
+  salario: string
+  candidatos: number
+  status: string
+  prioridade: string
+  dataAbertura: string
+  dataFechamento: string
+  descricao: string
+  requisitos: string[]
+  vagas: number
+}
+
+interface Departamento {
+  id: string  // UUID como string
+  nome: string
+  descricao?: string
+}
+
+const useVagas = () => {
+  const [vagas, setVagas] = useState<Vaga[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchVagas = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch("https://avdserver.up.railway.app/vagas/", {
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      const vagasFormatadas: Vaga[] = data.map((vaga: any) => ({
+        id: vaga.id,
+        titulo: vaga.titulo || "Sem título",
+        departamento: vaga.departamento_nome || "Não especificado",
+        localizacao: vaga.localizacao || "Remoto",
+        tipo: vaga.tipo_contrato || "CLT",
+        nivel: vaga.nivel || "Pleno",
+        salario: vaga.salario_min && vaga.salario_max 
+          ? `KZ ${vaga.salario_min} - KZ ${vaga.salario_max}`
+          : "A combinar",
+        candidatos: vaga.total_candidatos || 0,
+        status: vaga.status === "ABERTA" ? "Ativa" : vaga.status === "FECHADA" ? "Fechada" : "Em Análise",
+        prioridade: vaga.prioridade || "Média",
+        dataAbertura: vaga.data_abertura || new Date().toISOString(),
+        dataFechamento: vaga.data_fechamento || "",
+        descricao: vaga.descricao || "",
+        requisitos: vaga.requisitos ? vaga.requisitos.split(",") : [],
+        vagas: vaga.vagas_disponiveis || 1,
+      }))
+
+      setVagas(vagasFormatadas)
+    } catch (error) {
+      console.error("Erro ao buscar vagas:", error)
+      setError("Falha ao carregar vagas")
+      Swal.fire({
+        title: "Erro",
+        text: "Falha ao carregar vagas. Verifique se o backend está rodando.",
+        icon: "error",
+        background: "#1e293b",
+        color: "white",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchVagas()
+  }, [fetchVagas])
+
+  return { vagas, loading, error, refetchVagas: fetchVagas }
+}
+
+// Hook para buscar departamentos
+const useDepartamentos = () => {
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchDepartamentos = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch("https://avdserver.up.railway.app/departamentos/", {
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      // Ajuste para diferentes estruturas de resposta
+      let departamentosData: Departamento[] = []
+      
+      if (Array.isArray(data)) {
+        departamentosData = data
+      } else if (data.dados && Array.isArray(data.dados)) {
+        departamentosData = data.dados
+      } else if (data.data && Array.isArray(data.data)) {
+        departamentosData = data.data
+      } else {
+        console.warn("Estrutura de dados inesperada:", data)
+        departamentosData = []
+      }
+
+      setDepartamentos(departamentosData)
+    } catch (error) {
+      console.error("Erro ao buscar departamentos:", error)
+      setError("Falha ao carregar departamentos")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchDepartamentos()
+  }, [fetchDepartamentos])
+
+  return { departamentos, loading, error, refetchDepartamentos: fetchDepartamentos }
+}
+
+// Hook para buscar dados da empresa (para obter o ID da empresa)
+const useEmpresa = () => {
+  const [empresa, setEmpresa] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  const fetchEmpresa = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("https://avdserver.up.railway.app/usuariologado/", {
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setEmpresa(data.empresa)
+        console.log(data.empresa)
+      }
+    } catch (error) {
+      console.error("Erro ao buscar empresa:", error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchEmpresa()
+  }, [fetchEmpresa])
+
+  return { empresa, loading }
+}
 
 export default function VagasPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -42,110 +213,25 @@ export default function VagasPage() {
   const [selectedDepartamento, setSelectedDepartamento] = useState("todos")
   const [selectedStatus, setSelectedStatus] = useState("todos")
 
-  const vagas = [
-    {
-      id: 1,
-      titulo: "Desenvolvedor Full Stack Senior",
-      departamento: "Tecnologia",
-      localizacao: "Remoto",
-      tipo: "CLT",
-      nivel: "Senior",
-      salario: "R$ 12.000 - R$ 18.000",
-      candidatos: 45,
-      status: "Ativa",
-      prioridade: "Alta",
-      dataAbertura: "2024-01-15",
-      dataFechamento: "2024-02-15",
-      descricao: "Buscamos desenvolvedor full stack com experiência em React e Node.js",
-      requisitos: ["React", "Node.js", "TypeScript", "PostgreSQL"],
-      vagas: 2,
-    },
-    {
-      id: 2,
-      titulo: "Analista de Marketing Digital",
-      departamento: "Marketing",
-      localizacao: "São Paulo - SP",
-      tipo: "CLT",
-      nivel: "Pleno",
-      salario: "R$ 6.000 - R$ 9.000",
-      candidatos: 32,
-      status: "Ativa",
-      prioridade: "Média",
-      dataAbertura: "2024-01-18",
-      dataFechamento: "2024-02-18",
-      descricao: "Profissional para gerenciar campanhas digitais e redes sociais",
-      requisitos: ["Google Ads", "Facebook Ads", "SEO", "Analytics"],
-      vagas: 1,
-    },
-    {
-      id: 3,
-      titulo: "Gerente de Vendas",
-      departamento: "Comercial",
-      localizacao: "Híbrido - SP",
-      tipo: "CLT",
-      nivel: "Senior",
-      salario: "R$ 10.000 - R$ 15.000",
-      candidatos: 28,
-      status: "Em Análise",
-      prioridade: "Alta",
-      dataAbertura: "2024-01-20",
-      dataFechamento: "2024-02-20",
-      descricao: "Liderar equipe de vendas e desenvolver estratégias comerciais",
-      requisitos: ["Gestão de Equipes", "Vendas B2B", "CRM", "Negociação"],
-      vagas: 1,
-    },
-    {
-      id: 4,
-      titulo: "Designer UX/UI",
-      departamento: "Produto",
-      localizacao: "Remoto",
-      tipo: "PJ",
-      nivel: "Pleno",
-      salario: "R$ 8.000 - R$ 12.000",
-      candidatos: 56,
-      status: "Ativa",
-      prioridade: "Média",
-      dataAbertura: "2024-01-22",
-      dataFechamento: "2024-02-22",
-      descricao: "Criar interfaces intuitivas e experiências memoráveis",
-      requisitos: ["Figma", "Design System", "Prototipagem", "User Research"],
-      vagas: 1,
-    },
-    {
-      id: 5,
-      titulo: "Analista de Dados",
-      departamento: "Tecnologia",
-      localizacao: "São Paulo - SP",
-      tipo: "CLT",
-      nivel: "Pleno",
-      salario: "R$ 7.000 - R$ 11.000",
-      candidatos: 38,
-      status: "Ativa",
-      prioridade: "Baixa",
-      dataAbertura: "2024-01-25",
-      dataFechamento: "2024-02-25",
-      descricao: "Análise de dados e criação de dashboards estratégicos",
-      requisitos: ["SQL", "Python", "Power BI", "Estatística"],
-      vagas: 1,
-    },
-    {
-      id: 6,
-      titulo: "Coordenador de RH",
-      departamento: "Recursos Humanos",
-      localizacao: "Híbrido - SP",
-      tipo: "CLT",
-      nivel: "Pleno",
-      salario: "R$ 6.500 - R$ 9.500",
-      candidatos: 24,
-      status: "Pausada",
-      prioridade: "Baixa",
-      dataAbertura: "2024-01-10",
-      dataFechamento: "2024-02-10",
-      descricao: "Coordenar processos de recrutamento e desenvolvimento",
-      requisitos: ["Recrutamento", "Treinamento", "Gestão de Pessoas", "Excel"],
-      vagas: 1,
-    },
-  ]
+  const [formData, setFormData] = useState({
+    titulo: "",
+    departamento: "", // Agora será o ID do departamento
+    nivel: "",
+    tipo: "",
+    vagas_disponiveis: "1",
+    localizacao: "",
+    salario_min: "",
+    salario_max: "",
+    prioridade: "",
+    data_fechamento: "",
+    descricao: "",
+    requisitos: "",
+    beneficios: "",
+  })
+
+  const { vagas, loading, refetchVagas } = useVagas()
+  const { departamentos, loading: loadingDepartamentos } = useDepartamentos()
+  const { empresa } = useEmpresa()
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -166,19 +252,179 @@ export default function VagasPage() {
     return colors[prioridade] || colors.Média
   }
 
-  const filteredVagas = vagas.filter((vaga) => {
-    const matchesSearch =
-      vaga.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vaga.departamento.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesDepartamento = selectedDepartamento === "todos" || vaga.departamento === selectedDepartamento
-    const matchesStatus = selectedStatus === "todos" || vaga.status === selectedStatus
-    return matchesSearch && matchesDepartamento && matchesStatus
-  })
+  // Obter lista única de departamentos das vagas para o filtro
+  const departamentosUnicos = useMemo(() => {
+    const departamentosDasVagas = [...new Set(vagas.map(vaga => vaga.departamento))].filter(Boolean)
+    return departamentosDasVagas
+  }, [vagas])
+
+  const filteredVagas = useMemo(() => {
+    return vagas.filter((vaga) => {
+      const matchesSearch =
+        vaga.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vaga.departamento.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesDepartamento = selectedDepartamento === "todos" || vaga.departamento === selectedDepartamento
+      const matchesStatus = selectedStatus === "todos" || vaga.status === selectedStatus
+      return matchesSearch && matchesDepartamento && matchesStatus
+    })
+  }, [vagas, searchTerm, selectedDepartamento, selectedStatus])
+
+  const handleCreateVaga = async () => {
+    try {
+      if (!formData.titulo || !formData.departamento || !formData.nivel || !formData.tipo) {
+        Swal.fire({
+          title: "Campos obrigatórios",
+          text: "Preencha todos os campos obrigatórios",
+          icon: "warning",
+          background: "#1e293b",
+          color: "white",
+        })
+        return
+      }
+
+      // Preparar dados para enviar
+      const novaVaga = {
+        titulo: formData.titulo,
+        departamento: formData.departamento, // ID do departamento
+        nivel: formData.nivel,
+        tipo_contrato: formData.tipo,
+        vagas_disponiveis: parseInt(formData.vagas_disponiveis),
+        localizacao: formData.localizacao,
+        salario_min: formData.salario_min ? parseFloat(formData.salario_min) : null,
+        salario_max: formData.salario_max ? parseFloat(formData.salario_max) : null,
+        prioridade: formData.prioridade,
+        data_fechamento: formData.data_fechamento || null,
+        descricao: formData.descricao,
+        requisitos: formData.requisitos,
+        beneficios: formData.beneficios,
+        status: "ABERTA",
+        empresa: empresa?.id 
+      }
+
+      console.log("Enviando dados:", novaVaga)
+
+      const response = await fetch("https://avdserver.up.railway.app/vagas/", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(novaVaga),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Erro detalhado:", errorData)
+        throw new Error(errorData.detail || errorData.message || `Erro ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      Swal.fire({
+        title: "Sucesso",
+        text: "Vaga criada com sucesso",
+        icon: "success",
+        background: "#1e293b",
+        color: "white",
+      })
+
+      setIsCreateModalOpen(false)
+      resetForm()
+      refetchVagas()
+    } catch (error: any) {
+      console.error("Erro ao criar vaga:", error)
+      Swal.fire({
+        title: "Erro",
+        text: error.message || "Falha ao criar vaga",
+        icon: "error",
+        background: "#1e293b",
+        color: "white",
+      })
+    }
+  }
+
+  const handleDeleteVaga = async (vagaId: number) => {
+    const result = await Swal.fire({
+      title: "Confirmar exclusão",
+      text: "Tem certeza que deseja excluir esta vaga?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sim, excluir",
+      cancelButtonText: "Cancelar",
+      background: "#1e293b",
+      color: "white",
+    })
+
+    if (result.isConfirmed) {
+      try {
+        const response = await fetch(`https://avdserver.up.railway.app/vagas/${vagaId}/`, {
+          method: "DELETE",
+          credentials: "include",
+        })
+
+        if (!response.ok) {
+          throw new Error(`Erro ${response.status}`)
+        }
+
+        Swal.fire({
+          title: "Sucesso",
+          text: "Vaga excluída com sucesso",
+          icon: "success",
+          background: "#1e293b",
+          color: "white",
+        })
+
+        refetchVagas()
+      } catch (error) {
+        console.error("Erro ao excluir vaga:", error)
+        Swal.fire({
+          title: "Erro",
+          text: "Falha ao excluir vaga",
+          icon: "error",
+          background: "#1e293b",
+          color: "white",
+        })
+      }
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      titulo: "",
+      departamento: "",
+      nivel: "",
+      tipo: "",
+      vagas_disponiveis: "1",
+      localizacao: "",
+      salario_min: "",
+      salario_max: "",
+      prioridade: "",
+      data_fechamento: "",
+      descricao: "",
+      requisitos: "",
+      beneficios: "",
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <Skeleton className="h-20 w-full bg-slate-800" />
+          <Skeleton className="h-24 w-full bg-slate-800" />
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-48 w-full bg-slate-800" />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <Link href="/admin/recrutamento" className="text-sm text-slate-400 hover:text-cyan-400 mb-2 inline-block">
@@ -216,22 +462,33 @@ export default function VagasPage() {
                         id="titulo"
                         placeholder="Ex: Desenvolvedor Full Stack"
                         className="bg-slate-800 border-slate-700 text-slate-100"
+                        value={formData.titulo}
+                        onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="departamento" className="text-slate-200">
                         Departamento *
                       </Label>
-                      <Select>
+                      <Select
+                        value={formData.departamento}
+                        onValueChange={(value) => setFormData({ ...formData, departamento: value })}
+                      >
                         <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
-                          <SelectValue placeholder="Selecione" />
+                          <SelectValue placeholder="Selecione o departamento" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-700">
-                          <SelectItem value="tecnologia">Tecnologia</SelectItem>
-                          <SelectItem value="comercial">Comercial</SelectItem>
-                          <SelectItem value="marketing">Marketing</SelectItem>
-                          <SelectItem value="rh">Recursos Humanos</SelectItem>
-                          <SelectItem value="produto">Produto</SelectItem>
+                          {loadingDepartamentos ? (
+                            <SelectItem value="loading" disabled>
+                              Carregando departamentos...
+                            </SelectItem>
+                          ) : (
+                            departamentos.map((dept) => (
+                              <SelectItem key={dept.id} value={dept.id}>
+                                {dept.nome}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -242,15 +499,18 @@ export default function VagasPage() {
                       <Label htmlFor="nivel" className="text-slate-200">
                         Nível *
                       </Label>
-                      <Select>
+                      <Select
+                        value={formData.nivel}
+                        onValueChange={(value) => setFormData({ ...formData, nivel: value })}
+                      >
                         <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-700">
-                          <SelectItem value="junior">Júnior</SelectItem>
-                          <SelectItem value="pleno">Pleno</SelectItem>
-                          <SelectItem value="senior">Sênior</SelectItem>
-                          <SelectItem value="especialista">Especialista</SelectItem>
+                          <SelectItem value="Junior">Júnior</SelectItem>
+                          <SelectItem value="Pleno">Pleno</SelectItem>
+                          <SelectItem value="Senior">Sênior</SelectItem>
+                          <SelectItem value="Especialista">Especialista</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -258,15 +518,17 @@ export default function VagasPage() {
                       <Label htmlFor="tipo" className="text-slate-200">
                         Tipo de Contrato *
                       </Label>
-                      <Select>
+                      <Select
+                        value={formData.tipo}
+                        onValueChange={(value) => setFormData({ ...formData, tipo: value })}
+                      >
                         <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-700">
-                          <SelectItem value="clt">CLT</SelectItem>
-                          <SelectItem value="pj">PJ</SelectItem>
-                          <SelectItem value="estagio">Estágio</SelectItem>
-                          <SelectItem value="temporario">Temporário</SelectItem>
+                          <SelectItem value="PJ">Efectivo</SelectItem>
+                          <SelectItem value="ESTAGIO">Estágio</SelectItem>
+                          <SelectItem value="TEMPORARIO">Temporário</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -279,6 +541,8 @@ export default function VagasPage() {
                         type="number"
                         placeholder="1"
                         className="bg-slate-800 border-slate-700 text-slate-100"
+                        value={formData.vagas_disponiveis}
+                        onChange={(e) => setFormData({ ...formData, vagas_disponiveis: e.target.value })}
                       />
                     </div>
                   </div>
@@ -290,44 +554,74 @@ export default function VagasPage() {
                       </Label>
                       <Input
                         id="localizacao"
-                        placeholder="Ex: São Paulo - SP"
+                        placeholder="Ex: Maianga"
                         className="bg-slate-800 border-slate-700 text-slate-100"
+                        value={formData.localizacao}
+                        onChange={(e) => setFormData({ ...formData, localizacao: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="salario" className="text-slate-200">
-                        Faixa Salarial
+                      <Label htmlFor="salario_min" className="text-slate-200">
+                        Salário Mínimo (KZ)
                       </Label>
                       <Input
-                        id="salario"
-                        placeholder="Ex: R$ 5.000 - R$ 8.000"
+                        id="salario_min"
+                        type="number"
+                        step="0.01"
+                        placeholder="Ex: 5000.00"
                         className="bg-slate-800 border-slate-700 text-slate-100"
+                        value={formData.salario_min}
+                        onChange={(e) => setFormData({ ...formData, salario_min: e.target.value })}
                       />
                     </div>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
+                      <Label htmlFor="salario_max" className="text-slate-200">
+                        Salário Máximo (KZ)
+                      </Label>
+                      <Input
+                        id="salario_max"
+                        type="number"
+                        step="0.01"
+                        placeholder="Ex: 8000.00"
+                        className="bg-slate-800 border-slate-700 text-slate-100"
+                        value={formData.salario_max}
+                        onChange={(e) => setFormData({ ...formData, salario_max: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="prioridade" className="text-slate-200">
                         Prioridade *
                       </Label>
-                      <Select>
+                      <Select
+                        value={formData.prioridade}
+                        onValueChange={(value) => setFormData({ ...formData, prioridade: value })}
+                      >
                         <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-700">
-                          <SelectItem value="alta">Alta</SelectItem>
-                          <SelectItem value="media">Média</SelectItem>
-                          <SelectItem value="baixa">Baixa</SelectItem>
+                          <SelectItem value="Alta">Alta</SelectItem>
+                          <SelectItem value="Média">Média</SelectItem>
+                          <SelectItem value="Baixa">Baixa</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dataFechamento" className="text-slate-200">
-                        Data de Fechamento
-                      </Label>
-                      <Input id="dataFechamento" type="date" className="bg-slate-800 border-slate-700 text-slate-100" />
-                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="data_fechamento" className="text-slate-200">
+                      Data de Fechamento
+                    </Label>
+                    <Input
+                      id="data_fechamento"
+                      type="date"
+                      className="bg-slate-800 border-slate-700 text-slate-100"
+                      value={formData.data_fechamento}
+                      onChange={(e) => setFormData({ ...formData, data_fechamento: e.target.value })}
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -338,6 +632,8 @@ export default function VagasPage() {
                       id="descricao"
                       placeholder="Descreva as responsabilidades e o que esperamos do candidato..."
                       className="bg-slate-800 border-slate-700 text-slate-100 min-h-[100px]"
+                      value={formData.descricao}
+                      onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                     />
                   </div>
 
@@ -347,8 +643,10 @@ export default function VagasPage() {
                     </Label>
                     <Textarea
                       id="requisitos"
-                      placeholder="Liste os requisitos necessários (um por linha)"
+                      placeholder="Liste os requisitos necessários (separados por vírgula)"
                       className="bg-slate-800 border-slate-700 text-slate-100 min-h-[100px]"
+                      value={formData.requisitos}
+                      onChange={(e) => setFormData({ ...formData, requisitos: e.target.value })}
                     />
                   </div>
 
@@ -358,8 +656,10 @@ export default function VagasPage() {
                     </Label>
                     <Textarea
                       id="beneficios"
-                      placeholder="Liste os benefícios oferecidos (um por linha)"
+                      placeholder="Liste os benefícios oferecidos (separados por vírgula)"
                       className="bg-slate-800 border-slate-700 text-slate-100 min-h-[80px]"
+                      value={formData.beneficios}
+                      onChange={(e) => setFormData({ ...formData, beneficios: e.target.value })}
                     />
                   </div>
 
@@ -371,7 +671,10 @@ export default function VagasPage() {
                     >
                       Cancelar
                     </Button>
-                    <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
+                    <Button
+                      onClick={handleCreateVaga}
+                      className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                    >
                       Criar Vaga
                     </Button>
                   </div>
@@ -381,7 +684,6 @@ export default function VagasPage() {
           </div>
         </div>
 
-        {/* Filtros */}
         <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row gap-4">
@@ -402,11 +704,11 @@ export default function VagasPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="Tecnologia">Tecnologia</SelectItem>
-                  <SelectItem value="Comercial">Comercial</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Recursos Humanos">RH</SelectItem>
-                  <SelectItem value="Produto">Produto</SelectItem>
+                  {departamentosUnicos.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -425,7 +727,6 @@ export default function VagasPage() {
           </CardContent>
         </Card>
 
-        {/* Lista de Vagas */}
         <div className="grid gap-4">
           {filteredVagas.map((vaga) => (
             <Card
@@ -507,7 +808,10 @@ export default function VagasPage() {
                           <Archive className="mr-2 h-4 w-4" />
                           Arquivar
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-400 hover:text-red-300">
+                        <DropdownMenuItem
+                          className="text-red-400 hover:text-red-300"
+                          onClick={() => handleDeleteVaga(vaga.id)}
+                        >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Excluir
                         </DropdownMenuItem>

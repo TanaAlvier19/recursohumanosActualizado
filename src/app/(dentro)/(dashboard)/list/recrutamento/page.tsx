@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useRouter } from "next/navigation"
 import {
   Briefcase,
   Users,
@@ -20,6 +21,9 @@ import {
   Eye,
   Edit,
   ArrowRight,
+  Mail,
+  Phone,
+  MapPin,
 } from "lucide-react"
 import { MetricCard } from "@/components/metrcCard"
 import {
@@ -38,142 +42,357 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import Link from "next/link"
+import { Skeleton } from "@/components/ui/skeleton"
+import Swal from "sweetalert2"
+
+interface Vaga {
+  id: number
+  titulo: string
+  departamento: string
+  departamento_nome: string
+  empresa_nome: string
+  candidatos: number
+  status: string
+  prioridade: string
+  dataAbertura: string
+  localizacao: string
+  total_candidatos?: number
+}
+
+interface Candidato {
+  id: number
+  nome: string
+  email: string
+  telefone: string
+  experiencia_anos: number
+  formacao: string
+  vaga: string
+  etapa: string
+  score: number
+  dataAplicacao: string
+  curriculo?: string
+  status?: string
+}
+
+interface Aplicacao {
+  id: number
+  candidato: Candidato
+  vaga: Vaga
+  status: string
+  data_aplicacao: string
+  pontuacao?: number
+}
+
+interface EstatisticasVagas {
+  total_vagas: number
+  vagas_abertas: number
+  vagas_fechadas: number
+  vagas_em_andamento: number
+  tempo_medio_fechamento_dias:number
+  vagas_com_candidatos: Array<{
+    id: number
+    titulo: string
+    total_candidatos: number
+    status: string
+  }>
+}
+
+interface EstatisticasAplicacoes {
+  total_aplicacoes: number
+  por_status: Array<{
+    status: string
+    total: number
+  }>
+  taxa_conversao: {
+    triagem_para_teste: number
+    teste_para_entrevista: number
+    entrevista_para_proposta: number
+    proposta_para_aprovado: number
+  }
+}
+
+interface DashboardData {
+  estatisticasVagas: EstatisticasVagas
+  estatisticasAplicacoes: EstatisticasAplicacoes
+  vagasRecentes: Vaga[]
+  candidatosRecentes: Candidato[]
+  aplicacoesRecentes: Aplicacao[]
+  evolucaoMensal: Array<{
+    mes: string
+    candidaturas: number
+    contratacoes: number
+  }>
+}
 
 export default function RecrutamentoDashboard() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [empresa, setEmpresa] = useState('')
+  const router = useRouter()
 
-  // Dados de métricas
-  const metrics = [
-    {
-      title: "Vagas Ativas",
-      value: "24",
-      icon: Briefcase,
-      description: "8 urgentes",
-      trend: { value: 12, isPositive: true },
-    },
-    {
-      title: "Candidatos Ativos",
-      value: "342",
-      icon: Users,
-      description: "156 novos este mês",
-      trend: { value: 23, isPositive: true },
-    },
-    {
-      title: "Taxa de Conversão",
-      value: "18.5%",
-      icon: TrendingUp,
-      description: "Candidato → Contratado",
-      trend: { value: 3.2, isPositive: true },
-    },
-    {
+  const mover = () => {
+    router.push(`/candidato/vagas/${empresa}`)
+  }
+
+  const fetchDashboardData = useCallback(async () => {
+  try {
+    setLoading(true)
+    setError(null)
+
+    
+    const [
+      vagasStatsRes, 
+      aplicacoesStatsRes, 
+      vagasRes, 
+      candidatosRes,
+      aplicacoesRes,
+      evolucaoMensalRes  
+    ] = await Promise.all([
+      fetch("https://avdserver.up.railway.app/vagas/estatisticas/", { credentials: "include" }),
+      fetch("https://avdserver.up.railway.app/aplicacoes/estatisticas/", { credentials: "include" }),
+      fetch("https://avdserver.up.railway.app/vagas/", { credentials: "include" }),
+      fetch("https://avdserver.up.railway.app/candidatos/", { credentials: "include" }),
+      fetch("https://avdserver.up.railway.app/aplicacoes/", { credentials: "include" }),
+      fetch("https://avdserver.up.railway.app/aplicacoes/evolucao_mensal/", { credentials: "include" }) // Nova URL
+    ])
+
+    if (!vagasStatsRes.ok || !aplicacoesStatsRes.ok || !vagasRes.ok || !candidatosRes.ok || !aplicacoesRes.ok || !evolucaoMensalRes.ok) {
+      throw new Error("Erro ao buscar dados do dashboard")
+    }
+
+    const [vagasStats, aplicacoesStats, vagas, candidatos, aplicacoes, evolucaoMensal] = await Promise.all([
+      vagasStatsRes.json(),
+      aplicacoesStatsRes.json(),
+      vagasRes.json(),
+      candidatosRes.json(),
+      aplicacoesRes.json(),
+      evolucaoMensalRes.json() 
+    ])
+
+    console.log("Dados de evolução mensal:", evolucaoMensal)
+
+    const vagasRecentesProcessadas = vagas
+        .slice(0, 4)
+        .map((vaga: any) => ({
+          id: vaga.id,
+          titulo: vaga.titulo,
+          departamento_nome: vaga.departamento_nome || "Não especificado",
+          candidatos: vaga.total_candidatos || 0,
+          status: vaga.status === "ABERTA" ? "Ativa" : vaga.status === "FECHADA" ? "Fechada" : "Em Análise",
+          prioridade: vaga.prioridade || "Média",
+          dataAbertura: vaga.data_abertura || new Date().toISOString(),
+          localizacao: vaga.localizacao || "Remoto",
+        }))
+
+      // Processar dados dos candidatos recentes
+      const candidatosRecentesProcessados = candidatos
+        .slice(0, 3)
+        .map((candidato: any) => ({
+          id: candidato.id,
+          nome: candidato.nome,
+          email: candidato.email,
+          telefone: candidato.telefone || "Não informado",
+          experiencia_anos: candidato.experiencia_anos || 0,
+          formacao: candidato.formacao || "Não informada",
+          vaga: candidato.vaga_titulo || "Vaga não especificada",
+          etapa: "Triagem", // Valor padrão
+          score: Math.floor(Math.random() * 30) + 70, // Score entre 70-100
+          dataAplicacao: candidato.criado_em || new Date().toISOString(),
+          curriculo: candidato.curriculo,
+          status: "ATIVO"
+        }))
+
+      const aplicacoesRecentesProcessadas = aplicacoes
+        .slice(0, 5)
+        .map((aplicacao: any) => ({
+          id: aplicacao.id,
+          candidato: {
+            id: aplicacao.candidato?.id || 0,
+            nome: aplicacao.candidato?.nome || "Candidato",
+            email: aplicacao.candidato?.email || "",
+            telefone: aplicacao.candidato?.telefone || "",
+            experiencia_anos: aplicacao.candidato?.experiencia_anos || 0,
+            formacao: aplicacao.candidato?.formacao || "",
+            vaga: aplicacao.vaga?.titulo || "",
+            etapa: aplicacao.status,
+            score: aplicacao.pontuacao || Math.floor(Math.random() * 30) + 70,
+            dataAplicacao: aplicacao.data_aplicacao
+          },
+          vaga: {
+            id: aplicacao.vaga?.id || 0,
+            titulo: aplicacao.vaga?.titulo || "Vaga",
+            departamento_nome: aplicacao.vaga?.departamento_nome || "",
+            candidatos: 0,
+            status: "Ativa",
+            prioridade: "Média",
+            dataAbertura: "",
+            localizacao: ""
+          },
+          status: aplicacao.status,
+          data_aplicacao: aplicacao.data_aplicacao,
+          pontuacao: aplicacao.pontuacao
+        }))
+    const data: DashboardData = {
+      estatisticasVagas: vagasStats,
+      estatisticasAplicacoes: aplicacoesStats,
+      vagasRecentes: vagasRecentesProcessadas,
+      candidatosRecentes: candidatosRecentesProcessados,
+      aplicacoesRecentes: aplicacoesRecentesProcessadas,
+      evolucaoMensal 
+    }
+     console.log("vagasStats:", vagasStats);
+    console.log("aplicacoesStats:", aplicacoesStats);
+    console.log("vagas:", vagas);
+    console.log("candidatos:", candidatos);
+    console.log("aplicacoes:", aplicacoes);
+    console.log("evolucaoMensal:", evolucaoMensal);
+    setDashboardData(data)
+    setEmpresa(vagas[0]?.empresa_nome || 'Nossa Empresa')
+
+  } catch (error) {
+    console.error("Erro ao buscar dados do dashboard:", error)
+    setError("Falha ao carregar dados do dashboard")
+    
+    const data: DashboardData = {
+      estatisticasVagas: { total_vagas: 0, vagas_abertas: 0, vagas_fechadas: 0, vagas_em_andamento: 0, tempo_medio_fechamento_dias:0,vagas_com_candidatos: [] },
+      estatisticasAplicacoes: { total_aplicacoes: 0, por_status: [], taxa_conversao: { triagem_para_teste: 0, teste_para_entrevista: 0, entrevista_para_proposta: 0, proposta_para_aprovado: 0 } },
+      vagasRecentes: [],
+      candidatosRecentes: [],
+      aplicacoesRecentes: [],
+      evolucaoMensal: [
+        { mes: "Jan", candidaturas: 45, contratacoes: 3 },
+        { mes: "Fev", candidaturas: 52, contratacoes: 4 },
+        { mes: "Mar", candidaturas: 38, contratacoes: 2 },
+        { mes: "Abr", candidaturas: 61, contratacoes: 5 },
+        { mes: "Mai", candidaturas: 49, contratacoes: 4 },
+        { mes: "Jun", candidaturas: 55, contratacoes: 6 }
+      ]
+    }
+    
+    setDashboardData(data)
+    setEmpresa('Nossa Empresa')
+  } finally {
+    setLoading(false)
+  }
+}, [])
+useEffect(() => {
+    fetchDashboardData()
+  }, [fetchDashboardData])
+  const metrics = useMemo(() => {
+    if (!dashboardData) {
+      return [
+        {
+          title: "Vagas Ativas",
+          value: "0",
+          icon: Briefcase,
+          description: "0 urgentes",
+          trend: { value: 0, isPositive: true },
+        },
+        {
+          title: "Candidatos Ativos",
+          value: "0",
+          icon: Users,
+          description: "0 novos este mês",
+          trend: { value: 0, isPositive: true },
+        },
+        {
+          title: "Taxa de Conversão",
+          value: "0%",
+          icon: TrendingUp,
+          description: "Candidato → Contratado",
+          trend: { value: 0, isPositive: true },
+        },
+        {
+          title: "Tempo Médio",
+          value: "0 dias",
+          icon: Clock,
+          description: "Para fechamento",
+          trend: { value: 0, isPositive: false },
+        },
+      ]
+    }
+
+     const { estatisticasVagas, estatisticasAplicacoes } = dashboardData
+  const taxaConversao = estatisticasAplicacoes?.taxa_conversao?.proposta_para_aprovado ?? 0
+
+  const tempoMedio = estatisticasVagas.tempo_medio_fechamento_dias || 28
+    return [
+      {
+        title: "Vagas Ativas",
+        value: (estatisticasVagas.vagas_abertas || 0).toString(),
+        icon: Briefcase,
+        description: `${estatisticasVagas.vagas_em_andamento || 0} em andamento`,
+        trend: { value: 12, isPositive: true },
+      },
+      {
+        title: "Candidatos Ativos",
+        value: (estatisticasAplicacoes.total_aplicacoes || 0).toString(),
+        icon: Users,
+        description: "Total de aplicações",
+        trend: { value: 23, isPositive: true },
+      },
+      {
+        title: "Taxa de Conversão",
+        value: `${taxaConversao.toFixed(1)}%`,
+        icon: TrendingUp,
+        description: "Proposta → Aprovado",
+        trend: { value: taxaConversao, isPositive: true },
+      },
+      {
       title: "Tempo Médio",
-      value: "28 dias",
+      value: `${tempoMedio} dias`,
       icon: Clock,
       description: "Para fechamento",
-      trend: { value: 5, isPositive: false },
+      trend: { value: tempoMedio > 30 ? -5 : 5, isPositive: tempoMedio <= 30 },
     },
-  ]
+    ]
+  }, [dashboardData])
 
-  // Dados de vagas recentes
-  const vagasRecentes = [
-    {
-      id: 1,
-      titulo: "Desenvolvedor Full Stack Senior",
-      departamento: "Tecnologia",
-      candidatos: 45,
-      status: "Ativa",
-      prioridade: "Alta",
-      dataAbertura: "2024-01-15",
-      localizacao: "Remoto",
-    },
-    {
-      id: 2,
-      titulo: "Analista de Marketing Digital",
-      departamento: "Marketing",
-      candidatos: 32,
-      status: "Ativa",
-      prioridade: "Média",
-      dataAbertura: "2024-01-18",
-      localizacao: "São Paulo",
-    },
-    {
-      id: 3,
-      titulo: "Gerente de Vendas",
-      departamento: "Comercial",
-      candidatos: 28,
-      status: "Em Análise",
-      prioridade: "Alta",
-      dataAbertura: "2024-01-20",
-      localizacao: "Híbrido",
-    },
-    {
-      id: 4,
-      titulo: "Designer UX/UI",
-      departamento: "Produto",
-      candidatos: 56,
-      status: "Ativa",
-      prioridade: "Média",
-      dataAbertura: "2024-01-22",
-      localizacao: "Remoto",
-    },
-  ]
+  const funnelData = useMemo(() => {
+    if (!dashboardData?.estatisticasAplicacoes?.por_status) {
+      return []
+    }
 
-  // Dados de candidatos recentes
-  const candidatosRecentes = [
-    {
-      id: 1,
-      nome: "Ana Silva",
-      vaga: "Desenvolvedor Full Stack",
-      etapa: "Entrevista Técnica",
-      score: 92,
-      dataAplicacao: "2024-01-25",
-    },
-    {
-      id: 2,
-      nome: "Carlos Santos",
-      vaga: "Analista de Marketing",
-      etapa: "Triagem",
-      score: 85,
-      dataAplicacao: "2024-01-26",
-    },
-    {
-      id: 3,
-      nome: "Mariana Costa",
-      vaga: "Designer UX/UI",
-      etapa: "Entrevista RH",
-      score: 88,
-      dataAplicacao: "2024-01-26",
-    },
-  ]
+    const statusMap: Record<string, string> = {
+      NOVO: "Candidaturas",
+      TRIAGEM: "Triagem",
+      TESTE: "Teste Técnico",
+      ENTREVISTA: "Entrevista Final",
+      PROPOSTA: "Proposta",
+      APROVADO: "Aprovado",
+      REJEITADO: "Reprovado",
+    }
 
-  // Dados do funil de recrutamento
-  const funnelData = [
-    { etapa: "Candidaturas", quantidade: 342, cor: "#06b6d4" },
-    { etapa: "Triagem", quantidade: 156, cor: "#3b82f6" },
-    { etapa: "Entrevista RH", quantidade: 89, cor: "#8b5cf6" },
-    { etapa: "Teste Técnico", quantidade: 45, cor: "#ec4899" },
-    { etapa: "Entrevista Final", quantidade: 23, cor: "#f59e0b" },
-    { etapa: "Proposta", quantidade: 12, cor: "#10b981" },
-  ]
+    const colors = ["#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#ef4444"]
 
-  // Dados de vagas por departamento
-  const vagasPorDepartamento = [
-    { departamento: "Tecnologia", vagas: 8, cor: "#06b6d4" },
-    { departamento: "Comercial", vagas: 6, cor: "#3b82f6" },
-    { departamento: "Marketing", vagas: 4, cor: "#8b5cf6" },
-    { departamento: "Produto", vagas: 3, cor: "#ec4899" },
-    { departamento: "Operações", vagas: 3, cor: "#f59e0b" },
-  ]
+    return dashboardData.estatisticasAplicacoes.por_status
+      .filter(item => item.status !== 'REJEITADO') // Filtrar reprovados do funil
+      .map((item, index) => ({
+        etapa: statusMap[item.status] || item.status,
+        quantidade: item.total,
+        cor: colors[index % colors.length],
+      }))
+  }, [dashboardData])
 
-  // Dados de evolução mensal
-  const evolucaoMensal = [
-    { mes: "Ago", candidaturas: 245, contratacoes: 12 },
-    { mes: "Set", candidaturas: 289, contratacoes: 15 },
-    { mes: "Out", candidaturas: 312, contratacoes: 18 },
-    { mes: "Nov", candidaturas: 298, contratacoes: 14 },
-    { mes: "Dez", candidaturas: 334, contratacoes: 16 },
-    { mes: "Jan", candidaturas: 342, contratacoes: 19 },
-  ]
+  const vagasPorDepartamento = useMemo(() => {
+    if (!dashboardData?.vagasRecentes) {
+      return []
+    }
+
+    const departamentos: Record<string, number> = {}
+    dashboardData.vagasRecentes.forEach((vaga) => {
+      const dept = vaga.departamento_nome || "Geral"
+      departamentos[dept] = (departamentos[dept] || 0) + 1
+    })
+
+    const colors = ["#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b"]
+    return Object.entries(departamentos).map(([dept, count], index) => ({
+      departamento: dept,
+      vagas: count,
+      cor: colors[index % colors.length],
+    }))
+  }, [dashboardData])
 
   const acessoRapido = [
     {
@@ -253,21 +472,54 @@ export default function RecrutamentoDashboard() {
     return colors[prioridade] || colors.Média
   }
 
+  const getEtapaColor = (etapa: string) => {
+    const colors: Record<string, string> = {
+      NOVO: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+      TRIAGEM: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+      TESTE: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+      ENTREVISTA: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+      PROPOSTA: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+      APROVADO: "bg-green-500/10 text-green-400 border-green-500/20",
+      REJEITADO: "bg-red-500/10 text-red-400 border-red-500/20",
+    }
+    return colors[etapa] || colors.NOVO
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <Skeleton className="h-20 w-full bg-slate-800" />
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-32 bg-slate-800" />
+            ))}
+          </div>
+          <Skeleton className="h-96 w-full bg-slate-800" />
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
+    <div className="min-h-screen p-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
               Recrutamento & Seleção
             </h1>
-            <p className="text-slate-400 mt-1">Gestão completa do processo de recrutamento</p>
+            <p className="text-slate-400 mt-1">Gestão completa do processo de recrutamento - {empresa}</p>
           </div>
           <div className="flex gap-3">
             <Button variant="outline" className="border-slate-700 bg-slate-800/50 hover:bg-slate-800">
               <Download className="mr-2 h-4 w-4" />
               Exportar
+            </Button>
+            <Button 
+              onClick={mover}
+              variant="outline" className="border-white bg-white hover:bg-blue-800 text-black hover:text-white">
+              Portal De Candidatura
             </Button>
             <Link href="/list/recrutamento/vagas">
               <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
@@ -393,7 +645,7 @@ export default function RecrutamentoDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={evolucaoMensal}>
+              <LineChart data={dashboardData?.evolucaoMensal || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="mes" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
@@ -422,7 +674,7 @@ export default function RecrutamentoDashboard() {
                   <CardTitle className="text-slate-100">Vagas Recentes</CardTitle>
                   <CardDescription className="text-slate-400">Últimas vagas abertas</CardDescription>
                 </div>
-                <Link href="/admin/recrutamento/vagas">
+                <Link href="/list/recrutamento/vagas">
                   <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300">
                     Ver todas
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -432,7 +684,7 @@ export default function RecrutamentoDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {vagasRecentes.map((vaga) => (
+                {dashboardData?.vagasRecentes.map((vaga) => (
                   <div
                     key={vaga.id}
                     className="flex items-center justify-between p-4 rounded-lg border border-slate-700 bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
@@ -446,7 +698,7 @@ export default function RecrutamentoDashboard() {
                       <div className="flex items-center gap-4 text-sm text-slate-400">
                         <span className="flex items-center gap-1">
                           <Briefcase className="h-3 w-3" />
-                          {vaga.departamento}
+                          {vaga.departamento_nome}
                         </span>
                         <span className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
@@ -455,6 +707,10 @@ export default function RecrutamentoDashboard() {
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           {new Date(vaga.dataAbertura).toLocaleDateString("pt-BR")}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {vaga.localizacao}
                         </span>
                       </div>
                     </div>
@@ -480,7 +736,7 @@ export default function RecrutamentoDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {candidatosRecentes.map((candidato) => (
+                {dashboardData?.candidatosRecentes.map((candidato) => (
                   <div
                     key={candidato.id}
                     className="p-4 rounded-lg border border-slate-700 bg-slate-800/30 hover:bg-slate-800/50 transition-colors cursor-pointer"
@@ -494,8 +750,26 @@ export default function RecrutamentoDashboard() {
                         <span className="text-xs font-semibold text-cyan-400">{candidato.score}</span>
                       </div>
                     </div>
+                    
+                    <div className="space-y-2 mb-2">
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <Mail className="h-3 w-3" />
+                        {candidato.email}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <Phone className="h-3 w-3" />
+                        {candidato.telefone}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <Briefcase className="h-3 w-3" />
+                        {candidato.experiencia_anos} anos de experiência
+                      </div>
+                    </div>
+
                     <div className="flex items-center justify-between text-xs">
-                      <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">{candidato.etapa}</Badge>
+                      <Badge className={getEtapaColor(candidato.etapa)}>
+                        {candidato.etapa}
+                      </Badge>
                       <span className="text-slate-500">
                         {new Date(candidato.dataAplicacao).toLocaleDateString("pt-BR")}
                       </span>

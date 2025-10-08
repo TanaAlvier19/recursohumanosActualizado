@@ -121,13 +121,13 @@ const EmprestimosPage = () => {
 
   const carregarEmprestimos = async () => {
     try {
-      // Simular chamada API - GET /emprestimos/
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/emprestimos/', {
+    
+      const response = await fetch('https://avdserver.up.railway.app/emprestimos/', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          
           'Content-Type': 'application/json'
-        }
+        },
+        credentials:"include"
       })
       
       if (response.ok) {
@@ -251,13 +251,14 @@ const EmprestimosPage = () => {
 
     setSolicitando(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/emprestimos/', {
+    
+      const response = await fetch('https://avdserver.up.railway.app/emprestimos/', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          
           'Content-Type': 'application/json'
         },
+        credentials:"include",
         body: JSON.stringify({
           valor_solicitado: valorSolicitado,
           numero_parcelas: parseInt(numeroParcelas),
@@ -298,8 +299,8 @@ const EmprestimosPage = () => {
 
     setAprovando(true)
     try {
-      const token = localStorage.getItem('token')
-      const url = `/api/emprestimos/${emprestimoSelecionado.id}/aprovar/`
+      
+      const url = `https://avdserver.up.railway.app/emprestimos/${emprestimoSelecionado.id}/aprovar/`
       
       const bodyData: any = {
         acao: aprovado ? 'aprovar' : 'rejeitar'
@@ -315,9 +316,10 @@ const EmprestimosPage = () => {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+        
           'Content-Type': 'application/json'
         },
+        credentials:"include",
         body: JSON.stringify(bodyData)
       })
 
@@ -355,13 +357,14 @@ const EmprestimosPage = () => {
 
   const marcarParcelaPaga = async (parcelaId: number) => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/parcelas-emprestimo/${parcelaId}/pagar/`, {
+      
+      const response = await fetch(`https://avdserver.up.railway.app/parcelas-emprestimo/${parcelaId}/pagar/`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          
           'Content-Type': 'application/json'
-        }
+        },
+        credentials:"include"
       })
 
       if (response.ok) {

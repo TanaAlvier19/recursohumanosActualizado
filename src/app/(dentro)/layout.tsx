@@ -15,9 +15,12 @@ export default function RootLayout({
 }>) {
   return (
       <html lang="pt-BR">
-        <body className={inter.className}>
-          <AuthProvider>
+        <body className={inter.className} >
+          <AuthProvider >
+          <main className="flex-1 overflow-auto bg-gradient-to-b from-slate-900 to-slate-800 "> 
           {children}
+
+          </main>
           </AuthProvider>
           
         </body>

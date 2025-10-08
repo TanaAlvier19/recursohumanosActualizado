@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -33,163 +33,531 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
+interface Departamento {
+  id: string
+  nome: string
+  codigo: string
+  descricao: string
+  responsavel: string
+  empresa: string
+  local: string
+  status: boolean
+  data_criacao: string
+  orcamento: number
+  totalFuncionarios?: number
+  vagasAbertas?: number
+}
+
+interface MetricasGerais {
+  total_funcionarios: number
+  folha_mensal: number
+  taxa_assiduidade: number
+  vagas_abertas: number
+}
+
+interface Alerta {
+  type: string
+  module: string
+  message: string
+  time: string
+}
+
+interface EvolucaoMes {
+  month: string
+  funcionarios: number
+  folha: number
+  formacoes: number
+}
+
+interface Atividade {
+  user: string
+  action: string
+  module: string
+  time: string
+}
+
+interface EstatisticasRecrutamento {
+  total_vagas: number
+  vagas_abertas: number
+  vagas_fechadas: number
+  vagas_em_andamento: number
+  tempo_medio_fechamento_dias: number
+}
+
+interface EstatisticasFormacoes {
+  total_formacoes: number
+  formacoes_ativas: number
+  total_inscricoes: number
+  taxa_conclusao: number
+  horas_treinamento: number
+  investimento_total: number
+  certificados_emitidos: number
+  media_satisfacao: number
+}
+
+interface EvolucaoRecrutamento {
+  mes: string
+  candidaturas: number
+  contratacoes: number
+}
+
+interface EvolucaoFormacoes {
+  mes: string
+  formacoes: number
+  participantes: number
+  conclusoes: number
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://avdserver.up.railway.app"
+
 export default function AdminDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("month")
+  const [funcionarios, setFuncionarios] = useState<number>(0)
+  const [metricasGerais, setMetricasGerais] = useState<MetricasGerais | null>(null)
+  const [alertas, setAlertas] = useState<Alerta[]>([])
+  const [evolucaoData, setEvolucaoData] = useState<EvolucaoMes[]>([])
+  const [atividadesRecentes, setAtividadesRecentes] = useState<Atividade[]>([])
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Dados consolidados de todos os módulos
-  const overallMetrics = [
-    {
-      title: "Total de Funcionários",
-      value: "1.247",
-      change: "+12",
-      trend: "up",
-      icon: Users,
-      color: "cyan",
-    },
-    {
-      title: "Folha de Pagamento Mensal",
-      value: "R$ 2.8M",
-      change: "+5.2%",
-      trend: "up",
-      icon: DollarSign,
-      color: "green",
-    },
-    {
-      title: "Taxa de Assiduidade",
-      value: "96.8%",
-      change: "+2.1%",
-      trend: "up",
-      icon: UserCheck,
-      color: "blue",
-    },
-    {
-      title: "Vagas Abertas",
-      value: "23",
-      change: "-5",
-      trend: "down",
-      icon: Briefcase,
-      color: "purple",
-    },
-  ]
+  const [estatisticasRecrutamento, setEstatisticasRecrutamento] = useState<EstatisticasRecrutamento | null>(null)
+  const [estatisticasFormacoes, setEstatisticasFormacoes] = useState<EstatisticasFormacoes | null>(null)
+  const [evolucaoRecrutamento, setEvolucaoRecrutamento] = useState<EvolucaoRecrutamento[]>([])
+  const [evolucaoFormacoes, setEvolucaoFormacoes] = useState<EvolucaoFormacoes[]>([])
 
-  const modules = [
-    {
-      name: "Folha de Pagamento",
-      icon: DollarSign,
-      description: "Gestão de salários e benefícios",
-      href: "/list/folha-pagamento",
-      stats: { active: "1.247 funcionários", pending: "12 pendências" },
-      color: "from-green-500 to-emerald-600",
-    },
-    {
-      name: "Assiduidade",
-      icon: Calendar,
-      description: "Controle de presenças e faltas",
-      href: "/admin/assiduidade",
-      stats: { active: "96.8% presença", pending: "8 justificativas" },
-      color: "from-blue-500 to-cyan-600",
-    },
-    {
-      name: "Departamentos",
-      icon: Building2,
-      description: "Gestão de departamentos",
-      href: "/admin/departamentos",
-      stats: { active: "18 departamentos", pending: "3 reestruturações" },
-      color: "from-purple-500 to-pink-600",
-    },
-    {
-      name: "Formações",
-      icon: GraduationCap,
-      description: "Treinamentos e desenvolvimento",
-      href: "/admin/formacoes",
-      stats: { active: "45 formações ativas", pending: "67 inscrições" },
-      color: "from-cyan-500 to-blue-600",
-    },
-    {
-      name: "Recrutamento",
-      icon: Users,
-      description: "Processos seletivos",
-      href: "/admin/recrutamento",
-      stats: { active: "23 vagas abertas", pending: "156 candidatos" },
-      color: "from-orange-500 to-red-600",
-    },
-  ]
+  const fetchDepartamentos = useCallback(async () => {
+    try {
+      const [depResponse, funcResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/departamentos/`, { credentials: "include" }),
+        fetch(`${API_BASE_URL}/valores/`, { credentials: "include" }),
+      ])
 
-  const alerts = [
-    {
-      type: "urgent",
-      module: "Folha de Pagamento",
-      message: "Fechamento da folha em 3 dias",
-      time: "Hoje",
-    },
-    {
-      type: "warning",
-      module: "Assiduidade",
-      message: "8 justificativas de falta pendentes",
-      time: "Há 2 horas",
-    },
-    {
-      type: "info",
-      module: "Formações",
-      message: "67 novas inscrições para aprovação",
-      time: "Há 5 horas",
-    },
-    {
-      type: "info",
-      module: "Recrutamento",
-      message: "15 entrevistas agendadas esta semana",
-      time: "Ontem",
-    },
-  ]
+      if (!depResponse.ok) throw new Error(`Erro ${depResponse.status}`)
 
-  const evolutionData = [
-    { month: "Jan", funcionarios: 1180, folha: 2.4, formacoes: 32 },
-    { month: "Fev", funcionarios: 1195, folha: 2.5, formacoes: 38 },
-    { month: "Mar", funcionarios: 1210, folha: 2.6, formacoes: 41 },
-    { month: "Abr", funcionarios: 1225, folha: 2.7, formacoes: 43 },
-    { month: "Mai", funcionarios: 1247, folha: 2.8, formacoes: 45 },
-  ]
+      const departamentosData = await depResponse.json()
+      const funcionariosData = await funcResponse.json()
+      setFuncionarios(funcionariosData.length)
 
-  const departmentData = [
-    { name: "TI", value: 245, color: "#06b6d4" },
-    { name: "Vendas", value: 312, color: "#3b82f6" },
-    { name: "Marketing", value: 156, color: "#8b5cf6" },
-    { name: "RH", value: 89, color: "#ec4899" },
-    { name: "Financeiro", value: 134, color: "#10b981" },
-    { name: "Operações", value: 311, color: "#f59e0b" },
-  ]
+      const funcionariosPorDep: Record<string, number> = {}
+      funcionariosData.forEach((func: any) => {
+        const depNome = func.departamento
+        if (depNome) {
+          funcionariosPorDep[depNome] = (funcionariosPorDep[depNome] || 0) + 1
+        }
+      })
 
-  const recentActivities = [
-    {
-      user: "Ana Silva",
-      action: "aprovou folha de pagamento",
-      module: "Folha de Pagamento",
-      time: "Há 15 min",
-    },
-    {
-      user: "Carlos Santos",
-      action: "agendou entrevista",
-      module: "Recrutamento",
-      time: "Há 1 hora",
-    },
-    {
-      user: "Maria Oliveira",
-      action: "criou nova formação",
-      module: "Formações",
-      time: "Há 2 horas",
-    },
-    {
-      user: "João Costa",
-      action: "aprovou justificativa",
-      module: "Assiduidade",
-      time: "Há 3 horas",
-    },
-  ]
+      const departamentosFormatados: Departamento[] = departamentosData.map((dep: any) => ({
+        id: dep.id.toString(),
+        nome: dep.nome || "Sem nome",
+        codigo: dep.codigo || "N/A",
+        descricao: dep.descricao || "",
+        responsavel: dep.responsavel || "Não definido",
+        empresa: dep.empresa?.toString() || "",
+        local: dep.local || "Não especificado",
+        status: dep.status || false,
+        data_criacao: dep.data_criacao || new Date().toISOString(),
+        orcamento: Number.parseFloat(dep.orcamento) || 0,
+        totalFuncionarios: funcionariosPorDep[dep.nome] || 0,
+        vagasAbertas: 0,
+      }))
+
+      setDepartamentos(departamentosFormatados)
+    } catch (error) {
+      console.error("Erro ao buscar departamentos:", error)
+    }
+  }, [])
+
+  useEffect(() => {
+    const fetchMetricas = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/metricas-gerais/`, {
+          credentials: "include",
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setMetricasGerais(data)
+        }
+      } catch (error) {
+        console.error("Erro ao buscar métricas:", error)
+      }
+    }
+
+    fetchMetricas()
+  }, [])
+
+  useEffect(() => {
+    const fetchEstatisticasRecrutamento = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/vagas/estatisticas/`, {
+          credentials: "include",
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setEstatisticasRecrutamento(data)
+        }
+      } catch (error) {
+        console.error("Erro ao buscar estatísticas de recrutamento:", error)
+      }
+    }
+
+    fetchEstatisticasRecrutamento()
+  }, [])
+
+  useEffect(() => {
+    const fetchEstatisticasFormacoes = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/formacoes/estatisticas/`, {
+          credentials: "include",
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setEstatisticasFormacoes(data)
+        }
+      } catch (error) {
+        console.error("Erro ao buscar estatísticas de formações:", error)
+      }
+    }
+
+    fetchEstatisticasFormacoes()
+  }, [])
+
+  useEffect(() => {
+    const fetchEvolucaoRecrutamento = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/aplicacoes/evolucao_mensal/`, {
+          credentials: "include",
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setEvolucaoRecrutamento(data)
+        }
+      } catch (error) {
+        console.error("Erro ao buscar evolução de recrutamento:", error)
+      }
+    }
+
+    fetchEvolucaoRecrutamento()
+  }, [])
+
+  useEffect(() => {
+    const fetchEvolucaoFormacoes = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/formacoes/evolucao_mensal/`, {
+          credentials: "include",
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setEvolucaoFormacoes(data)
+        }
+      } catch (error) {
+        console.error("Erro ao buscar evolução de formações:", error)
+      }
+    }
+
+    fetchEvolucaoFormacoes()
+  }, [])
+
+  useEffect(() => {
+    const fetchAlertas = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/dashboard/alertas_pendencias/`, {
+          credentials: "include",
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setAlertas(data)
+        } else {
+          console.log("[v0] Endpoint de alertas não disponível, usando dados de fallback")
+          // Fallback: gerar alertas baseados em dados existentes
+          const alertasFallback: Alerta[] = []
+
+          if (estatisticasRecrutamento && estatisticasRecrutamento.vagas_abertas > 0) {
+            alertasFallback.push({
+              type: "info",
+              module: "Recrutamento",
+              message: `${estatisticasRecrutamento.vagas_abertas} vagas abertas aguardando candidatos`,
+              time: "hoje",
+            })
+          }
+
+          if (estatisticasFormacoes && estatisticasFormacoes.formacoes_ativas > 0) {
+            alertasFallback.push({
+              type: "info",
+              module: "Formações",
+              message: `${estatisticasFormacoes.formacoes_ativas} formações ativas em andamento`,
+              time: "hoje",
+            })
+          }
+
+          setAlertas(alertasFallback)
+        }
+      } catch (error) {
+        console.error("[v0] Erro ao buscar alertas:", error)
+        setAlertas([])
+      }
+    }
+
+    fetchAlertas()
+  }, [estatisticasRecrutamento, estatisticasFormacoes])
+
+  useEffect(() => {
+    const fetchEvolucao = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/dashboard/evolucao_geral/`, {
+          credentials: "include",
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setEvolucaoData(data)
+        } else {
+          console.log("[v0] Endpoint de evolução geral não disponível, combinando dados de recrutamento e formações")
+          // Fallback: combinar dados de recrutamento e formações
+          const mesesMap = new Map<string, any>()
+
+          evolucaoRecrutamento.forEach((item) => {
+            mesesMap.set(item.mes, {
+              month: item.mes,
+              candidaturas: item.candidaturas,
+              contratacoes: item.contratacoes,
+              funcionarios: item.contratacoes, // Usar contratações como proxy para novos funcionários
+              formacoes: 0,
+            })
+          })
+
+          evolucaoFormacoes.forEach((item) => {
+            const existing = mesesMap.get(item.mes) || {
+              month: item.mes,
+              candidaturas: 0,
+              contratacoes: 0,
+              funcionarios: 0,
+            }
+            mesesMap.set(item.mes, {
+              ...existing,
+              formacoes: item.formacoes,
+              participantes: item.participantes,
+            })
+          })
+
+          setEvolucaoData(Array.from(mesesMap.values()))
+        }
+      } catch (error) {
+        console.error("[v0] Erro ao buscar evolução:", error)
+      }
+    }
+
+    // Só executar quando tivermos dados de recrutamento e formações
+    if (evolucaoRecrutamento.length > 0 || evolucaoFormacoes.length > 0) {
+      fetchEvolucao()
+    }
+  }, [evolucaoRecrutamento, evolucaoFormacoes])
+
+  useEffect(() => {
+    const fetchAtividades = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/dashboard/atividades_recentes/`, {
+          credentials: "include",
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setAtividadesRecentes(data)
+        } else {
+          console.log("[v0] Endpoint de atividades não disponível, usando dados de fallback")
+          // Fallback: gerar atividades baseadas em dados existentes
+          const atividadesFallback: Atividade[] = []
+
+          if (estatisticasRecrutamento) {
+            atividadesFallback.push({
+              user: "Sistema",
+              action: `registrou ${estatisticasRecrutamento.vagas_abertas} vagas abertas`,
+              module: "Recrutamento",
+              time: "hoje",
+            })
+          }
+
+          if (estatisticasFormacoes) {
+            atividadesFallback.push({
+              user: "Sistema",
+              action: `processou ${estatisticasFormacoes.total_inscricoes} inscrições em formações`,
+              module: "Formações",
+              time: "hoje",
+            })
+          }
+
+          if (metricasGerais) {
+            atividadesFallback.push({
+              user: "Sistema",
+              action: `atualizou dados de ${metricasGerais.total_funcionarios} funcionários`,
+              module: "Recursos Humanos",
+              time: "hoje",
+            })
+          }
+
+          setAtividadesRecentes(atividadesFallback)
+        }
+      } catch (error) {
+        console.error("[v0] Erro ao buscar atividades:", error)
+        setAtividadesRecentes([])
+      }
+    }
+
+    fetchAtividades()
+  }, [estatisticasRecrutamento, estatisticasFormacoes, metricasGerais])
+
+  useEffect(() => {
+    fetchDepartamentos()
+  }, [fetchDepartamentos])
+
+  const overallMetrics = useMemo(() => {
+    return [
+      {
+        title: "Total de Funcionários",
+        value: metricasGerais?.total_funcionarios.toString() || funcionarios.toString(),
+        change: "+12",
+        trend: "up" as const,
+        icon: Users,
+        color: "cyan",
+      },
+      {
+        title: "Folha de Pagamento Mensal",
+        value: metricasGerais ? `KZ ${(metricasGerais.folha_mensal / 1000000).toFixed(1)}M` : "Carregando...",
+        change: "+5.2%",
+        trend: "up" as const,
+        icon: DollarSign,
+        color: "green",
+      },
+      {
+        title: "Taxa de Assiduidade",
+        value: metricasGerais ? `${metricasGerais.taxa_assiduidade}%` : "Carregando...",
+        change: "+2.1%",
+        trend: "up" as const,
+        icon: UserCheck,
+        color: "blue",
+      },
+      {
+        title: "Vagas Abertas",
+        value:
+          estatisticasRecrutamento?.vagas_abertas.toString() ||
+          metricasGerais?.vagas_abertas.toString() ||
+          "Carregando...",
+        change: "-5",
+        trend: "down" as const,
+        icon: Briefcase,
+        color: "purple",
+      },
+    ]
+  }, [metricasGerais, funcionarios, estatisticasRecrutamento])
+
+  const modules = useMemo(
+    () => [
+      {
+        name: "Folha de Pagamento",
+        icon: DollarSign,
+        description: "Gestão de salários e benefícios",
+        href: "/folha-pagamento",
+        stats: {
+          active: `${funcionarios} funcionários`,
+          pending: metricasGerais
+            ? `KZ ${(metricasGerais.folha_mensal / 1000000).toFixed(1)}M mensal`
+            : "Carregando...",
+        },
+        color: "from-green-500 to-emerald-600",
+      },
+      {
+        name: "Assiduidade",
+        icon: Calendar,
+        description: "Controle de presenças e faltas",
+        href: "/admin/assiduidade",
+        stats: {
+          active: metricasGerais ? `${metricasGerais.taxa_assiduidade}% presença` : "Carregando...",
+          pending: "8 justificativas",
+        },
+        color: "from-blue-500 to-cyan-600",
+      },
+      {
+        name: "Departamentos",
+        icon: Building2,
+        description: "Gestão de departamentos",
+        href: "/departamentos-dashboard",
+        stats: {
+          active: `${departamentos.length} departamentos`,
+          pending: `${funcionarios} funcionários`,
+        },
+        color: "from-purple-500 to-pink-600",
+      },
+      {
+        name: "Formações",
+        icon: GraduationCap,
+        description: "Treinamentos e desenvolvimento",
+        href: "/admin/formacoes",
+        stats: {
+          active: estatisticasFormacoes
+            ? `${estatisticasFormacoes.formacoes_ativas} formações ativas`
+            : "Carregando...",
+          pending: estatisticasFormacoes ? `${estatisticasFormacoes.total_inscricoes} inscrições` : "Carregando...",
+        },
+        color: "from-cyan-500 to-blue-600",
+      },
+      {
+        name: "Recrutamento",
+        icon: Users,
+        description: "Processos seletivos",
+        href: "/list/recrutamento",
+        stats: {
+          active: estatisticasRecrutamento
+            ? `${estatisticasRecrutamento.vagas_abertas} vagas abertas`
+            : "Carregando...",
+          pending: estatisticasRecrutamento
+            ? `${estatisticasRecrutamento.tempo_medio_fechamento_dias} dias médio`
+            : "Carregando...",
+        },
+        color: "from-orange-500 to-red-600",
+      },
+    ],
+    [funcionarios, metricasGerais, departamentos, estatisticasFormacoes, estatisticasRecrutamento],
+  )
+
+  const PIE_COLORS = ["#0ea5e9", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#06b6d4"]
+
+  const dadosGraficoPizza = useMemo(() => {
+    return departamentos.map((dep) => ({
+      name: dep.nome,
+      value: dep.totalFuncionarios || 0,
+    }))
+  }, [departamentos])
+
+  const dadosEvolucaoCombinados = useMemo(() => {
+    if (evolucaoData.length > 0) {
+      return evolucaoData
+    }
+
+    // Fallback: combinar dados de recrutamento e formações
+    const mesesMap = new Map<string, any>()
+
+    evolucaoRecrutamento.forEach((item) => {
+      mesesMap.set(item.mes, {
+        month: item.mes,
+        candidaturas: item.candidaturas,
+        contratacoes: item.contratacoes,
+        funcionarios: item.contratacoes, // Usar contratações como proxy para novos funcionários
+        formacoes: 0,
+      })
+    })
+
+    evolucaoFormacoes.forEach((item) => {
+      const existing = mesesMap.get(item.mes) || { month: item.mes, candidaturas: 0, contratacoes: 0 }
+      mesesMap.set(item.mes, {
+        ...existing,
+        formacoes: item.formacoes,
+        participantes: item.participantes,
+      })
+    })
+
+    return Array.from(mesesMap.values())
+  }, [evolucaoData, evolucaoRecrutamento, evolucaoFormacoes])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Dashboard Administrativo</h1>
@@ -199,7 +567,7 @@ export default function AdminDashboard() {
             <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent">
               <Bell className="w-4 h-4 mr-2" />
               Notificações
-              <Badge className="ml-2 bg-red-500">4</Badge>
+              <Badge className="ml-2 bg-red-500">{alertas.length}</Badge>
             </Button>
             <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent">
               <Settings className="w-4 h-4 mr-2" />
@@ -208,7 +576,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Métricas Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {overallMetrics.map((metric, index) => {
             const Icon = metric.icon
@@ -245,7 +612,6 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        {/* Alertas e Notificações */}
         <Card className="bg-slate-800/50 border-slate-700">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -263,38 +629,41 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {alerts.map((alert, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 rounded-lg bg-slate-900/50 border border-slate-700 hover:border-slate-600 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        alert.type === "urgent"
-                          ? "bg-red-500"
-                          : alert.type === "warning"
-                            ? "bg-orange-500"
-                            : "bg-blue-500"
-                      }`}
-                    />
-                    <div>
-                      <p className="text-white font-medium">{alert.message}</p>
-                      <p className="text-sm text-slate-400">
-                        {alert.module} • {alert.time}
-                      </p>
+              {alertas.length > 0 ? (
+                alertas.map((alert, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 rounded-lg bg-slate-900/50 border border-slate-700 hover:border-slate-600 transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          alert.type === "urgent"
+                            ? "bg-red-500"
+                            : alert.type === "warning"
+                              ? "bg-orange-500"
+                              : "bg-blue-500"
+                        }`}
+                      />
+                      <div>
+                        <p className="text-white font-medium">{alert.message}</p>
+                        <p className="text-sm text-slate-400">
+                          {alert.module} • {alert.time}
+                        </p>
+                      </div>
                     </div>
+                    <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300">
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300">
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-slate-400 text-center py-4">Nenhum alerta no momento</p>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Módulos do Sistema */}
         <div>
           <h2 className="text-xl font-bold text-white mb-4">Módulos do Sistema</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -332,9 +701,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Gráficos e Analytics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Evolução Geral */}
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white">Evolução Geral</CardTitle>
@@ -342,7 +709,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={evolutionData}>
+                <LineChart data={dadosEvolucaoCombinados}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis dataKey="month" stroke="#94a3b8" />
                   <YAxis stroke="#94a3b8" />
@@ -354,50 +721,65 @@ export default function AdminDashboard() {
                     }}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="funcionarios" stroke="#06b6d4" strokeWidth={2} name="Funcionários" />
-                  <Line type="monotone" dataKey="formacoes" stroke="#3b82f6" strokeWidth={2} name="Formações" />
+                  {dadosEvolucaoCombinados.some((d) => "funcionarios" in d) && (
+                    <Line type="monotone" dataKey="funcionarios" stroke="#06b6d4" strokeWidth={2} name="Funcionários" />
+                  )}
+                  {dadosEvolucaoCombinados.some((d) => "formacoes" in d) && (
+                    <Line type="monotone" dataKey="formacoes" stroke="#3b82f6" strokeWidth={2} name="Formações" />
+                  )}
+                  {dadosEvolucaoCombinados.some((d) => "candidaturas" in d) && (
+                    <Line type="monotone" dataKey="candidaturas" stroke="#8b5cf6" strokeWidth={2} name="Candidaturas" />
+                  )}
+                  {dadosEvolucaoCombinados.some((d) => "contratacoes" in d) && (
+                    <Line type="monotone" dataKey="contratacoes" stroke="#10b981" strokeWidth={2} name="Contratações" />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Distribuição por Departamento */}
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
             <CardHeader>
               <CardTitle className="text-white">Distribuição por Departamento</CardTitle>
-              <CardDescription className="text-slate-400">Total de funcionários por área</CardDescription>
+              <CardDescription className="text-slate-400">Funcionários por departamento</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={departmentData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {departmentData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1e293b",
-                      border: "1px solid #334155",
-                      borderRadius: "8px",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="h-64 flex items-center justify-center">
+                {dadosGraficoPizza.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={dadosGraficoPizza}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name.split(" ")[0]} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {dadosGraficoPizza.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#1e293b",
+                          border: "1px solid #475569",
+                          borderRadius: "8px",
+                          color: "white",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-slate-400">Carregando dados...</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Atividades Recentes */}
         <Card className="bg-slate-800/50 border-slate-700">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -412,27 +794,31 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {recentActivities.map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-4 p-4 rounded-lg bg-slate-900/50 border border-slate-700"
-                >
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold">
-                    {activity.user
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+              {atividadesRecentes.length > 0 ? (
+                atividadesRecentes.map((activity, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-4 rounded-lg bg-slate-900/50 border border-slate-700"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold">
+                      {activity.user
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white">
+                        <span className="font-medium">{activity.user}</span> {activity.action}
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        {activity.module} • {activity.time}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-white">
-                      <span className="font-medium">{activity.user}</span> {activity.action}
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      {activity.module} • {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-slate-400 text-center py-4">Nenhuma atividade recente</p>
+              )}
             </div>
           </CardContent>
         </Card>

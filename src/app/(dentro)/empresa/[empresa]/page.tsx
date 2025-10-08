@@ -82,7 +82,7 @@ export default function EmpresaPage() {
       if(curriculum){
       dados.append('curriculum', curriculum)
       }
-      const res=await fetch("http://localhost:8000/Candidatura/",{
+      const res=await fetch("http://localhost:8000/candidatos/",{
         method:"POST",
         body:dados
       })

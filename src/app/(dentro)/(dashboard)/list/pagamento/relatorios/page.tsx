@@ -73,7 +73,7 @@ const RelatoriosPage = () => {
       setLoading(true)
 
       // Buscar relatórios fiscais
-      const fiscaisRes = await fetch("http://localhost:8000/relatorios-fiscais/", { 
+      const fiscaisRes = await fetch("https://avdserver.up.railway.app/relatorios-fiscais/", { 
         credentials: "include" 
       })
       if (fiscaisRes.ok) {
@@ -82,7 +82,7 @@ const RelatoriosPage = () => {
       }
 
       // Buscar relatórios contábeis
-      const contabeisRes = await fetch("http://localhost:8000/relatorios-contabeis/", { 
+      const contabeisRes = await fetch("https://avdserver.up.railway.app/relatorios-contabeis/", { 
         credentials: "include" 
       })
       if (contabeisRes.ok) {
@@ -91,7 +91,7 @@ const RelatoriosPage = () => {
       }
 
       // Buscar estatísticas
-      const statsRes = await fetch("http://localhost:8000/resumo-folha-completo/", { 
+      const statsRes = await fetch("https://avdserver.up.railway.app/resumo-folha-completo/", { 
         credentials: "include" 
       })
       if (statsRes.ok) {
@@ -206,7 +206,7 @@ const RelatoriosPage = () => {
 
   const gerarRelatorioFiscal = async () => {
     try {
-      const res = await fetch("http://localhost:8000/relatorios-fiscais/", {
+      const res = await fetch("https://avdserver.up.railway.app/relatorios-fiscais/", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -244,7 +244,7 @@ const RelatoriosPage = () => {
 
   const gerarRelatorioContabil = async () => {
     try {
-      const res = await fetch("http://localhost:8000/relatorios-contabeis/", {
+      const res = await fetch("https://avdserver.up.railway.app/relatorios-contabeis/", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -282,7 +282,7 @@ const RelatoriosPage = () => {
 
   const exportarRelatorio = async (id: string, formato: "PDF" | "EXCEL" | "CSV") => {
     try {
-      const res = await fetch(`http://localhost:8000/relatorios-fiscais/${id}/exportar/`, {
+      const res = await fetch(`https://avdserver.up.railway.app/relatorios-fiscais/${id}/exportar/`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

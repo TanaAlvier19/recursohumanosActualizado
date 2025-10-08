@@ -92,7 +92,7 @@ const FeedbackSatisfacao = () => {
         comentario: comment
       };
 
-      const response = await fetch("http://localhost:8000/satisfacao/", {
+      const response = await fetch("https://avdserver.up.railway.app/satisfacao/", {
         method: "POST",
         credentials: "include",
         headers: {

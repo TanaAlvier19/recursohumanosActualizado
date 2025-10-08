@@ -12,7 +12,7 @@ import { Calculator, TrendingUp, DollarSign, AlertCircle, FileText, Percent } fr
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://avdserver.up.railway.app"
 
 interface ResultadoFolha {
   salario_bruto: number

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -22,100 +22,143 @@ import {
   Calendar,
   Award,
   TrendingUp,
+  Loader2,
 } from "lucide-react"
+
+interface Talento {
+  id: number
+  nome: string
+  cargo: string
+  localizacao: string
+  email: string
+  telefone: string
+  experiencia_anos: number
+  rating: number
+  skills: string[]
+  disponibilidade: string
+  pretensao_salarial: string
+  ultimo_contato: string
+  fonte: string
+  status: string
+  tags: string[]
+  curriculo?: string
+}
+
+interface Estatisticas {
+  total_talentos: number
+  talentos_ativos: number
+  rating_medio: number
+  contratados: number
+}
 
 export default function BancoTalentosPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedTalento, setSelectedTalento] = useState<any>(null)
+  const [selectedTalento, setSelectedTalento] = useState<Talento | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [talentos, setTalentos] = useState<Talento[]>([])
+  const [estatisticas, setEstatisticas] = useState<Estatisticas>({
+    total_talentos: 0,
+    talentos_ativos: 0,
+    rating_medio: 0,
+    contratados: 0
+  })
+  const [loading, setLoading] = useState(true)
+  const [filtroStatus, setFiltroStatus] = useState("todos")
+  const [filtroExperiencia, setFiltroExperiencia] = useState("todos")
+  const [filtroDisponibilidade, setFiltroDisponibilidade] = useState("todos")
 
-  const talentos = [
-    {
-      id: 1,
-      nome: "Ana Silva",
-      cargo: "Desenvolvedor Full Stack",
-      localizacao: "São Paulo, SP",
-      email: "ana.silva@email.com",
-      telefone: "(11) 98765-4321",
-      experiencia: "5 anos",
-      rating: 4.8,
-      skills: ["React", "Node.js", "TypeScript", "PostgreSQL"],
-      disponibilidade: "Imediato",
-      pretensaoSalarial: "R$ 12.000",
-      ultimoContato: "2024-01-10",
-      fonte: "LinkedIn",
-      status: "Ativo",
-      tags: ["Senior", "Full Stack", "Remote"],
-    },
-    {
-      id: 2,
-      nome: "Carlos Santos",
-      cargo: "Analista de Dados",
-      localizacao: "Rio de Janeiro, RJ",
-      email: "carlos.santos@email.com",
-      telefone: "(21) 97654-3210",
-      experiencia: "3 anos",
-      rating: 4.5,
-      skills: ["Python", "SQL", "Power BI", "Machine Learning"],
-      disponibilidade: "30 dias",
-      pretensaoSalarial: "R$ 8.000",
-      ultimoContato: "2024-01-08",
-      fonte: "Indicação",
-      status: "Ativo",
-      tags: ["Pleno", "Data", "Híbrido"],
-    },
-    {
-      id: 3,
-      nome: "Maria Oliveira",
-      cargo: "Designer UX/UI",
-      localizacao: "Belo Horizonte, MG",
-      email: "maria.oliveira@email.com",
-      telefone: "(31) 96543-2109",
-      experiencia: "4 anos",
-      rating: 4.7,
-      skills: ["Figma", "Adobe XD", "User Research", "Prototyping"],
-      disponibilidade: "Imediato",
-      pretensaoSalarial: "R$ 9.000",
-      ultimoContato: "2023-12-20",
-      fonte: "Site Carreira",
-      status: "Inativo",
-      tags: ["Pleno", "Design", "Remote"],
-    },
-    {
-      id: 4,
-      nome: "João Costa",
-      cargo: "Gerente de Projetos",
-      localizacao: "Curitiba, PR",
-      email: "joao.costa@email.com",
-      telefone: "(41) 95432-1098",
-      experiencia: "8 anos",
-      rating: 4.9,
-      skills: ["Scrum", "Agile", "Jira", "Liderança"],
-      disponibilidade: "60 dias",
-      pretensaoSalarial: "R$ 15.000",
-      ultimoContato: "2024-01-05",
-      fonte: "Recrutador",
-      status: "Ativo",
-      tags: ["Senior", "Gestão", "Presencial"],
-    },
-  ]
+  const fetchTalentos = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('https://avdserver.up.railway.app/candidatos/banco_talentos/',{
+        credentials:"include"
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setTalentos(data)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar talentos:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchEstatisticas = async () => {
+    try {
+      const response = await fetch('https://avdserver.up.railway.app/candidatos/estatisticas_banco_talentos/',{
+        credentials:"include"
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setEstatisticas(data)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchTalentos()
+    fetchEstatisticas()
+  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Ativo":
+      case "ATIVO":
+        case "EM_PROCESSO":
         return "bg-green-500/10 text-green-400 border-green-500/20"
-      case "Inativo":
+      case "INATIVO":
         return "bg-slate-500/10 text-slate-400 border-slate-500/20"
-      case "Em Processo":
         return "bg-blue-500/10 text-blue-400 border-blue-500/20"
       default:
         return "bg-slate-500/10 text-slate-400 border-slate-500/20"
     }
   }
 
-  const handleViewDetails = (talento: any) => {
+  const handleViewDetails = (talento: Talento) => {
     setSelectedTalento(talento)
     setIsDetailModalOpen(true)
+  }
+
+  const handleEnviarMensagem = async (talento: Talento) => {
+    try {
+      // Implementar lógica de envio de mensagem
+      console.log('Enviando mensagem para:', talento.email)
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error)
+    }
+  }
+
+  // Filtrar talentos baseado nos filtros
+  const talentosFiltrados = talentos.filter(talento => {
+    const matchesSearch = searchTerm === "" || 
+      talento.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      talento.cargo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      talento.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+    
+    const matchesStatus = filtroStatus === "todos" || talento.status === filtroStatus.toUpperCase()
+    
+    const matchesExperiencia = filtroExperiencia === "todos" || 
+      (filtroExperiencia === "junior" && talento.experiencia_anos <= 2) ||
+      (filtroExperiencia === "pleno" && talento.experiencia_anos > 2 && talento.experiencia_anos <= 5) ||
+      (filtroExperiencia === "senior" && talento.experiencia_anos > 5)
+    
+    const matchesDisponibilidade = filtroDisponibilidade === "todos" || 
+      talento.disponibilidade.toLowerCase().includes(filtroDisponibilidade)
+
+    return matchesSearch && matchesStatus && matchesExperiencia && matchesDisponibilidade
+  })
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+          <p className="text-slate-400">Carregando talentos...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -133,7 +176,7 @@ export default function BancoTalentosPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">Total de Talentos</p>
-                <p className="text-2xl font-bold text-white mt-1">1,247</p>
+                <p className="text-2xl font-bold text-white mt-1">{estatisticas.total_talentos}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center">
                 <Users className="w-6 h-6 text-cyan-400" />
@@ -144,7 +187,7 @@ export default function BancoTalentosPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">Talentos Ativos</p>
-                <p className="text-2xl font-bold text-white mt-1">856</p>
+                <p className="text-2xl font-bold text-white mt-1">{estatisticas.talentos_ativos}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-green-400" />
@@ -155,7 +198,7 @@ export default function BancoTalentosPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">Rating Médio</p>
-                <p className="text-2xl font-bold text-white mt-1">4.6</p>
+                <p className="text-2xl font-bold text-white mt-1">{estatisticas.rating_medio}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center">
                 <Star className="w-6 h-6 text-yellow-400" />
@@ -166,7 +209,7 @@ export default function BancoTalentosPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">Contratados</p>
-                <p className="text-2xl font-bold text-white mt-1">143</p>
+                <p className="text-2xl font-bold text-white mt-1">{estatisticas.contratados}</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
                 <Award className="w-6 h-6 text-purple-400" />
@@ -184,41 +227,41 @@ export default function BancoTalentosPage() {
                 placeholder="Buscar por nome, cargo ou skills..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-slate-700 border-slate-600"
+                className="pl-10 bg-slate-700 border-slate-600 text-white"
               />
             </div>
-            <Select>
-              <SelectTrigger className="w-full md:w-[200px] bg-slate-700 border-slate-600">
+            <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+              <SelectTrigger className="w-full md:w-[200px] bg-slate-700 border-slate-600 text-white">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-slate-800 border-slate-700 text-white">
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="ativo">Ativo</SelectItem>
                 <SelectItem value="inativo">Inativo</SelectItem>
-                <SelectItem value="processo">Em Processo</SelectItem>
+                <SelectItem value="em_processo">Em Processo</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
-              <SelectTrigger className="w-full md:w-[200px] bg-slate-700 border-slate-600">
+            <Select value={filtroExperiencia} onValueChange={setFiltroExperiencia}>
+              <SelectTrigger className="w-full md:w-[200px] bg-slate-700 border-slate-600 text-white">
                 <SelectValue placeholder="Experiência" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-slate-800 border-slate-700 text-white">
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="junior">Júnior (0-2 anos)</SelectItem>
                 <SelectItem value="pleno">Pleno (3-5 anos)</SelectItem>
                 <SelectItem value="senior">Sênior (6+ anos)</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
-              <SelectTrigger className="w-full md:w-[200px] bg-slate-700 border-slate-600">
+            <Select value={filtroDisponibilidade} onValueChange={setFiltroDisponibilidade}>
+              <SelectTrigger className="w-full md:w-[200px] bg-slate-700 border-slate-600 text-white">
                 <SelectValue placeholder="Disponibilidade" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-slate-800 border-slate-700 text-white">
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="imediato">Imediato</SelectItem>
-                <SelectItem value="30dias">Até 30 dias</SelectItem>
-                <SelectItem value="60dias">Até 60 dias</SelectItem>
+                <SelectItem value="30 dias">Até 30 dias</SelectItem>
+                <SelectItem value="60 dias">Até 60 dias</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -226,7 +269,7 @@ export default function BancoTalentosPage() {
 
         {/* Talentos Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {talentos.map((talento) => (
+          {talentosFiltrados.map((talento) => (
             <Card
               key={talento.id}
               className="bg-slate-800/50 border-slate-700 p-6 hover:border-cyan-500/50 transition-all"
@@ -248,7 +291,9 @@ export default function BancoTalentosPage() {
                     </div>
                   </div>
                 </div>
-                <Badge className={getStatusColor(talento.status)}>{talento.status}</Badge>
+                <Badge className={getStatusColor(talento.status)}>
+                  {talento.status.replace('_', ' ')}
+                </Badge>
               </div>
 
               <div className="space-y-2 mb-4">
@@ -258,7 +303,7 @@ export default function BancoTalentosPage() {
                 </div>
                 <div className="flex items-center gap-2 text-slate-300 text-sm">
                   <Briefcase className="w-4 h-4 text-slate-400" />
-                  {talento.experiencia} de experiência
+                  {talento.experiencia_anos} anos de experiência
                 </div>
                 <div className="flex items-center gap-2 text-slate-300 text-sm">
                   <Mail className="w-4 h-4 text-slate-400" />
@@ -300,12 +345,12 @@ export default function BancoTalentosPage() {
                 </div>
                 <div>
                   <p className="text-slate-400 text-xs">Pretensão</p>
-                  <p className="text-white font-medium">{talento.pretensaoSalarial}</p>
+                  <p className="text-white font-medium">{talento.pretensao_salarial}</p>
                 </div>
                 <div>
                   <p className="text-slate-400 text-xs">Último Contato</p>
                   <p className="text-white font-medium">
-                    {new Date(talento.ultimoContato).toLocaleDateString("pt-BR")}
+                    {new Date(talento.ultimo_contato).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
                 <div>
@@ -322,13 +367,27 @@ export default function BancoTalentosPage() {
                   <Eye className="w-4 h-4 mr-2" />
                   Ver Perfil
                 </Button>
-                <Button variant="outline" className="border-slate-600 hover:bg-slate-700 bg-transparent">
+                <Button 
+                  variant="outline" 
+                  className="border-slate-600 hover:bg-slate-700 bg-transparent"
+                  onClick={() => handleEnviarMensagem(talento)}
+                >
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
             </Card>
           ))}
         </div>
+
+        {talentosFiltrados.length === 0 && !loading && (
+          <Card className="bg-slate-800/50 border-slate-700 p-8 text-center">
+            <Users className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+            <h3 className="text-white text-lg font-semibold mb-2">Nenhum talento encontrado</h3>
+            <p className="text-slate-400">
+              {searchTerm ? "Tente ajustar os termos de busca ou filtros." : "Não há talentos disponíveis no momento."}
+            </p>
+          </Card>
+        )}
 
         {/* Detail Modal */}
         <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
@@ -338,61 +397,69 @@ export default function BancoTalentosPage() {
               <DialogDescription className="text-slate-400">{selectedTalento?.cargo}</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6">
-              {/* Informações Básicas */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Informações de Contato</h3>
-                <Card className="bg-slate-900/50 border-slate-700 p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-300">{selectedTalento?.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-300">{selectedTalento?.telefone}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-300">{selectedTalento?.localizacao}</span>
-                  </div>
-                </Card>
-              </div>
+            {selectedTalento && (
+              <div className="space-y-6">
+                {/* Informações Básicas */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Informações de Contato</h3>
+                  <Card className="bg-slate-900/50 border-slate-700 p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-slate-400" />
+                      <span className="text-slate-300">{selectedTalento.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-slate-400" />
+                      <span className="text-slate-300">{selectedTalento.telefone}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-slate-400" />
+                      <span className="text-slate-300">{selectedTalento.localizacao}</span>
+                    </div>
+                  </Card>
+                </div>
 
-              {/* Skills */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Competências</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedTalento?.skills.map((skill: string, idx: number) => (
-                    <Badge key={idx} className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
-                      {skill}
-                    </Badge>
-                  ))}
+                {/* Skills */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Competências</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTalento.skills.map((skill: string, idx: number) => (
+                      <Badge key={idx} className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Histórico */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Histórico de Interações</h3>
+                  <Card className="bg-slate-900/50 border-slate-700 p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Calendar className="w-4 h-4 text-cyan-400 mt-1" />
+                        <div>
+                          <p className="text-white font-medium">Último Contato</p>
+                          <p className="text-slate-400 text-sm">
+                            {new Date(selectedTalento.ultimo_contato).toLocaleDateString("pt-BR")} - {selectedTalento.fonte}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Ações */}
+                <div className="flex gap-2 pt-4">
+                  <Button className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
+                    <Send className="w-4 h-4 mr-2" />
+                    Entrar em Contato
+                  </Button>
+                  <Button variant="outline" className="border-slate-600 hover:bg-slate-700">
+                    Download CV
+                  </Button>
                 </div>
               </div>
-
-              {/* Histórico */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Histórico de Interações</h3>
-                <Card className="bg-slate-900/50 border-slate-700 p-4">
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Calendar className="w-4 h-4 text-cyan-400 mt-1" />
-                      <div>
-                        <p className="text-white font-medium">Entrevista Técnica</p>
-                        <p className="text-slate-400 text-sm">15/01/2024 - Aprovado com nota 8.5</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Calendar className="w-4 h-4 text-cyan-400 mt-1" />
-                      <div>
-                        <p className="text-white font-medium">Primeiro Contato</p>
-                        <p className="text-slate-400 text-sm">10/01/2024 - Interesse demonstrado</p>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

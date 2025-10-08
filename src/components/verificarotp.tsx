@@ -45,7 +45,7 @@ export default function VerificarOTP() {
     setCarregando(true);
 
     try {
-      const res = await fetch("http://localhost:8000/verifcar-otp/", {
+      const res = await fetch("https://avdserver.up.railway.app/verifcar-otp/", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
@@ -76,7 +76,7 @@ export default function VerificarOTP() {
     setCarregando(true);
 
     try {
-      const res = await fetch("http://localhost:8000/set-password/", {
+      const res = await fetch("https://avdserver.up.railway.app/set-password/", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, senha, confirmar_senha: confirmarSenha }),
@@ -86,7 +86,7 @@ export default function VerificarOTP() {
       if (res.ok) {
         await Swal.fire({ icon: 'success', title: 'Sucesso', text: payload.detail });
 
-        const tokenRes = await fetch("http://127.0.0.1:8000/api/token/", {
+        const tokenRes = await fetch("https://avdserver.up.railway.app/api/token/", {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password: senha }),
         });

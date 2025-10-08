@@ -40,11 +40,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
+import Link from "next/link"
 
 const VisualizadorArquivo = ({ url, nome }: { url: string; nome: string }) => {
   const [abrir, setAbrir] = useState(false)
   const [tipoArquivo, setTipoArquivo] = useState("")
-  const urlCompleta = `http://localhost:8000${url}`
+  const urlCompleta = `https://avdserver.up.railway.app${url}`
 
   useEffect(() => {
     if (url) {
@@ -333,6 +334,7 @@ export default function EmployeeDashboard() {
     departamento: string | null
     empresa: string
     valores: Record<string, string>
+    salario_bruto:string
     arquivos?: { id: string; nome_campo: string; arquivo: string }[]
   }
 
@@ -371,7 +373,7 @@ export default function EmployeeDashboard() {
   useEffect(() => {
     if (row.length > 0) {
       const totalSalarios = row.reduce((acc, curr) => {
-        const salario = Number.parseFloat(curr.valores.salario_bruto || "0")
+        const salario = Number.parseFloat(curr.salario_bruto || "0")
         return acc + salario
       }, 0)
 
@@ -480,7 +482,7 @@ export default function EmployeeDashboard() {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`http://localhost:8000/valores/${pk}/`, {
+        const res = await fetch(`https://avdserver.up.railway.app/valores/${pk}/`, {
           method: "DELETE",
           credentials: "include",
         })
@@ -529,7 +531,7 @@ export default function EmployeeDashboard() {
     formData.append("departamento", departamentoSelecionado)
     formData.append("salario_bruto", JSON.stringify(salario_bruto))
 
-    const url = editandoId ? `http://localhost:8000/valores/${editandoId}/` : "http://localhost:8000/valores/"
+    const url = editandoId ? `https://avdserver.up.railway.app/valores/${editandoId}/` : "https://avdserver.up.railway.app/valores/"
     const method = editandoId ? "PUT" : "POST"
 
     try {
@@ -581,7 +583,7 @@ export default function EmployeeDashboard() {
 
   const Campos = async () => {
     try {
-      const res = await fetch("http://localhost:8000/campos/empresa/", {
+      const res = await fetch("https://avdserver.up.railway.app/campos/empresa/com-uso/", {
         method: "GET",
         credentials: "include",
       })
@@ -598,7 +600,7 @@ export default function EmployeeDashboard() {
 
   const Pegar = async () => {
     try {
-      const res = await fetch("http://localhost:8000/valores/", {
+      const res = await fetch("https://avdserver.up.railway.app/valores/", {
         method: "GET",
         credentials: "include",
       })
@@ -615,7 +617,7 @@ export default function EmployeeDashboard() {
 
   const Departamanto = async () => {
     try {
-      const res = await fetch("http://localhost:8000/departamentos/", {
+      const res = await fetch("https://avdserver.up.railway.app/departamentos/", {
         method: "GET",
         credentials: "include",
       })
@@ -720,7 +722,6 @@ export default function EmployeeDashboard() {
               <Card className="border-0 shadow-lg bg-slate-800/50 backdrop-blur-sm border-slate-700">
                <CardHeader className="pb-4">
     <div className="flex flex-col gap-4">
-      {/* TÍTULO E DESCRIÇÃO */}
       <div>
         <CardTitle className="text-xl font-semibold text-white">Lista de Funcionários</CardTitle>
         <CardDescription className="text-slate-400 text-sm mt-1">
@@ -728,10 +729,8 @@ export default function EmployeeDashboard() {
         </CardDescription>
       </div>
       
-      {/* CONTROLES - AGORA EM GRID QUE MANTÉM TUDO DENTRO DOS LIMITES */}
       <div className="grid grid-cols-1 xs:grid-cols-[1fr_auto] gap-3 items-center w-full">
         
-        {/* BARRA DE PESQUISA - OCUPA O ESPAÇO DISPONÍVEL */}
         <div className="relative w-full min-w-0">
           <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
           <Input
@@ -742,7 +741,6 @@ export default function EmployeeDashboard() {
           />
         </div>
 
-        {/* GRUPO BADGE + BOTÃO - NUNCA SAI DA ÁREA */}
         <div className="flex items-center gap-2 justify-end xs:justify-start w-full xs:w-auto">
           <Badge 
             variant="secondary" 
@@ -750,7 +748,13 @@ export default function EmployeeDashboard() {
           >
             {filteredRows.length} {filteredRows.length === 1 ? "funcionário" : "funcionários"}
           </Badge>
-
+          <Link href={"/personaliza"}>
+          <Button
+          className="bg-gradient-to-r from-cyan-900 to-blue-900 hover:from-cyan-600 hover:to-blue-700 text-white flex items-center gap-2 shadow-sm whitespace-nowrap flex-shrink-0 min-w-0"
+          >
+          Criar Novos campos
+          </Button>  
+          </Link>      
           <Button
             className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white flex items-center gap-2 shadow-sm whitespace-nowrap flex-shrink-0 min-w-0"
             onClick={() => {
