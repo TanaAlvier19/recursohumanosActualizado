@@ -301,6 +301,7 @@ class Login(TokenObtainPairView):
             secure=True,
             samesite=None,
             max_age=60*60,
+            path='/'
         )
         resposta.set_cookie(
             key="refresh_token",
@@ -308,7 +309,8 @@ class Login(TokenObtainPairView):
             httponly=True,
             secure=True,
             samesite=None,
-            max_age=60*60*24*7
+            max_age=60*60*24*7,
+            path='/'
         )
         
         return resposta
