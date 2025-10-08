@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { fetchAPI } from "@/lib/api"
 import {
   Users,
   Briefcase,
@@ -128,8 +129,8 @@ export default function AdminDashboard() {
   const fetchDepartamentos = useCallback(async () => {
     try {
       const [depResponse, funcResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/departamentos/`, { credentials: "include" }),
-        fetch(`${API_BASE_URL}/valores/`, { credentials: "include" }),
+        fetchAPI("departamentos/"),
+        fetchAPI("valores/"),
       ])
 
       if (!depResponse.ok) throw new Error(`Erro ${depResponse.status}`)
@@ -170,9 +171,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchMetricas = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/metricas-gerais/`, {
-          credentials: "include",
-        })
+        const response = await fetchAPI("/metricas-gerais/")
+        
         if (response.ok) {
           const data = await response.json()
           setMetricasGerais(data)
@@ -188,9 +188,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEstatisticasRecrutamento = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/vagas/estatisticas/`, {
-          credentials: "include",
-        })
+        const response = await fetchAPI("vagas/estatisticas")
+        
         if (response.ok) {
           const data = await response.json()
           setEstatisticasRecrutamento(data)
@@ -206,9 +205,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEstatisticasFormacoes = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/formacoes/estatisticas/`, {
-          credentials: "include",
-        })
+        const response = await fetchAPI("/formacoes/estatisticas/")
         if (response.ok) {
           const data = await response.json()
           setEstatisticasFormacoes(data)
@@ -224,9 +221,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEvolucaoRecrutamento = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/aplicacoes/evolucao_mensal/`, {
-          credentials: "include",
-        })
+        const response = await fetchAPI("/aplicacoes/evolucao_mensal/")
         if (response.ok) {
           const data = await response.json()
           setEvolucaoRecrutamento(data)
@@ -242,9 +237,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEvolucaoFormacoes = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/formacoes/evolucao_mensal/`, {
-          credentials: "include",
-        })
+        const response = await fetchAPI("/formacoes/evolucao_mensal/")
         if (response.ok) {
           const data = await response.json()
           setEvolucaoFormacoes(data)
@@ -260,9 +253,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchAlertas = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/dashboard/alertas_pendencias/`, {
-          credentials: "include",
-        })
+        const response = await fetchAPI("/dashboard/alertas_pendencias/")
         if (response.ok) {
           const data = await response.json()
           setAlertas(data)
@@ -303,9 +294,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEvolucao = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/dashboard/evolucao_geral/`, {
-          credentials: "include",
-        })
+        const response = await fetchAPI("/dashboard/evolucao_geral/")
+       
         if (response.ok) {
           const data = await response.json()
           setEvolucaoData(data)
@@ -354,9 +344,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchAtividades = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/dashboard/atividades_recentes/`, {
-          credentials: "include",
-        })
+        const response = await fetchAPI("/dashboard/atividades_recentes/")
         if (response.ok) {
           const data = await response.json()
           setAtividadesRecentes(data)
