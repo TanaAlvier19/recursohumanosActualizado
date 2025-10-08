@@ -43,13 +43,13 @@ const Section1 = () => {
     };
   useEffect(()=>{
     const empresa =async()=>{
-      const res= await fetch("https://avdserver.up.railway.app/empresa/",{
+      const res= await fetch("https://recursohumanosactualizado.onrender.com/empresa/",{
       })
       const data= await res.json()
       setempresa(data.length)
     }
     const satifacao =async()=>{
-      const res= await fetch("https://avdserver.up.railway.app/satisfacao/",{
+      const res= await fetch("https://recursohumanosactualizado.onrender.com/satisfacao/",{
       })
       const data= await res.json()
       setsatifacao(data)
