@@ -20,7 +20,9 @@ interface LoginData {
 interface LoginResponse {
   success?: boolean
   nivel_acesso?: "admin" | "funcionario"
+  access_token:string
   message?: string
+  refresh_token:string
   error?: string
   field?: string
   user?: {
@@ -122,6 +124,11 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
       const data: LoginResponse = await response.json()
 
       if (response.ok && data.success) {
+        if (data.access_token) {
+        localStorage.setItem('access_token', data.access_token)
+        localStorage.setItem('refresh_token', data.refresh_token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
         await Swal.fire({
           title: "Login realizado!",
           text: `Bem-vindo(a) de volta${data.user?.name ? ", " + data.user.name : ""}!`,
