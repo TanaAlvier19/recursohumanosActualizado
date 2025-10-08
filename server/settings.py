@@ -19,6 +19,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'recursohumanos-actualizado.vercel.app',
+    'avdserver.up.railway.app'
 ]
 
 # 📁 MEDIA FILES
@@ -64,11 +65,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'server.urls'
 
-# 🌐 CORS CONFIG - CORRIGIDO
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    'https://recursohumanos-actualizado.vercel.app',  # ✅ REMOVIDA BARRA FINAL
+    'https://recursohumanos-actualizado.vercel.app',  
 ]
 
 CORS_ALLOW_CREDENTIALS = True
