@@ -20,8 +20,7 @@ Pillow==10.2.0
 python-decouple==3.8
 
 # Utilitários
-django-phonenumber-field==7.1.0
-phonenumbers==8.13.27
+
 requests==2.31.0
 
 # Segurança
