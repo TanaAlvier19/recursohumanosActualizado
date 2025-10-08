@@ -12,9 +12,15 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = ')ejit_78^2uwgj8@%l)+(_rqxyyt877)ahx@_tau(45(^5-u4&'
-DEBUG = config('DEBUG', default=True, cast=bool)  # ✅ MUDADO PARA True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'recursohumanosactualizado.onrender.com',
+    'localhost',
+    '127.0.0.1',
+    '.onrender.com',
+    '*'
+]
 
 # 📁 MEDIA FILES
 MEDIA_URL = '/media/'
@@ -30,7 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Third party apps
-    'corsheaders',  # ✅ MOVIDO PARA CIMA
+    'corsheaders',
     'rest_framework',
     'django_filters',
     'rest_framework_simplejwt',
@@ -45,7 +51,7 @@ INSTALLED_APPS = [
 
 # 🛡️ MIDDLEWARE
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # ✅ PRIMEIRO
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -58,17 +64,36 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'server.urls'
 
-# 🌐 CORS CONFIG - CORRIGIDO
-CORS_ALLOW_ALL_ORIGINS = True  # ✅ APENAS ESTE - REMOVA CORS_ALLOWED_ORIGINS
+# 🌐 CORS CONFIG - CORRIGIDO PARA COOKIES CROSS-SITE
+CORS_ALLOW_ALL_ORIGINS = True  # Temporário para debug
 CORS_ALLOW_CREDENTIALS = True
 
-# 🔌 REST FRAMEWORK CONFIG - CORRIGIDO PARA DEBUG
+# Configurações específicas para cookies cross-site
+CORS_ALLOWED_ORIGINS = [
+    "https://recursohumanosactualizado.onrender.com",
+    "https://recursohumanos-actualizado.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://recursohumanosactualizado.onrender.com",
+    "https://recursohumanos-actualizado.vercel.app",
+]
+
+# Configurações de Cookies para Cross-Site
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
+
+# 🔌 REST FRAMEWORK CONFIG
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
-    'DEFAULT_PERMISSION_CLASSES': [  # ✅ MUDADO PARA AllowAny TEMPORARIAMENTE
-        'rest_framework.permissions.AllowAny',
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # Temporário
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -107,11 +132,10 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 
-# 🗄 DATABASE CONFIGURATION - SIMPLIFICADA
+# 🗄 DATABASE CONFIGURATION
 DATABASE_URL = config('DATABASE_URL', default='')
 
 if DATABASE_URL:
-    # ✅ CONFIGURAÇÃO SIMPLES E CONFIÁVEL
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
@@ -150,7 +174,7 @@ TIME_ZONE = 'Africa/Luanda'
 USE_I18N = True
 USE_TZ = True
 
-# 🔑 JWT CONFIG
+# 🔑 JWT CONFIG - COM CONFIGURAÇÕES DE COOKIE
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
@@ -162,6 +186,15 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+    
+    # ✅ CONFIGURAÇÕES DE COOKIE PARA CROSS-SITE
+    "AUTH_COOKIE": "access_token",
+    "AUTH_COOKIE_REFRESH": "refresh_token", 
+    "AUTH_COOKIE_HTTP_ONLY": True,
+    "AUTH_COOKIE_SECURE": True,
+    "AUTH_COOKIE_SAMESITE": "None",
+    "AUTH_COOKIE_PATH": "/",
+    "AUTH_COOKIE_DOMAIN": None,
 }
 
 # 📁 STATIC FILES
@@ -172,18 +205,18 @@ os.makedirs(STATIC_ROOT, exist_ok=True)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# 🔒 SECURITY SETTINGS FOR PRODUCTION - REMOVIDAS TEMPORARIAMENTE
-# if not DEBUG:
-#     SECURE_SSL_REDIRECT = True
-#     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-#     SECURE_HSTS_SECONDS = 31536000
-#     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-#     SECURE_HSTS_PRELOAD = True
-#     SECURE_CONTENT_TYPE_NOSNIFF = True
-#     SECURE_BROWSER_XSS_FILTER = True
-#     X_FRAME_OPTIONS = 'DENY'
-#     SESSION_COOKIE_SECURE = True
-#     CSRF_COOKIE_SECURE = True
+# 🔒 SECURITY SETTINGS FOR PRODUCTION
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 # 📊 LOGGING
 LOGGING = {
@@ -203,6 +236,6 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'DEBUG',  # ✅ MUDADO PARA DEBUG
+        'level': 'DEBUG',
     },
 }

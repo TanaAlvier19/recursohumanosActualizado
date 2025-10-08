@@ -298,16 +298,16 @@ class Login(TokenObtainPairView):
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,
-            samesite='Lax',
+            secure=True,
+            samesite=None,
             max_age=60*60
         )
         resposta.set_cookie(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            secure=False,
-            samesite='Lax',
+            secure=True,
+            samesite=None,
             max_age=60*60*24*7
         )
         
