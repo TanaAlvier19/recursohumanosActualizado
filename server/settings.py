@@ -12,14 +12,13 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = ')ejit_78^2uwgj8@%l)+(_rqxyyt877)ahx@_tau(45(^5-u4&'
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = [
     'recursohumanosactualizado.onrender.com',
     'localhost',
     '127.0.0.1',
     '.onrender.com',
-    '*'
 ]
 
 # 📁 MEDIA FILES
@@ -93,7 +92,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Temporário
+        'rest_framework.permissions.IsAuthenticated',  # Temporário
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -140,7 +139,7 @@ if DATABASE_URL:
         'default': dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
-            conn_health_checks=True,
+            conn_health_checks=False,
             ssl_require=True
         )
     }
