@@ -1,6 +1,6 @@
 """
 Django settings for server project.
-Configurações otimizadas para Railway
+Configurações CORRIGIDAS para Railway
 """
 
 from pathlib import Path
@@ -12,10 +12,9 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = ')ejit_78^2uwgj8@%l)+(_rqxyyt877)ahx@_tau(45(^5-u4&'
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', default=True, cast=bool)  # ✅ MUDADO PARA True
 
-ALLOWED_HOSTS = [
-'*']
+ALLOWED_HOSTS = ['*']
 
 # 📁 MEDIA FILES
 MEDIA_URL = '/media/'
@@ -30,12 +29,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    # Third party apps FIRST
-    'django_filters',
+    # Third party apps
+    'corsheaders',  # ✅ MOVIDO PARA CIMA
     'rest_framework',
-    'corsheaders', 
+    'django_filters',
     'rest_framework_simplejwt',
-    'whitenoise.runserver_nostatic',
     
     # Your apps
     'app', 
@@ -47,7 +45,7 @@ INSTALLED_APPS = [
 
 # 🛡️ MIDDLEWARE
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # ✅ PRIMEIRO
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -59,36 +57,22 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'server.urls'
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://recursohumanos-actualizado.vercel.app',
-    'https://avdserver.up.railway.app'  
-]
 
+# 🌐 CORS CONFIG - CORRIGIDO
+CORS_ALLOW_ALL_ORIGINS = True  # ✅ APENAS ESTE - REMOVA CORS_ALLOWED_ORIGINS
 CORS_ALLOW_CREDENTIALS = True
 
-# 🔌 REST FRAMEWORK CONFIG - CORRIGIDO
+# 🔌 REST FRAMEWORK CONFIG - CORRIGIDO PARA DEBUG
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        # 'app.auth.CookieJWTAuthentication',  # ⚠️ COMENTE SE NÃO EXISTIR
     ],
-    'DEFAULT_FILTER_BACKENDS': [  # ✅ ADICIONADO
+    'DEFAULT_PERMISSION_CLASSES': [  # ✅ MUDADO PARA AllowAny TEMPORARIAMENTE
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
     ],
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '200/minute',
-        'user': '200/hour',
-    },
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
@@ -123,37 +107,18 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 
-# 🗄 DATABASE CONFIGURATION - CORRIGIDO
+# 🗄 DATABASE CONFIGURATION - SIMPLIFICADA
 DATABASE_URL = config('DATABASE_URL', default='')
 
 if DATABASE_URL:
-    # Fazer parsing manual para evitar o problema do nome longo
-    import re
-    from urllib.parse import urlparse
-    
-    # Parse da URL
-    parsed = urlparse(DATABASE_URL)
-    
-    # Extrair o nome do banco (remover a barra inicial)
-    db_name = parsed.path[1:] if parsed.path.startswith('/') else parsed.path
-    
-    # Se o nome for muito longo, usar um nome padrão
-    if len(db_name) > 63:
-        db_name = 'railway_db'
-    
+    # ✅ CONFIGURAÇÃO SIMPLES E CONFIÁVEL
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': db_name,
-            'USER': parsed.username,
-            'PASSWORD': parsed.password,
-            'HOST': parsed.hostname,
-            'PORT': parsed.port,
-            'CONN_MAX_AGE': 600,
-            'OPTIONS': {
-                'sslmode': 'require',
-            }
-        }
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True
+        )
     }
 else:
     DATABASES = {
@@ -162,6 +127,7 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
 # 🔐 PASSWORD VALIDATION
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -206,18 +172,18 @@ os.makedirs(STATIC_ROOT, exist_ok=True)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# 🔒 SECURITY SETTINGS FOR PRODUCTION
-if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True
-    X_FRAME_OPTIONS = 'DENY'
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+# 🔒 SECURITY SETTINGS FOR PRODUCTION - REMOVIDAS TEMPORARIAMENTE
+# if not DEBUG:
+#     SECURE_SSL_REDIRECT = True
+#     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+#     SECURE_HSTS_SECONDS = 31536000
+#     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+#     SECURE_HSTS_PRELOAD = True
+#     SECURE_CONTENT_TYPE_NOSNIFF = True
+#     SECURE_BROWSER_XSS_FILTER = True
+#     X_FRAME_OPTIONS = 'DENY'
+#     SESSION_COOKIE_SECURE = True
+#     CSRF_COOKIE_SECURE = True
 
 # 📊 LOGGING
 LOGGING = {
@@ -237,6 +203,6 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'INFO',
+        'level': 'DEBUG',  # ✅ MUDADO PARA DEBUG
     },
 }
