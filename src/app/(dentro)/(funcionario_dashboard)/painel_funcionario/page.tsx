@@ -19,7 +19,6 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 export default function FuncionarioDashboard() {
-  // Dados do funcionário
   const employeeData = {
     name: "João Silva",
     role: "Desenvolvedor Full Stack",
@@ -225,7 +224,6 @@ export default function FuncionarioDashboard() {
           })}
         </div>
 
-        {/* Próximos Eventos */}
         <Card className="bg-slate-800/50 border-slate-700">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -318,9 +316,7 @@ export default function FuncionarioDashboard() {
           </div>
         </div>
 
-        {/* Gráficos */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Assiduidade */}
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white">Minha Assiduidade</CardTitle>
