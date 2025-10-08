@@ -109,7 +109,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
     }
 
     try {
-      const response = await fetch("https://recursohumanosactualizado.onrender.com/login/", {
+      const response = await fetch("https://avdserver.up.railway.app/login/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
