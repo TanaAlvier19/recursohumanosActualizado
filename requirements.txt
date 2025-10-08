@@ -25,7 +25,6 @@ requests==2.31.0
 
 # Segurança
 bcrypt==4.1.2
-cryptography==41.0.8
 
 # PDF
 reportlab==4.0.8

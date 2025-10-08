@@ -131,15 +131,33 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 DATABASE_URL = config('DATABASE_URL', default='')
 
 if DATABASE_URL:
-    # Usar dj_database_url mas forçar um nome curto
-    db_config = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+    # Fazer parsing manual para evitar o problema do nome longo
+    import re
+    from urllib.parse import urlparse
     
-    # Verificar e corrigir o nome do banco se necessário
-    if 'NAME' in db_config and len(db_config['NAME']) > 63:
-        db_config['NAME'] = 'railway_db'  # Nome curto e válido
+    # Parse da URL
+    parsed = urlparse(DATABASE_URL)
+    
+    # Extrair o nome do banco (remover a barra inicial)
+    db_name = parsed.path[1:] if parsed.path.startswith('/') else parsed.path
+    
+    # Se o nome for muito longo, usar um nome padrão
+    if len(db_name) > 63:
+        db_name = 'railway_db'
     
     DATABASES = {
-        'default': db_config
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name,
+            'USER': parsed.username,
+            'PASSWORD': parsed.password,
+            'HOST': parsed.hostname,
+            'PORT': parsed.port,
+            'CONN_MAX_AGE': 600,
+            'OPTIONS': {
+                'sslmode': 'require',
+            }
+        }
     }
 else:
     DATABASES = {
