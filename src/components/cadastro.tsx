@@ -235,7 +235,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
         password: seguranca.senha
       }
 
-      const res = await fetch("https://avdserver.up.railway.app:8080/empresa/", {
+      const res = await fetch("https://avdserver.up.railway.app/empresa/", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
