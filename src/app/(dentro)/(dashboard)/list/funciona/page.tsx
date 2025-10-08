@@ -741,7 +741,7 @@ export default function EmployeeDashboard() {
           />
         </div>
 
-        <div className="flex items-center gap-2 justify-end xs:justify-start w-full xs:w-auto">
+        <div className=" flex-col sm:flex-row items-center gap-2 justify-end xs:justify-start w-full xs:w-auto">
           <Badge 
             variant="secondary" 
             className="px-3 py-1.5 text-sm bg-slate-700 text-slate-300 whitespace-nowrap flex-shrink-0"
