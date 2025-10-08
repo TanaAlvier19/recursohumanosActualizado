@@ -129,14 +129,17 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 
 # 🗄 DATABASE CONFIGURATION - CORRIGIDO
 DATABASE_URL = config('DATABASE_URL', default='')
+
 if DATABASE_URL:
+    # Usar dj_database_url mas forçar um nome curto
+    db_config = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+    
+    # Verificar e corrigir o nome do banco se necessário
+    if 'NAME' in db_config and len(db_config['NAME']) > 63:
+        db_config['NAME'] = 'railway_db'  # Nome curto e válido
+    
     DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True
-        )
+        'default': db_config
     }
 else:
     DATABASES = {
@@ -145,7 +148,6 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-
 # 🔐 PASSWORD VALIDATION
 AUTH_PASSWORD_VALIDATORS = [
     {
