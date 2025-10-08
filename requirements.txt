@@ -19,3 +19,4 @@ python-decouple==3.8
 
 # Utilities
 requests==2.31.0
+python-dateutil==2.8.2
