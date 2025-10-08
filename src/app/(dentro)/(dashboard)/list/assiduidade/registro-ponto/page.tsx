@@ -25,6 +25,7 @@ interface FuncionarioInfo {
   nomeRep: string
   emailRep: string
   empresa: string
+  departamento_nome:string
     
 }
 
@@ -43,7 +44,6 @@ export default function RegistroPontoPage() {
   const [registering, setRegistering] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
 
-  // Buscar dados do funcionário e registros
   useEffect(() => {
     fetchDadosFuncionario()
     fetchRegistrosHoje()
@@ -51,7 +51,7 @@ export default function RegistroPontoPage() {
 
   const fetchDadosFuncionario = async () => {
     try {
-      const response = await fetch("http://localhost:8000/usuario/", {
+      const response = await fetch("https://avdserver.up.railway.app/usuario/", {
         credentials: "include",
        
       })
@@ -72,7 +72,7 @@ export default function RegistroPontoPage() {
       if (!funcionario?.id) return
 
       const response = await fetch(
-        `http://localhost:8000/registros-ponto/hoje/?funcionario_id=${funcionario.id}`,
+        `https://avdserver.up.railway.app/registros-ponto/hoje/?funcionario_id=${funcionario.id}`,
         {
           credentials: "include",
           headers: {
@@ -144,7 +144,7 @@ export default function RegistroPontoPage() {
         ip_address: await getClientIP()
       }
 
-      const response = await fetch("http://localhost:8000/registros-ponto/registrar/", {
+      const response = await fetch("https://avdserver.up.railway.app/registros-ponto/registrar/", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -290,7 +290,7 @@ console.log(result)
                 <Button
                   size="lg"
                   onClick={() => handleRegistrarPonto("entrada")}
-                  disabled={registering || statusHoje.entrada}
+                  disabled={registering || !!statusHoje.entrada}
                   className="h-16 bg-gradient-to-r from-green-500 to-emerald-600 text-lg font-semibold text-white hover:from-green-600 hover:to-emerald-700 disabled:opacity-50"
                 >
                   {registering ? (
@@ -298,13 +298,13 @@ console.log(result)
                   ) : (
                     <Clock className="mr-2 h-6 w-6" />
                   )}
-                  {statusHoje.entrada ? `Entrada: ${statusHoje.entrada}` : "Registrar Entrada"}
+                  {!!statusHoje.entrada ? `Entrada: ${!!statusHoje.entrada}` : "Registrar Entrada"}
                 </Button>
 
                 <Button
                   size="lg"
                   onClick={() => handleRegistrarPonto("saida")}
-                  disabled={registering || statusHoje.saida}
+                  disabled={registering || !!statusHoje.saida}
                   className="h-16 bg-gradient-to-r from-red-500 to-rose-600 text-lg font-semibold text-white hover:from-red-600 hover:to-rose-700 disabled:opacity-50"
                 >
                   {registering ? (
@@ -312,13 +312,13 @@ console.log(result)
                   ) : (
                     <LogOut className="mr-2 h-6 w-6" />
                   )}
-                  {statusHoje.saida ? `Saída: ${statusHoje.saida}` : "Registrar Saída"}
+                  {!!statusHoje.saida ? `Saída: ${!!statusHoje.saida}` : "Registrar Saída"}
                 </Button>
 
                 <Button
                   size="lg"
                   onClick={() => handleRegistrarPonto("saida_intervalo")}
-                  disabled={registering || statusHoje.saida_intervalo}
+                  disabled={registering || !!statusHoje.saida_intervalo}
                   className="h-16 bg-gradient-to-r from-amber-500 to-orange-600 text-lg font-semibold text-white hover:from-amber-600 hover:to-orange-700 disabled:opacity-50"
                 >
                   {registering ? (
@@ -326,13 +326,13 @@ console.log(result)
                   ) : (
                     <Coffee className="mr-2 h-6 w-6" />
                   )}
-                  {statusHoje.saida_intervalo ? `Saída Intervalo: ${statusHoje.saida_intervalo}` : "Saída Intervalo"}
+                  {!!statusHoje.saida_intervalo ? `Saída Intervalo: ${!!statusHoje.saida_intervalo}` : "Saída Intervalo"}
                 </Button>
 
                 <Button
                   size="lg"
                   onClick={() => handleRegistrarPonto("retorno_intervalo")}
-                  disabled={registering || statusHoje.retorno_intervalo}
+                  disabled={registering || !!statusHoje.retorno_intervalo}
                   className="h-16 bg-gradient-to-r from-blue-500 to-indigo-600 text-lg font-semibold text-white hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50"
                 >
                   {registering ? (
@@ -379,7 +379,7 @@ console.log(result)
                       <div>
                         <p className="text-sm text-slate-400">Departamento</p>
                         <p className="font-semibold text-white">
-                          {funcionario.departamento?.nome || "Não definido"}
+                          {funcionario.departamento_nome || "Não definido"}
                         </p>
                       </div>
                     </div>
