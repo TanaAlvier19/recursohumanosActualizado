@@ -312,7 +312,8 @@ class Login(TokenObtainPairView):
             max_age=60*60*24*7,
             path='/'
         )
-        
+        data['access_token'] = access_token
+        data['refresh_token'] = refresh_token
         return resposta
 
 @api_view(['GET'])
