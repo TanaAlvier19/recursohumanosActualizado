@@ -11,7 +11,7 @@ from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-fallback-key-change-in-production')
+SECRET_KEY = config('SECRET_KEY', default=')ejit_78^2uwgj8@%l)+(_rqxyyt877)ahx@_tau(45(^5-u4&')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = [
