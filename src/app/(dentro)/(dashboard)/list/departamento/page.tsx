@@ -62,6 +62,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Progress } from "@/components/ui/progress"
+import { fetchAPI } from "@/lib/api"
 
 interface Departamento {
   id: string
@@ -98,9 +99,9 @@ const useDepartamentos = () => {
       setError(null)
 
       const [depResponse, funcResponse, vagasResponse] = await Promise.all([
-        fetch("https://recursohumanosactualizado.onrender.com/departamentos/", { credentials: "include" }),
-        fetch("https://recursohumanosactualizado.onrender.com/valores/", { credentials: "include" }),
-        fetch("https://recursohumanosactualizado.onrender.com/vagas/", { credentials: "include" }),
+        fetchAPI("/departamentos/"),
+        fetchAPI("/valores/"),
+        fetchAPI("/vagas/"),
       ])
 
       if (!depResponse.ok) throw new Error(`Erro ${depResponse.status}`)
@@ -320,7 +321,7 @@ export default function DepartamentosDashboard() {
         status: statusDepartamento,
       }
 
-      const response = await fetch("https://recursohumanosactualizado.onrender.com/departamentos/", {
+      const response = await fetch("/departamentos/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -112,7 +112,7 @@ export default function InstrutoresPage(): JSX.Element {
   const fetchInstrutores = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch(`${API_BASE_URL}/instrutores/`, {
+      const res = await fetch(`/instrutores/`, {
         method: "GET",
         credentials: "include",
         headers: {

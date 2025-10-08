@@ -546,23 +546,41 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Dashboard Administrativo</h1>
-            <p className="text-slate-400">Visão geral de todos os módulos do sistema de RH</p>
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent">
-              <Bell className="w-4 h-4 mr-2" />
-              Notificações
-              <Badge className="ml-2 bg-red-500">{alertas.length}</Badge>
-            </Button>
-            <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent">
-              <Settings className="w-4 h-4 mr-2" />
-              Configurações
-            </Button>
-          </div>
-        </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6">
+  {/* Texto do título */}
+  <div className="flex-1 min-w-0">
+    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">
+      Dashboard Administrativo
+    </h1>
+    <p className="text-slate-400 text-sm sm:text-base">
+      Visão geral de todos os módulos do sistema de RH
+    </p>
+  </div>
+
+  {/* Botões */}
+  <div className="flex gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+    <Button 
+      variant="outline" 
+      className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent px-2 sm:px-4"
+      size="sm"
+    >
+      <Bell className="w-4 h-4 sm:mr-2" />
+      <span className="hidden sm:inline">Notificações</span>
+      <Badge className="ml-1 sm:ml-2 bg-red-500 text-xs">
+        {alertas.length}
+      </Badge>
+    </Button>
+    
+    <Button 
+      variant="outline" 
+      className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent px-2 sm:px-4"
+      size="sm"
+    >
+      <Settings className="w-4 h-4 sm:mr-2" />
+      <span className="hidden sm:inline">Configurações</span>
+    </Button>
+  </div>
+</div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {overallMetrics.map((metric, index) => {
