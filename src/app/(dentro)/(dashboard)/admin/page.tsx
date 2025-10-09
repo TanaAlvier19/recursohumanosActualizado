@@ -5,7 +5,6 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { fetchAPI } from "@/lib/api"
 import {
   Users,
   Briefcase,
@@ -18,7 +17,6 @@ import {
   Settings,
   Bell,
   ArrowRight,
-  Activity,
 } from "lucide-react"
 import {
   LineChart,
@@ -33,8 +31,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
+import { fetchAPI } from "@/lib/api"
 
-interface Departamento {
+type Departamento = {
   id: string
   nome: string
   codigo: string
@@ -45,102 +44,43 @@ interface Departamento {
   status: boolean
   data_criacao: string
   orcamento: number
-  totalFuncionarios?: number
-  vagasAbertas?: number
+  totalFuncionarios: number
+  vagasAbertas: number
 }
 
-interface MetricasGerais {
-  total_funcionarios: number
-  folha_mensal: number
-  taxa_assiduidade: number
-  vagas_abertas: number
-}
-
-interface Alerta {
+type Alerta = {
   type: string
   module: string
   message: string
   time: string
 }
 
-interface EvolucaoMes {
-  month: string
-  funcionarios: number
-  folha: number
-  formacoes: number
-}
-
-interface Atividade {
+type Atividade = {
   user: string
   action: string
   module: string
   time: string
 }
 
-interface EstatisticasRecrutamento {
-  total_vagas: number
-  vagas_abertas: number
-  vagas_fechadas: number
-  vagas_em_andamento: number
-  tempo_medio_fechamento_dias: number
-}
-
-interface EstatisticasFormacoes {
-  total_formacoes: number
-  formacoes_ativas: number
-  total_inscricoes: number
-  taxa_conclusao: number
-  horas_treinamento: number
-  investimento_total: number
-  certificados_emitidos: number
-  media_satisfacao: number
-}
-
-interface EvolucaoRecrutamento {
-  mes: string
-  candidaturas: number
-  contratacoes: number
-}
-
-interface EvolucaoFormacoes {
-  mes: string
-  formacoes: number
-  participantes: number
-  conclusoes: number
-}
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://recursohumanosactualizado.onrender.com"
-
 export default function AdminDashboard() {
-  const [selectedPeriod, setSelectedPeriod] = useState("month")
-  const [funcionarios, setFuncionarios] = useState<number>(0)
-  const [metricasGerais, setMetricasGerais] = useState<MetricasGerais | null>(null)
-  const [alertas, setAlertas] = useState<Alerta[]>([])
-  const [evolucaoData, setEvolucaoData] = useState<EvolucaoMes[]>([])
-  const [atividadesRecentes, setAtividadesRecentes] = useState<Atividade[]>([])
+  const [funcionarios, setFuncionarios] = useState(0)
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const [estatisticasRecrutamento, setEstatisticasRecrutamento] = useState<EstatisticasRecrutamento | null>(null)
-  const [estatisticasFormacoes, setEstatisticasFormacoes] = useState<EstatisticasFormacoes | null>(null)
-  const [evolucaoRecrutamento, setEvolucaoRecrutamento] = useState<EvolucaoRecrutamento[]>([])
-  const [evolucaoFormacoes, setEvolucaoFormacoes] = useState<EvolucaoFormacoes[]>([])
+  const [metricasGerais, setMetricasGerais] = useState<any>(null)
+  const [estatisticasRecrutamento, setEstatisticasRecrutamento] = useState<any>(null)
+  const [estatisticasFormacoes, setEstatisticasFormacoes] = useState<any>(null)
+  const [evolucaoRecrutamento, setEvolucaoRecrutamento] = useState<any[]>([])
+  const [evolucaoFormacoes, setEvolucaoFormacoes] = useState<any[]>([])
+  const [alertas, setAlertas] = useState<Alerta[]>([])
+  const [evolucaoData, setEvolucaoData] = useState<any[]>([])
+  const [atividadesRecentes, setAtividadesRecentes] = useState<Atividade[]>([])
 
   const fetchDepartamentos = useCallback(async () => {
     try {
-      const [depResponse, funcResponse] = await Promise.all([
-        fetch("https://recursohumanosactualizado.onrender.com/departamentos/",{
-          credentials:"include"
-        }),
-        fetch("https://recursohumanosactualizado.onrender.com/valores/",{
-          credentials:"include"
-        }),
+      const [departamentosData, funcionariosData] = await Promise.all([
+        fetchAPI("/departamentos/"),
+        fetchAPI("/valores/"),
       ])
 
-      if (!depResponse.ok) throw new Error(`Erro ${depResponse.status}`)
-
-      const departamentosData = await depResponse.json()
-      const funcionariosData = await funcResponse.json()
       setFuncionarios(funcionariosData.length)
 
       const funcionariosPorDep: Record<string, number> = {}
@@ -173,16 +113,14 @@ export default function AdminDashboard() {
   }, [])
 
   useEffect(() => {
+    fetchDepartamentos()
+  }, [fetchDepartamentos])
+
+  useEffect(() => {
     const fetchMetricas = async () => {
       try {
-        const response = await fetch("https://recursohumanosactualizado.onrender.com/metricas-gerais/",{
-          credentials:"include"
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          setMetricasGerais(data)
-        }
+        const data = await fetchAPI("/metricas-gerais/")
+        setMetricasGerais(data)
       } catch (error) {
         console.error("Erro ao buscar métricas:", error)
       }
@@ -194,14 +132,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEstatisticasRecrutamento = async () => {
       try {
-        const response = await fetch("https://recursohumanosactualizado.onrender.com/vagas/estatisticas",{
-          credentials:"include"
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          setEstatisticasRecrutamento(data)
-        }
+        const data = await fetchAPI("/vagas/estatisticas/")
+        setEstatisticasRecrutamento(data)
       } catch (error) {
         console.error("Erro ao buscar estatísticas de recrutamento:", error)
       }
@@ -213,13 +145,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEstatisticasFormacoes = async () => {
       try {
-        const response = await fetch("https://recursohumanosactualizado.onrender.com/formacoes/estatisticas/",{
-          credentials:"include"
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setEstatisticasFormacoes(data)
-        }
+        const data = await fetchAPI("/formacoes/estatisticas/")
+        setEstatisticasFormacoes(data)
       } catch (error) {
         console.error("Erro ao buscar estatísticas de formações:", error)
       }
@@ -231,13 +158,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEvolucaoRecrutamento = async () => {
       try {
-        const response = await fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/evolucao_mensal/",{
-          credentials:"include"
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setEvolucaoRecrutamento(data)
-        }
+        const data = await fetchAPI("/aplicacoes/evolucao_mensal/")
+        setEvolucaoRecrutamento(data)
       } catch (error) {
         console.error("Erro ao buscar evolução de recrutamento:", error)
       }
@@ -249,13 +171,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEvolucaoFormacoes = async () => {
       try {
-        const response = await fetch("https://recursohumanosactualizado.onrender.com/formacoes/evolucao_mensal/",{
-          credentials:"include"
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setEvolucaoFormacoes(data)
-        }
+        const data = await fetchAPI("/formacoes/evolucao_mensal/")
+        setEvolucaoFormacoes(data)
       } catch (error) {
         console.error("Erro ao buscar evolução de formações:", error)
       }
@@ -267,38 +184,31 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchAlertas = async () => {
       try {
-        const response = await fetchAPI("/dashboard/alertas_pendencias/")
-        if (response.ok) {
-          const data = await response.json()
-          setAlertas(data)
-        } else {
-          console.log("[v0] Endpoint de alertas não disponível, usando dados de fallback")
-          // Fallback: gerar alertas baseados em dados existentes
-          const alertasFallback: Alerta[] = []
-
-          if (estatisticasRecrutamento && estatisticasRecrutamento.vagas_abertas > 0) {
-            alertasFallback.push({
-              type: "info",
-              module: "Recrutamento",
-              message: `${estatisticasRecrutamento.vagas_abertas} vagas abertas aguardando candidatos`,
-              time: "hoje",
-            })
-          }
-
-          if (estatisticasFormacoes && estatisticasFormacoes.formacoes_ativas > 0) {
-            alertasFallback.push({
-              type: "info",
-              module: "Formações",
-              message: `${estatisticasFormacoes.formacoes_ativas} formações ativas em andamento`,
-              time: "hoje",
-            })
-          }
-
-          setAlertas(alertasFallback)
-        }
+        const data = await fetchAPI("/dashboard/alertas_pendencias/")
+        setAlertas(data)
       } catch (error) {
-        console.error("[v0] Erro ao buscar alertas:", error)
-        setAlertas([])
+        console.log("[v0] Endpoint de alertas não disponível, usando dados de fallback")
+        const alertasFallback: Alerta[] = []
+
+        if (estatisticasRecrutamento && estatisticasRecrutamento.vagas_abertas > 0) {
+          alertasFallback.push({
+            type: "info",
+            module: "Recrutamento",
+            message: `${estatisticasRecrutamento.vagas_abertas} vagas abertas aguardando candidatos`,
+            time: "hoje",
+          })
+        }
+
+        if (estatisticasFormacoes && estatisticasFormacoes.formacoes_ativas > 0) {
+          alertasFallback.push({
+            type: "info",
+            module: "Formações",
+            message: `${estatisticasFormacoes.formacoes_ativas} formações ativas em andamento`,
+            time: "hoje",
+          })
+        }
+
+        setAlertas(alertasFallback)
       }
     }
 
@@ -308,48 +218,40 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEvolucao = async () => {
       try {
-        const response = await fetchAPI("/dashboard/evolucao_geral/")
-       
-        if (response.ok) {
-          const data = await response.json()
-          setEvolucaoData(data)
-        } else {
-          console.log("[v0] Endpoint de evolução geral não disponível, combinando dados de recrutamento e formações")
-          // Fallback: combinar dados de recrutamento e formações
-          const mesesMap = new Map<string, any>()
-
-          evolucaoRecrutamento.forEach((item) => {
-            mesesMap.set(item.mes, {
-              month: item.mes,
-              candidaturas: item.candidaturas,
-              contratacoes: item.contratacoes,
-              funcionarios: item.contratacoes, // Usar contratações como proxy para novos funcionários
-              formacoes: 0,
-            })
-          })
-
-          evolucaoFormacoes.forEach((item) => {
-            const existing = mesesMap.get(item.mes) || {
-              month: item.mes,
-              candidaturas: 0,
-              contratacoes: 0,
-              funcionarios: 0,
-            }
-            mesesMap.set(item.mes, {
-              ...existing,
-              formacoes: item.formacoes,
-              participantes: item.participantes,
-            })
-          })
-
-          setEvolucaoData(Array.from(mesesMap.values()))
-        }
+        const data = await fetchAPI("/dashboard/evolucao_geral/")
+        setEvolucaoData(data)
       } catch (error) {
-        console.error("[v0] Erro ao buscar evolução:", error)
+        console.log("[v0] Endpoint de evolução geral não disponível, combinando dados de recrutamento e formações")
+        const mesesMap = new Map<string, any>()
+
+        evolucaoRecrutamento.forEach((item) => {
+          mesesMap.set(item.mes, {
+            month: item.mes,
+            candidaturas: item.candidaturas,
+            contratacoes: item.contratacoes,
+            funcionarios: item.contratacoes,
+            formacoes: 0,
+          })
+        })
+
+        evolucaoFormacoes.forEach((item) => {
+          const existing = mesesMap.get(item.mes) || {
+            month: item.mes,
+            candidaturas: 0,
+            contratacoes: 0,
+            funcionarios: 0,
+          }
+          mesesMap.set(item.mes, {
+            ...existing,
+            formacoes: item.formacoes,
+            participantes: item.participantes,
+          })
+        })
+
+        setEvolucaoData(Array.from(mesesMap.values()))
       }
     }
 
-    // Só executar quando tivermos dados de recrutamento e formações
     if (evolucaoRecrutamento.length > 0 || evolucaoFormacoes.length > 0) {
       fetchEvolucao()
     }
@@ -358,56 +260,45 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchAtividades = async () => {
       try {
-        const response = await fetchAPI("/dashboard/atividades_recentes/")
-        if (response.ok) {
-          const data = await response.json()
-          setAtividadesRecentes(data)
-        } else {
-          console.log("[v0] Endpoint de atividades não disponível, usando dados de fallback")
-          // Fallback: gerar atividades baseadas em dados existentes
-          const atividadesFallback: Atividade[] = []
-
-          if (estatisticasRecrutamento) {
-            atividadesFallback.push({
-              user: "Sistema",
-              action: `registrou ${estatisticasRecrutamento.vagas_abertas} vagas abertas`,
-              module: "Recrutamento",
-              time: "hoje",
-            })
-          }
-
-          if (estatisticasFormacoes) {
-            atividadesFallback.push({
-              user: "Sistema",
-              action: `processou ${estatisticasFormacoes.total_inscricoes} inscrições em formações`,
-              module: "Formações",
-              time: "hoje",
-            })
-          }
-
-          if (metricasGerais) {
-            atividadesFallback.push({
-              user: "Sistema",
-              action: `atualizou dados de ${metricasGerais.total_funcionarios} funcionários`,
-              module: "Recursos Humanos",
-              time: "hoje",
-            })
-          }
-
-          setAtividadesRecentes(atividadesFallback)
-        }
+        const data = await fetchAPI("/dashboard/atividades_recentes/")
+        setAtividadesRecentes(data)
       } catch (error) {
-        console.error("[v0] Erro ao buscar atividades:", error)
-        setAtividadesRecentes([])
+        console.log("[v0] Endpoint de atividades não disponível, usando dados de fallback")
+        const atividadesFallback: Atividade[] = []
+
+        if (estatisticasRecrutamento) {
+          atividadesFallback.push({
+            user: "Sistema",
+            action: `registrou ${estatisticasRecrutamento.vagas_abertas} vagas abertas`,
+            module: "Recrutamento",
+            time: "hoje",
+          })
+        }
+
+        if (estatisticasFormacoes) {
+          atividadesFallback.push({
+            user: "Sistema",
+            action: `processou ${estatisticasFormacoes.total_inscricoes} inscrições em formações`,
+            module: "Formações",
+            time: "hoje",
+          })
+        }
+
+        if (metricasGerais) {
+          atividadesFallback.push({
+            user: "Sistema",
+            action: `atualizou dados de ${metricasGerais.total_funcionarios} funcionários`,
+            module: "Recursos Humanos",
+            time: "hoje",
+          })
+        }
+
+        setAtividadesRecentes(atividadesFallback)
       }
     }
 
     fetchAtividades()
   }, [estatisticasRecrutamento, estatisticasFormacoes, metricasGerais])
-
-  useEffect(() => {
-    fetchDepartamentos()
-  }, [fetchDepartamentos])
 
   const overallMetrics = useMemo(() => {
     return [
@@ -532,7 +423,6 @@ export default function AdminDashboard() {
       return evolucaoData
     }
 
-    // Fallback: combinar dados de recrutamento e formações
     const mesesMap = new Map<string, any>()
 
     evolucaoRecrutamento.forEach((item) => {
@@ -540,7 +430,7 @@ export default function AdminDashboard() {
         month: item.mes,
         candidaturas: item.candidaturas,
         contratacoes: item.contratacoes,
-        funcionarios: item.contratacoes, // Usar contratações como proxy para novos funcionários
+        funcionarios: item.contratacoes,
         formacoes: 0,
       })
     })
@@ -560,41 +450,23 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6">
-  {/* Texto do título */}
-  <div className="flex-1 min-w-0">
-    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">
-      Dashboard Administrativo
-    </h1>
-    <p className="text-slate-400 text-sm sm:text-base">
-      Visão geral de todos os módulos do sistema de RH
-    </p>
-  </div>
-
-  {/* Botões */}
-  <div className="flex gap-2 sm:gap-3 w-full sm:w-auto justify-end">
-    <Button 
-      variant="outline" 
-      className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent px-2 sm:px-4"
-      size="sm"
-    >
-      <Bell className="w-4 h-4 sm:mr-2" />
-      <span className="hidden sm:inline">Notificações</span>
-      <Badge className="ml-1 sm:ml-2 bg-red-500 text-xs">
-        {alertas.length}
-      </Badge>
-    </Button>
-    
-    <Button 
-      variant="outline" 
-      className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent px-2 sm:px-4"
-      size="sm"
-    >
-      <Settings className="w-4 h-4 sm:mr-2" />
-      <span className="hidden sm:inline">Configurações</span>
-    </Button>
-  </div>
-</div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Dashboard Administrativo</h1>
+            <p className="text-slate-400">Visão geral de todos os módulos do sistema de RH</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent">
+              <Bell className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Notificações</span>
+              <Badge className="ml-2 bg-red-500">{alertas.length}</Badge>
+            </Button>
+            <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent">
+              <Settings className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Configurações</span>
+            </Button>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {overallMetrics.map((metric, index) => {
@@ -805,7 +677,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-cyan-400" />
+                  <ArrowRight className="w-5 h-5 text-cyan-400" />
                   Atividades Recentes
                 </CardTitle>
                 <CardDescription className="text-slate-400">Últimas ações realizadas no sistema</CardDescription>
