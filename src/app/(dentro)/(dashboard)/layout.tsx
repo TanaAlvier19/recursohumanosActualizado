@@ -42,7 +42,21 @@ export default function DashboardLayout({
           }, 1000);
         } else {
           console.log("Dados do usuário:", res);
-          setApresentar(true);
+          const nivelDetectado = (res?.nivel_acesso || res?.role || "").toString().toLowerCase();
+          const temAcesso = !!res?.is_admin || ["gestor", "manager", "admin"].includes(nivelDetectado);
+          if (!temAcesso) {
+            await Swal.fire({
+              title: "Acesso negado",
+              text: "Seu nível de acesso não permite acessar o painel do gestor.",
+              icon: "error",
+              confirmButtonText: "Ir para meu painel",
+              confirmButtonColor: "#3B82F6",
+            });
+            router.push("/funcionario");
+            setApresentar(false);
+          } else {
+            setApresentar(true);
+          }
         }
       } catch (error) {
         console.error("Erro na autenticação:", error);

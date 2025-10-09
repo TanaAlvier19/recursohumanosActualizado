@@ -6,21 +6,29 @@ interface AuthContextType {
   userId: string | null;
   userName: string | null;
   userLoading: boolean;
+  isAdmin: boolean | null;
+  accessLevel: string | null;
   setAccessToken: (token: string | null) => void;
   logout: () => void;
   setUserId: (id: string | null) => void; 
-  setUserName: (name: string | null) => void
+  setUserName: (name: string | null) => void;
+  setIsAdmin: (value: boolean | null) => void;
+  setAccessLevel: (value: string | null) => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   accessToken: null,
   userId: null,
   userName: null,
+  isAdmin: null,
+  accessLevel: null,
   setAccessToken: () => {},
   logout: () => {},
   userLoading: false,
   setUserId: () => {},
-  setUserName: () => {}
+  setUserName: () => {},
+  setIsAdmin: () => {},
+  setAccessLevel: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -28,6 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [userLoading, setUserLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [accessLevel, setAccessLevel] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -48,6 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .then((data) => {
           setUserId(data.id);
           setUserName(data.nome);
+          const detectedLevel = data?.is_admin
+            ? "admin"
+            : (data?.nivel_acesso || data?.role || "funcionario");
+          setIsAdmin(!!data?.is_admin);
+          setAccessLevel(typeof detectedLevel === "string" ? detectedLevel : "funcionario");
         })
         .catch((err) => {
           console.error(err);
@@ -64,6 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
     setUserId(null);
     setUserName(null);
+    setIsAdmin(null);
+    setAccessLevel(null);
   };
 
   return (
@@ -72,11 +89,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         accessToken,
         userId,
         userName,
+        isAdmin,
+        accessLevel,
         setAccessToken,
         logout,
         userLoading,
         setUserId,
-        setUserName
+        setUserName,
+        setIsAdmin,
+        setAccessLevel
       }}
     >
       {children}

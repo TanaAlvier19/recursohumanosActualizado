@@ -1,5 +1,6 @@
 "use client"
 import Link from "next/link"
+import { useContext, useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -17,15 +18,42 @@ import {
   CheckCircle2,
 } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { AuthContext } from "@/app/context/AuthContext"
+import { buscarDados } from "@/lib/api"
 
 export default function FuncionarioDashboard() {
-  const employeeData = {
-    name: "João Silva",
-    role: "Desenvolvedor Full Stack",
-    department: "Tecnologia da Informação",
-    admissionDate: "15/03/2020",
-    employeeId: "EMP-2020-1547",
-  }
+  const { userName } = useContext(AuthContext)
+
+  const [employeeData, setEmployeeData] = useState({
+    name: userName || "Colaborador",
+    role: "Colaborador",
+    department: "—",
+    admissionDate: "—",
+    employeeId: "—",
+  })
+
+  useEffect(() => {
+    let active = true
+    const load = async () => {
+      try {
+        const me = await buscarDados()
+        if (!active || !me) return
+        setEmployeeData({
+          name: me?.nome || userName || "Colaborador",
+          role: me?.cargo || me?.role || "Colaborador",
+          department: me?.departamento?.nome || me?.departamento || "—",
+          admissionDate: me?.data_admissao || me?.admissao || "—",
+          employeeId: (me?.matricula || me?.id || "").toString() || "—",
+        })
+      } catch (e) {
+        // fallback silencioso
+      }
+    }
+    load()
+    return () => {
+      active = false
+    }
+  }, [userName])
 
   const quickStats = [
     {
