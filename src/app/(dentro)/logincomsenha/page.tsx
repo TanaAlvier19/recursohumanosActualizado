@@ -13,7 +13,9 @@ export default function LoginComSenha() {
   const {
     setAccessToken,
     setUserId,
-    setUserName
+    setUserName,
+    setIsAdmin,
+    setAccessLevel
   } = useContext(AuthContext);
   const [senha, setSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
@@ -47,6 +49,8 @@ export default function LoginComSenha() {
       setAccessToken(data.access);   
       setUserId(user.id);            
       setUserName(user.nome);
+      setIsAdmin(!!user?.is_admin);
+      setAccessLevel(user?.is_admin ? 'admin' : (user?.nivel_acesso || user?.role || 'funcionario'));
       console.log("Dados do usuário logado:", user);
       if (!userRes.ok) throw new Error('Erro ao obter dados do usuário');
 
@@ -55,10 +59,11 @@ export default function LoginComSenha() {
         icon: 'success',
       });
 
-      if (user.is_admin) {
+      const nivel = (user?.nivel_acesso || user?.role || '').toString().toLowerCase();
+      if (user?.is_admin || nivel === 'gestor' || nivel === 'manager' || nivel === 'admin') {
         router.push('/admin');
       } else {
-        router.push('/funcionarios');
+        router.push('/funcionario');
       }
 
     } else {

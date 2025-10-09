@@ -145,7 +145,8 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
         });
 
         // Redirecionamento baseado no nível de acesso
-        const redirectPath = data.nivel_acesso === 'admin' ? '/admin' : '/funcionarios';
+        const nivel = (data.nivel_acesso || '').toString().toLowerCase();
+        const redirectPath = ['admin', 'gestor', 'manager'].includes(nivel) ? '/admin' : '/funcionario';
         router.push(redirectPath);
 
       } else {

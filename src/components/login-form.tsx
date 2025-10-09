@@ -144,7 +144,8 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           },
         })
 
-        const redirectPath = data.nivel_acesso === "admin" ? "/admin" : "/funcionarios"
+        const nivel = (data.nivel_acesso || "").toString().toLowerCase()
+        const redirectPath = ["admin", "gestor", "manager"].includes(nivel) ? "/admin" : "/funcionario"
         router.push(redirectPath)
       } else {
         // Tratamento específico de erros
