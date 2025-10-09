@@ -129,8 +129,8 @@ export default function AdminDashboard() {
   const fetchDepartamentos = useCallback(async () => {
     try {
       const [depResponse, funcResponse] = await Promise.all([
-        fetchAPI("departamentos/"),
-        fetchAPI("valores/"),
+        fetchAPI("/departamentos/"),
+        fetchAPI("/valores/"),
       ])
 
       if (!depResponse.ok) throw new Error(`Erro ${depResponse.status}`)
@@ -188,7 +188,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEstatisticasRecrutamento = async () => {
       try {
-        const response = await fetchAPI("vagas/estatisticas")
+        const response = await fetchAPI("/vagas/estatisticas")
         
         if (response.ok) {
           const data = await response.json()

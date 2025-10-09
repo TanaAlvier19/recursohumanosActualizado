@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { 
-  CheckCircle, 
-  XCircle, 
-  Building2, 
-  User, 
+import {
+  CheckCircle,
+  XCircle,
+  Building2,
+  User,
   Shield,
   Mail,
   Phone,
@@ -20,7 +20,7 @@ import {
   Briefcase,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
 } from "lucide-react"
 import Swal from "sweetalert2"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -29,23 +29,23 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 const PASSOS = [
-  { 
-    numero: 1, 
-    titulo: "Dados Empresariais", 
-    descricao: "Informações da organização", 
-    icone: Building2 
+  {
+    numero: 1,
+    titulo: "Dados Empresariais",
+    descricao: "Informações da organização",
+    icone: Building2,
   },
-  { 
-    numero: 2, 
-    titulo: "Representante Legal", 
-    descricao: "Dados do responsável", 
-    icone: User 
+  {
+    numero: 2,
+    titulo: "Representante Legal",
+    descricao: "Dados do responsável",
+    icone: User,
   },
-  { 
-    numero: 3, 
-    titulo: "Segurança", 
-    descricao: "Criação de credenciais", 
-    icone: Lock 
+  {
+    numero: 3,
+    titulo: "Segurança",
+    descricao: "Criação de credenciais",
+    icone: Lock,
   },
 ]
 
@@ -59,7 +59,10 @@ interface EmpresaData {
   nif: string
   tipoEmpresa: string
   setorAtuacao: string
-  endereco: string
+  provincia: string
+  municipio: string
+  bairro: string
+  rua: string
   email_corporativo: string
   telefoneEmpresa: string
 }
@@ -82,15 +85,18 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   const [passoAtual, setPassoAtual] = useState(0)
   const [loading, setLoading] = useState(false)
   const [mostrarSenha, setMostrarSenha] = useState(false)
-  
+
   const [empresa, setEmpresa] = useState<EmpresaData>({
     nome: "",
     nif: "",
     tipoEmpresa: "",
     setorAtuacao: "",
-    endereco: "",
+    provincia: "",
+    municipio: "",
+    bairro: "",
+    rua: "",
     email_corporativo: "",
-    telefoneEmpresa: ""
+    telefoneEmpresa: "",
   })
 
   const [representante, setRepresentante] = useState<RepresentanteData>({
@@ -98,12 +104,12 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
     email: "",
     telefone: "",
     cargo: "",
-    nivelAcesso: ""
+    nivelAcesso: "",
   })
 
   const [seguranca, setSeguranca] = useState<SegurancaData>({
     senha: "",
-    confirmarSenha: ""
+    confirmarSenha: "",
   })
 
   // Setores de atuação profissionais
@@ -123,7 +129,28 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
     "Telecomunicações",
     "Mídia e Entretenimento",
     "Hotelaria e Turismo",
-    "Outros"
+    "Outros",
+  ]
+
+  const PROVINCIAS_ANGOLA = [
+    "Luanda",
+    "Bengo",
+    "Benguela",
+    "Bié",
+    "Cabinda",
+    "Cuando Cubango",
+    "Cuanza Norte",
+    "Cuanza Sul",
+    "Cunene",
+    "Huambo",
+    "Huíla",
+    "Lunda Norte",
+    "Lunda Sul",
+    "Malanje",
+    "Moxico",
+    "Namibe",
+    "Uíge",
+    "Zaire",
   ]
 
   const CARGOS = [
@@ -133,7 +160,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
     "Coordenador de RH",
     "Analista de RH",
     "Proprietário/Empreendedor",
-    "Outro"
+    "Outro",
   ]
 
   // Validação de senha profissional
@@ -144,8 +171,8 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
       minusculo: /[a-z]/.test(senha),
       numero: /[0-9]/.test(senha),
       simbolo: /[!@#$%^&*(),.?":{}|<>]/.test(senha),
-      sequencia: !/(.)\1\1/.test(senha), // Evitar sequências repetitivas
-      comum: !['password', '123456', 'senha'].includes(senha.toLowerCase())
+      sequencia: !/(.)\1\1/.test(senha),
+      comum: !["password", "123456", "senha"].includes(senha.toLowerCase()),
     }
 
     const cumpridos = Object.values(criterios).filter(Boolean).length
@@ -170,22 +197,20 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
 
   const { criterios, nivel, cor } = validarSenha(seguranca.senha)
 
-  // Atualizações específicas por categoria
   const atualizarEmpresa = (campo: keyof EmpresaData, valor: string) => {
-    setEmpresa(prev => ({ ...prev, [campo]: valor }))
+    setEmpresa((prev) => ({ ...prev, [campo]: valor }))
   }
 
   const atualizarRepresentante = (campo: keyof RepresentanteData, valor: string) => {
-    setRepresentante(prev => ({ ...prev, [campo]: valor }))
+    setRepresentante((prev) => ({ ...prev, [campo]: valor }))
   }
 
   const atualizarSeguranca = (campo: keyof SegurancaData, valor: string) => {
-    setSeguranca(prev => ({ ...prev, [campo]: valor }))
+    setSeguranca((prev) => ({ ...prev, [campo]: valor }))
   }
 
-  // Validações de passo
   const passo1Valido = () => {
-    return empresa.nome && empresa.nif && empresa.endereco && empresa.email_corporativo
+    return empresa.nome && empresa.nif && empresa.provincia && empresa.municipio && empresa.email_corporativo
   }
 
   const passo2Valido = () => {
@@ -193,7 +218,9 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   }
 
   const passo3Valido = () => {
-    return seguranca.senha && seguranca.confirmarSenha && seguranca.senha === seguranca.confirmarSenha && nivel !== "Fraca"
+    return (
+      seguranca.senha && seguranca.confirmarSenha && seguranca.senha === seguranca.confirmarSenha && nivel !== "Fraca"
+    )
   }
 
   const avancarPasso = () => {
@@ -219,12 +246,14 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
     }
 
     try {
+      const enderecoCompleto = `${empresa.rua}, ${empresa.bairro}, ${empresa.municipio} - ${empresa.provincia}`
+
       const dadosEmpresa = {
         nome: empresa.nome,
-        nif: empresa.nif.replace(/\D/g, ''), // Remove caracteres não numéricos
+        nif: empresa.nif.replace(/\D/g, ""),
         tipo_empresa: empresa.tipoEmpresa,
         setor_atuacao: empresa.setorAtuacao,
-        endereco: empresa.endereco,
+        endereco: enderecoCompleto,
         email_corporativo: empresa.email_corporativo,
         telefone: empresa.telefoneEmpresa,
         nomeRep: representante.nomeCompleto,
@@ -232,14 +261,14 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
         telefoneRep: representante.telefone,
         cargo: representante.cargo,
         nivel_acesso: representante.nivelAcesso,
-        password: seguranca.senha
+        password: seguranca.senha,
       }
 
       const res = await fetch("https://recursohumanosactualizado.onrender.com/empresa/", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          Accept: "application/json",
         },
         body: JSON.stringify(dadosEmpresa),
       })
@@ -253,16 +282,15 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
           icon: "success",
           confirmButtonText: "Continuar",
           confirmButtonColor: "#2563eb",
-          timer: 5000
+          timer: 5000,
         })
-        
+
         onSuccess?.()
         router.push("/personaliza")
       } else {
-        // Tratamento de erros específicos
         const errorMessage = data.message || "Erro ao processar cadastro"
         const errorField = data.field || "general"
-        
+
         if (errorField === "nif") {
           Swal.fire("NIF Já Cadastrado", data.message, "error")
         } else if (errorField === "email_corporativo") {
@@ -281,7 +309,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
         title: "Erro no Cadastro",
         text: "Ocorreu um erro ao processar seu cadastro. Por favor, tente novamente ou entre em contato com nosso suporte.",
         icon: "error",
-        confirmButtonText: "Entendi"
+        confirmButtonText: "Entendi",
       })
     } finally {
       setLoading(false)
@@ -291,35 +319,28 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
   function CriterioSenha({ valido, texto }: { valido: boolean; texto: string }) {
     return (
       <div className="flex items-center gap-2 text-xs">
-        {valido ? 
-          <CheckCircle className="text-emerald-500 size-3" /> : 
-          <XCircle className="text-red-500 size-3" />
-        }
-        <span className={cn("transition-colors", valido ? "text-emerald-600" : "text-slate-500")}>
-          {texto}
-        </span>
+        {valido ? <CheckCircle className="text-emerald-500 size-3" /> : <XCircle className="text-red-500 size-3" />}
+        <span className={cn("transition-colors", valido ? "text-emerald-600" : "text-slate-500")}>{texto}</span>
       </div>
     )
   }
 
-  // Máscara de telefone
   const formatarTelefone = (valor: string) => {
-  const numbers = valor.replace(/\D/g, '')
-  
-  if (numbers.length <= 3) {
-    return `+${numbers}`
-  } else if (numbers.length <= 6) {
-    return `+${numbers.slice(0, 3)} ${numbers.slice(3)}`
-  } else if (numbers.length <= 9) {
-    return `+${numbers.slice(0, 3)} ${numbers.slice(3, 6)} ${numbers.slice(6)}`
-  } else {
-    return `+${numbers.slice(0, 3)} ${numbers.slice(3, 6)} ${numbers.slice(6, 9)} ${numbers.slice(9, 12)}`
-  }
-}
+    const numbers = valor.replace(/\D/g, "")
 
-  // Máscara de NIF
+    if (numbers.length <= 3) {
+      return `+${numbers}`
+    } else if (numbers.length <= 6) {
+      return `+${numbers.slice(0, 3)} ${numbers.slice(3)}`
+    } else if (numbers.length <= 9) {
+      return `+${numbers.slice(0, 3)} ${numbers.slice(3, 6)} ${numbers.slice(6)}`
+    } else {
+      return `+${numbers.slice(0, 3)} ${numbers.slice(3, 6)} ${numbers.slice(6, 9)} ${numbers.slice(9, 12)}`
+    }
+  }
+
   const formatarNIF = (valor: string) => {
-    return valor.replace(/\D/g, '').slice(0, 14)
+    return valor.replace(/\D/g, "").slice(0, 10)
   }
 
   const progresso = ((passoAtual + 1) / PASSOS.length) * 100
@@ -331,9 +352,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
           <div className="mx-auto w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center mb-3">
             <Shield className="w-6 h-6 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold text-slate-900">
-            Cadastro Empresarial
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold text-slate-900">Cadastro Empresarial</CardTitle>
           <CardDescription className="text-slate-600">
             Complete as informações para criar sua conta corporativa
           </CardDescription>
@@ -348,28 +367,34 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
               <span className="text-sm text-slate-500">{Math.round(progresso)}% completo</span>
             </div>
             <Progress value={progresso} className="h-2" />
-            
+
             <div className="flex justify-between">
               {PASSOS.map((passo, index) => {
                 const Icone = passo.icone
                 const ativo = index <= passoAtual
                 const concluido = index < passoAtual
-                
+
                 return (
                   <div key={passo.numero} className="flex flex-col items-center flex-1">
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
-                      concluido ? "bg-green-500 text-white" :
-                      ativo ? "bg-blue-600 text-white" :
-                      "bg-slate-200 text-slate-400"
-                    )}>
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
+                        concluido
+                          ? "bg-green-500 text-white"
+                          : ativo
+                            ? "bg-blue-600 text-white"
+                            : "bg-slate-200 text-slate-400",
+                      )}
+                    >
                       {concluido ? <CheckCircle className="w-4 h-4" /> : <Icone className="w-4 h-4" />}
                     </div>
                     <div className="text-center mt-2">
-                      <p className={cn(
-                        "text-xs font-medium transition-colors",
-                        ativo ? "text-blue-600" : "text-slate-400"
-                      )}>
+                      <p
+                        className={cn(
+                          "text-xs font-medium transition-colors",
+                          ativo ? "text-blue-600" : "text-slate-400",
+                        )}
+                      >
                         {passo.titulo}
                       </p>
                     </div>
@@ -393,7 +418,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                       id="nomeEmpresa"
                       placeholder="Digite a razão social"
                       value={empresa.nome}
-                      onChange={(e) => atualizarEmpresa('nome', e.target.value)}
+                      onChange={(e) => atualizarEmpresa("nome", e.target.value)}
                       className="h-10"
                     />
                   </div>
@@ -401,14 +426,15 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                   <div className="space-y-2">
                     <Label htmlFor="nif" className="text-sm font-medium flex items-center gap-2">
                       <FileText className="w-4 h-4" />
-                      NIF/CNPJ *
+                      NIF *
                     </Label>
                     <Input
                       id="nif"
-                      placeholder="000.000.000-00"
+                      placeholder="0000000000 (10 dígitos)"
                       value={formatarNIF(empresa.nif)}
-                      onChange={(e) => atualizarEmpresa('nif', e.target.value)}
+                      onChange={(e) => atualizarEmpresa("nif", e.target.value)}
                       className="h-10"
+                      maxLength={10}
                     />
                   </div>
 
@@ -416,15 +442,13 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                     <Label htmlFor="tipoEmpresa" className="text-sm font-medium">
                       Tipo de Empresa *
                     </Label>
-                    <Select value={empresa.tipoEmpresa} onValueChange={(v) => atualizarEmpresa('tipoEmpresa', v)}>
+                    <Select value={empresa.tipoEmpresa} onValueChange={(v) => atualizarEmpresa("tipoEmpresa", v)}>
                       <SelectTrigger className="h-10">
                         <SelectValue placeholder="Selecione o tipo" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="mei">MEI</SelectItem>
-                        <SelectItem value="ltda">LTDA</SelectItem>
-                        <SelectItem value="sa">S.A.</SelectItem>
-                        <SelectItem value="eireli">EIRELI</SelectItem>
+                        <SelectItem value="empresa-individual">Empresa em Nome Individual</SelectItem>
+                        <SelectItem value="cooperativa">Cooperativa</SelectItem>
                         <SelectItem value="ong">ONG/Associação</SelectItem>
                       </SelectContent>
                     </Select>
@@ -434,13 +458,13 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                     <Label htmlFor="setorAtuacao" className="text-sm font-medium">
                       Setor de Atuação *
                     </Label>
-                    <Select value={empresa.setorAtuacao} onValueChange={(v) => atualizarEmpresa('setorAtuacao', v)}>
+                    <Select value={empresa.setorAtuacao} onValueChange={(v) => atualizarEmpresa("setorAtuacao", v)}>
                       <SelectTrigger className="h-10">
                         <SelectValue placeholder="Selecione o setor" />
                       </SelectTrigger>
                       <SelectContent>
-                        {SETORES_ATUACAO.map(setor => (
-                          <SelectItem key={setor} value={setor.toLowerCase().replace(/\s+/g, '-')}>
+                        {SETORES_ATUACAO.map((setor) => (
+                          <SelectItem key={setor} value={setor.toLowerCase().replace(/\s+/g, "-")}>
                             {setor}
                           </SelectItem>
                         ))}
@@ -448,16 +472,60 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                     </Select>
                   </div>
 
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="endereco" className="text-sm font-medium flex items-center gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="provincia" className="text-sm font-medium flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
-                      Endereço Completo *
+                      Província *
+                    </Label>
+                    <Select value={empresa.provincia} onValueChange={(v) => atualizarEmpresa("provincia", v)}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Selecione a província" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROVINCIAS_ANGOLA.map((provincia) => (
+                          <SelectItem key={provincia} value={provincia}>
+                            {provincia}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="municipio" className="text-sm font-medium">
+                      Município *
                     </Label>
                     <Input
-                      id="endereco"
-                      placeholder="Rua, número, bairro, cidade - Estado"
-                      value={empresa.endereco}
-                      onChange={(e) => atualizarEmpresa('endereco', e.target.value)}
+                      id="municipio"
+                      placeholder="Ex: Luanda, Viana, Cacuaco"
+                      value={empresa.municipio}
+                      onChange={(e) => atualizarEmpresa("municipio", e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bairro" className="text-sm font-medium">
+                      Bairro
+                    </Label>
+                    <Input
+                      id="bairro"
+                      placeholder="Ex: Talatona, Miramar"
+                      value={empresa.bairro}
+                      onChange={(e) => atualizarEmpresa("bairro", e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="rua" className="text-sm font-medium">
+                      Rua e Número
+                    </Label>
+                    <Input
+                      id="rua"
+                      placeholder="Ex: Rua Ho Chi Minh, 123"
+                      value={empresa.rua}
+                      onChange={(e) => atualizarEmpresa("rua", e.target.value)}
                       className="h-10"
                     />
                   </div>
@@ -470,9 +538,9 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                     <Input
                       id="emailCorporativo"
                       type="email"
-                      placeholder="contato@empresa.com"
+                      placeholder="contato@empresa.co.ao"
                       value={empresa.email_corporativo}
-                      onChange={(e) => atualizarEmpresa('email_corporativo', e.target.value)}
+                      onChange={(e) => atualizarEmpresa("email_corporativo", e.target.value)}
                       className="h-10"
                     />
                   </div>
@@ -484,21 +552,17 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                     </Label>
                     <Input
                       id="telefoneEmpresa"
-                      placeholder="(00) 00000-0000"
+                      placeholder="+244 900 000 000"
                       value={formatarTelefone(empresa.telefoneEmpresa)}
-                      onChange={(e) => atualizarEmpresa('telefoneEmpresa', e.target.value)}
+                      onChange={(e) => atualizarEmpresa("telefoneEmpresa", e.target.value)}
                       className="h-10"
+                      maxLength={17}
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-between pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onCancel}
-                    className="px-6"
-                  >
+                  <Button type="button" variant="outline" onClick={onCancel} className="px-6 bg-transparent">
                     Cancelar
                   </Button>
                   <Button
@@ -525,7 +589,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                       id="nomeRepresentante"
                       placeholder="Nome completo do responsável legal"
                       value={representante.nomeCompleto}
-                      onChange={(e) => atualizarRepresentante('nomeCompleto', e.target.value)}
+                      onChange={(e) => atualizarRepresentante("nomeCompleto", e.target.value)}
                       className="h-10"
                     />
                   </div>
@@ -539,7 +603,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                       type="email"
                       placeholder="seu@email.com"
                       value={representante.email}
-                      onChange={(e) => atualizarRepresentante('email', e.target.value)}
+                      onChange={(e) => atualizarRepresentante("email", e.target.value)}
                       className="h-10"
                     />
                   </div>
@@ -550,10 +614,11 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                     </Label>
                     <Input
                       id="telefoneRepresentante"
-                      placeholder="(244) 00000-0000"
+                      placeholder="+244 900 000 000"
                       value={formatarTelefone(representante.telefone)}
-                      onChange={(e) => atualizarRepresentante('telefone', e.target.value)}
+                      onChange={(e) => atualizarRepresentante("telefone", e.target.value)}
                       className="h-10"
+                      maxLength={17}
                     />
                   </div>
 
@@ -562,13 +627,13 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                       <Briefcase className="w-4 h-4" />
                       Cargo *
                     </Label>
-                    <Select value={representante.cargo} onValueChange={(v) => atualizarRepresentante('cargo', v)}>
+                    <Select value={representante.cargo} onValueChange={(v) => atualizarRepresentante("cargo", v)}>
                       <SelectTrigger className="h-10">
                         <SelectValue placeholder="Selecione o cargo" />
                       </SelectTrigger>
                       <SelectContent>
-                        {CARGOS.map(cargo => (
-                          <SelectItem key={cargo} value={cargo.toLowerCase().replace(/\s+/g, '-')}>
+                        {CARGOS.map((cargo) => (
+                          <SelectItem key={cargo} value={cargo.toLowerCase().replace(/\s+/g, "-")}>
                             {cargo}
                           </SelectItem>
                         ))}
@@ -580,7 +645,10 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                     <Label htmlFor="nivelAcesso" className="text-sm font-medium">
                       Nível de Acesso *
                     </Label>
-                    <Select value={representante.nivelAcesso} onValueChange={(v) => atualizarRepresentante('nivelAcesso', v)}>
+                    <Select
+                      value={representante.nivelAcesso}
+                      onValueChange={(v) => atualizarRepresentante("nivelAcesso", v)}
+                    >
                       <SelectTrigger className="h-10">
                         <SelectValue placeholder="Selecione o nível" />
                       </SelectTrigger>
@@ -594,12 +662,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                 </div>
 
                 <div className="flex justify-between pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={voltarPasso}
-                    className="px-6"
-                  >
+                  <Button type="button" variant="outline" onClick={voltarPasso} className="px-6 bg-transparent">
                     Voltar
                   </Button>
                   <Button
@@ -628,7 +691,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                         type={mostrarSenha ? "text" : "password"}
                         placeholder="Mínimo 8 caracteres"
                         value={seguranca.senha}
-                        onChange={(e) => atualizarSeguranca('senha', e.target.value)}
+                        onChange={(e) => atualizarSeguranca("senha", e.target.value)}
                         className="h-10 pr-10"
                       />
                       <Button
@@ -652,7 +715,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                       type="password"
                       placeholder="Digite novamente a senha"
                       value={seguranca.confirmarSenha}
-                      onChange={(e) => atualizarSeguranca('confirmarSenha', e.target.value)}
+                      onChange={(e) => atualizarSeguranca("confirmarSenha", e.target.value)}
                       className="h-10"
                     />
                   </div>
@@ -689,12 +752,7 @@ export function CadastroDialog({ onSuccess, onCancel }: CadastroDialogProps) {
                 )}
 
                 <div className="flex justify-between pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={voltarPasso}
-                    className="px-6"
-                  >
+                  <Button type="button" variant="outline" onClick={voltarPasso} className="px-6 bg-transparent">
                     Voltar
                   </Button>
                   <Button
