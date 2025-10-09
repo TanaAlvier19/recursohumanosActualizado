@@ -6,7 +6,7 @@ import Swal from "sweetalert2"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { buscarDados } from "@/lib/api"
+import { buscarDados, fetchAPI } from "@/lib/api"
 import { MetricCard } from "@/components/metrcCard"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -482,9 +482,8 @@ export default function EmployeeDashboard() {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`https://recursohumanosactualizado.onrender.com/valores/${pk}/`, {
+        const res = await fetchAPI(`/valores/${pk}/`, {
           method: "DELETE",
-          credentials: "include",
         })
 
         if (res.ok) {
@@ -531,13 +530,13 @@ export default function EmployeeDashboard() {
     formData.append("departamento", departamentoSelecionado)
     formData.append("salario_bruto", JSON.stringify(salario_bruto))
 
-    const url = editandoId ? `https://recursohumanosactualizado.onrender.com/valores/${editandoId}/` : "https://recursohumanosactualizado.onrender.com/valores/"
+    const url = editandoId ? `/valores/${editandoId}/` : "/valores/"
     const method = editandoId ? "PUT" : "POST"
 
     try {
       const res = await fetch(url, {
         method,
-        credentials: "include",
+        
         body: formData,
       })
 
@@ -583,9 +582,8 @@ export default function EmployeeDashboard() {
 
   const Campos = async () => {
     try {
-      const res = await fetch("https://recursohumanosactualizado.onrender.com/campos/empresa/com-uso/", {
+      const res = await fetchAPI("/campos/empresa/com-uso/", {
         method: "GET",
-        credentials: "include",
       })
       const data = await res.json()
       if (res.ok) {
@@ -600,9 +598,9 @@ export default function EmployeeDashboard() {
 
   const Pegar = async () => {
     try {
-      const res = await fetch("https://recursohumanosactualizado.onrender.com/valores/", {
+      const res = await fetchAPI("/valores/", {
         method: "GET",
-        credentials: "include",
+        
       })
       const data: ValoresAPI[] = await res.json()
       if (res.ok) {
@@ -617,9 +615,9 @@ export default function EmployeeDashboard() {
 
   const Departamanto = async () => {
     try {
-      const res = await fetch("https://recursohumanosactualizado.onrender.com/departamentos/", {
+      const res = await fetchAPI("/departamentos/", {
         method: "GET",
-        credentials: "include",
+        
       })
 
       if (!res.ok) {

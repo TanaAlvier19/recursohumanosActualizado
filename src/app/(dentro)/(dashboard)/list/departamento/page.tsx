@@ -321,10 +321,9 @@ export default function DepartamentosDashboard() {
         status: statusDepartamento,
       }
 
-      const response = await fetch("/departamentos/", {
+      const response = await fetchAPI("/departamentos/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(novoDepartamento),
       })
 
