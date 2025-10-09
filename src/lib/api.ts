@@ -1,70 +1,81 @@
-// Helper para detectar se é mobile
-const isMobile = () => {
-  if (typeof window === "undefined") return false
-  return (
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-    window.innerWidth < 768
-  )
-}
-
 export const fetchAPI = async (url: string, options: RequestInit = {}) => {
   try {
-    const mobile = isMobile()
+    console.log("[v0] fetchAPI chamada para:", url)
+
+    const token = localStorage.getItem("access_token")
+    console.log("[v0] Token encontrado:", token ? "Sim" : "Não")
 
     const config: RequestInit = {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
         ...(options.headers || {}),
       },
-    }
-
-    if (mobile) {
-      // Mobile: usa localStorage
-      const token = localStorage.getItem("access_token")
-      if (token) {
-        ;(config.headers as any).Authorization = `Bearer ${token}`
-      }
-    } else {
-      // Desktop: usa cookies
-      config.credentials = "include"
     }
 
     const baseURL = "https://recursohumanosactualizado.onrender.com"
     const fullURL = url.startsWith("http") ? url : `${baseURL}${url}`
 
+    console.log("[v0] URL completa:", fullURL)
+
     const res = await fetch(fullURL, config)
+    console.log("[v0] Status da resposta:", res.status)
 
     if (res.status === 403 || res.status === 401) {
-      console.warn(`[fetchAPI] Não autorizado: ${res.status}`)
-      return null
+      console.warn(`[v0] Não autorizado: ${res.status}`)
+      throw new Error(`Não autorizado (${res.status}). Faça login novamente.`)
     }
 
     const contentType = res.headers.get("content-type")
-    if (!contentType || !contentType.includes("application/json")) {
-      console.error(`[fetchAPI] Resposta não é JSON. Content-Type: ${contentType}`)
-      console.error(`[fetchAPI] Status: ${res.status} - URL: ${fullURL}`)
+    console.log("[v0] Content-Type:", contentType)
 
-      // Se for erro 500, retornar null ao invés de tentar fazer parse
+    if (!contentType || !contentType.includes("application/json")) {
+      console.error(`[v0] Resposta não é JSON. Content-Type: ${contentType}`)
+      console.error(`[v0] Status: ${res.status} - URL: ${fullURL}`)
+
       if (res.status >= 500) {
-        console.error(`[fetchAPI] Erro no servidor (${res.status})`)
-        return null
+        console.error(`[v0] Erro no servidor (${res.status})`)
+        throw new Error(`Erro no servidor (${res.status}). Tente novamente mais tarde.`)
       }
 
-      throw new Error(`Resposta não é JSON. Status: ${res.status}`)
+      throw new Error(`Resposta inválida do servidor. Status: ${res.status}`)
+    }
+
+    let dados
+    try {
+      dados = await res.json()
+      console.log("[v0] Dados parseados:", dados)
+    } catch (parseError) {
+      console.error("[v0] Erro ao fazer parse do JSON:", parseError)
+      throw new Error("Erro ao processar resposta do servidor")
     }
 
     if (!res.ok) {
-      console.error(`[fetchAPI] Erro HTTP: ${res.status} - ${fullURL}`)
-      const errorData = await res.json().catch(() => ({ error: "Erro desconhecido" }))
-      throw new Error(errorData.error || `Erro HTTP ${res.status}`)
+      console.error(`[v0] Erro HTTP: ${res.status} - ${fullURL}`)
+      const errorMessage = dados?.error || dados?.message || dados?.detail || `Erro HTTP ${res.status}`
+      throw new Error(errorMessage)
     }
 
-    const dados = await res.json()
+    if (res.status === 202) {
+      console.log("[v0] Status 202 (Accepted) - Requisição aceita")
+      // Se não houver dados, retornar array vazio ou objeto vazio dependendo do contexto
+      if (!dados || (Array.isArray(dados) && dados.length === 0)) {
+        console.log("[v0] Resposta 202 sem dados, retornando array vazio")
+        return []
+      }
+    }
+
+    console.log("[v0] Dados recebidos com sucesso")
     return dados
   } catch (err) {
-    console.error("[fetchAPI] Erro na requisição:", err)
-    return null
+    console.error("[v0] Erro na requisição:", err)
+
+    if (err instanceof Error) {
+      throw err
+    }
+
+    throw new Error("Erro desconhecido ao fazer requisição")
   }
 }
 

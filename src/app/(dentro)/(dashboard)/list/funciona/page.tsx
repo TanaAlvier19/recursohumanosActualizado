@@ -334,7 +334,7 @@ export default function EmployeeDashboard() {
     departamento: string | null
     empresa: string
     valores: Record<string, string>
-    salario_bruto:string
+    salario_bruto: string
     arquivos?: { id: string; nome_campo: string; arquivo: string }[]
   }
 
@@ -391,7 +391,7 @@ export default function EmployeeDashboard() {
       id: i.id,
       departamento: i.departamento || "Sem Departamento",
       departamentoId: i.departamento,
-      salario_bruto: Number.parseFloat(i.valores.salario_bruto || "0"),
+      salario_bruto: Number.parseFloat(i.salario_bruto || "0"),
       ...i.valores,
     }
     if (i.arquivos && i.arquivos.length > 0) {
@@ -482,24 +482,19 @@ export default function EmployeeDashboard() {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetchAPI(`/valores/${pk}/`, {
+        await fetchAPI(`/valores/${pk}/`, {
           method: "DELETE",
         })
 
-        if (res.ok) {
-          Swal.fire({
-            title: "Excluído!",
-            text: "Funcionário excluído com sucesso.",
-            icon: "success",
-            background: "#1e293b",
-            color: "white",
-            confirmButtonColor: "#0ea5e9",
-          })
-          Pegar()
-
-        } else {
-          throw new Error("Falha ao excluir")
-        }
+        Swal.fire({
+          title: "Excluído!",
+          text: "Funcionário excluído com sucesso.",
+          icon: "success",
+          background: "#1e293b",
+          color: "white",
+          confirmButtonColor: "#0ea5e9",
+        })
+        Pegar()
       } catch (error) {
         Swal.fire({
           title: "Erro!",
@@ -534,44 +529,30 @@ export default function EmployeeDashboard() {
     const method = editandoId ? "PUT" : "POST"
 
     try {
-      const res = await fetch(url, {
+      await fetchAPI(url, {
         method,
-        
         body: formData,
       })
 
-      if (res.ok) {
-        setAbrir(false)
-        setEditandoId(null)
-        Swal.fire({
-          title: editandoId ? "Atualizado!" : "Adicionado!",
-          text: editandoId ? "Dados atualizados com sucesso." : "Dados enviados com sucesso.",
-          icon: "success",
-          confirmButtonColor: "#0ea5e9",
-          background: "#1e293b",
-          color: "white",
-        })
-        Pegar()
-        setValores({})
-        setsalario_bruto(0)
-        setDepartamentoSelecionado("")
-      } else {
-        const errorData = await res.json()
-        console.error("Erro do servidor:", errorData)
-        Swal.fire({
-          title: "Erro!",
-          text: errorData.detail || "Ocorreu um erro ao enviar os dados.",
-          icon: "error",
-          confirmButtonColor: "#0ea5e9",
-          background: "#1e293b",
-          color: "white",
-        })
-      }
+      setAbrir(false)
+      setEditandoId(null)
+      Swal.fire({
+        title: editandoId ? "Atualizado!" : "Adicionado!",
+        text: editandoId ? "Dados atualizados com sucesso." : "Dados enviados com sucesso.",
+        icon: "success",
+        confirmButtonColor: "#0ea5e9",
+        background: "#1e293b",
+        color: "white",
+      })
+      Pegar()
+      setValores({})
+      setsalario_bruto(0)
+      setDepartamentoSelecionado("")
     } catch (err: any) {
-      console.error("Erro de rede:", err)
+      console.error("Erro:", err)
       Swal.fire({
         title: "Erro!",
-        text: "Ocorreu um erro de conexão ao enviar os dados.",
+        text: err.message || "Ocorreu um erro ao enviar os dados.",
         icon: "error",
         confirmButtonColor: "#0ea5e9",
         background: "#1e293b",
@@ -582,15 +563,8 @@ export default function EmployeeDashboard() {
 
   const Campos = async () => {
     try {
-      const res = await fetchAPI("/campos/empresa/com-uso/", {
-        method: "GET",
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setCampos(data)
-      } else {
-        throw new Error("Falha ao buscar campos")
-      }
+      const data = await fetchAPI("/campos/empresa/com-uso/")
+      setCampos(data)
     } catch (err) {
       Swal.fire("Erro", "Falha ao buscar campos personalizados", "error")
     }
@@ -598,16 +572,8 @@ export default function EmployeeDashboard() {
 
   const Pegar = async () => {
     try {
-      const res = await fetchAPI("/valores/", {
-        method: "GET",
-        
-      })
-      const data: ValoresAPI[] = await res.json()
-      if (res.ok) {
-        setRow(data)
-      } else {
-        throw new Error("Falha ao buscar valores")
-      }
+      const data: ValoresAPI[] = await fetchAPI("/valores/")
+      setRow(data)
     } catch (err) {
       Swal.fire("Erro", "Falha ao buscar dados dos funcionários", "error")
     }
@@ -615,16 +581,8 @@ export default function EmployeeDashboard() {
 
   const Departamanto = async () => {
     try {
-      const res = await fetchAPI("/departamentos/", {
-        method: "GET",
-        
-      })
+      const data = await fetchAPI("/departamentos/")
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`)
-      }
-
-      const data = await res.json()
       console.log("Resposta completa da API:", data)
 
       let departamentosData: Departamento[] = []
@@ -718,58 +676,55 @@ export default function EmployeeDashboard() {
               </div>
 
               <Card className="border-0 shadow-lg bg-slate-800/50 backdrop-blur-sm border-slate-700">
-               <CardHeader className="pb-4">
-    <div className="flex flex-col gap-4">
-      <div>
-        <CardTitle className="text-xl font-semibold text-white">Lista de Funcionários</CardTitle>
-        <CardDescription className="text-slate-400 text-sm mt-1">
-          Gerencie e visualize todos os funcionários do sistema
-        </CardDescription>
-      </div>
-      
-      <div className="grid grid-cols-1 xs:grid-cols-[1fr_auto] gap-3 items-center w-full">
-        
-        <div className="relative w-full min-w-0">
-          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-          <Input
-            placeholder="Pesquisar funcionários..."
-            value={pesquisa}
-            onChange={(e) => setPesquisa(e.target.value)}
-            className="pl-10 pr-4 py-2 w-full bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-          />
-        </div>
+                <CardHeader className="pb-4">
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <CardTitle className="text-xl font-semibold text-white">Lista de Funcionários</CardTitle>
+                      <CardDescription className="text-slate-400 text-sm mt-1">
+                        Gerencie e visualize todos os funcionários do sistema
+                      </CardDescription>
+                    </div>
 
-        <div className=" flex-col sm:flex-row items-center gap-2 justify-end xs:justify-start w-full xs:w-auto">
-          <Badge 
-            variant="secondary" 
-            className="px-3 py-1.5 text-sm bg-slate-700 text-slate-300 whitespace-nowrap flex-shrink-0"
-          >
-            {filteredRows.length} {filteredRows.length === 1 ? "funcionário" : "funcionários"}
-          </Badge>
-          <Link href={"/personaliza"}>
-          <Button
-          className="bg-gradient-to-r from-cyan-900 to-blue-900 hover:from-cyan-600 hover:to-blue-700 text-white flex items-center gap-2 shadow-sm whitespace-nowrap flex-shrink-0 min-w-0"
-          >
-          Criar Novos campos
-          </Button>  
-          </Link>      
-          <Button
-            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white flex items-center gap-2 shadow-sm whitespace-nowrap flex-shrink-0 min-w-0"
-            onClick={() => {
-              setEditandoId(null)
-              setValores({})
-              setAbrir(true)
-            }}
-            size="sm"
-          >
-            <FiPlus className="w-4 h-4 flex-shrink-0" />
-            <span className="truncate hidden sm:inline">Adicionar Funcionário</span>
-            <span className="truncate sm:hidden">Adicionar</span>
-          </Button>
-        </div>
-      </div>
-    </div>
-  </CardHeader>
+                    <div className="grid grid-cols-1 xs:grid-cols-[1fr_auto] gap-3 items-center w-full">
+                      <div className="relative w-full min-w-0">
+                        <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                        <Input
+                          placeholder="Pesquisar funcionários..."
+                          value={pesquisa}
+                          onChange={(e) => setPesquisa(e.target.value)}
+                          className="pl-10 pr-4 py-2 w-full bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                        />
+                      </div>
+
+                      <div className=" flex-col sm:flex-row items-center gap-2 justify-end xs:justify-start w-full xs:w-auto">
+                        <Badge
+                          variant="secondary"
+                          className="px-3 py-1.5 text-sm bg-slate-700 text-slate-300 whitespace-nowrap flex-shrink-0"
+                        >
+                          {filteredRows.length} {filteredRows.length === 1 ? "funcionário" : "funcionários"}
+                        </Badge>
+                        <Link href={"/personaliza"}>
+                          <Button className="bg-gradient-to-r from-cyan-900 to-blue-900 hover:from-cyan-600 hover:to-blue-700 text-white flex items-center gap-2 shadow-sm whitespace-nowrap flex-shrink-0 min-w-0">
+                            Criar Novos campos
+                          </Button>
+                        </Link>
+                        <Button
+                          className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white flex items-center gap-2 shadow-sm whitespace-nowrap flex-shrink-0 min-w-0"
+                          onClick={() => {
+                            setEditandoId(null)
+                            setValores({})
+                            setAbrir(true)
+                          }}
+                          size="sm"
+                        >
+                          <FiPlus className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate hidden sm:inline">Adicionar Funcionário</span>
+                          <span className="truncate sm:hidden">Adicionar</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
 
                 <CardContent className="px-0">
                   <Dialog open={abrir} onOpenChange={setAbrir}>

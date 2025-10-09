@@ -98,24 +98,20 @@ const useDepartamentos = () => {
       setLoading(true)
       setError(null)
 
-      const [depResponse, funcResponse, vagasResponse] = await Promise.all([
-        fetchAPI("/departamentos/"),
+      const [departamentosData, funcionariosData, vagasData] = await Promise.all([
+        fetchAPI("/departamentos"),
         fetchAPI("/valores/"),
         fetchAPI("/vagas/"),
       ])
 
-      if (!depResponse.ok) throw new Error(`Erro ${depResponse.status}`)
-
-      const departamentosData = await depResponse.json()
-      const funcionariosData = await funcResponse.json()
-      const vagasData = await vagasResponse.json()
       console.log(vagasData)
       const vagasPorDep: Record<string, number> = {}
       vagasData.forEach((vaga: any) => {
         const depNome = vaga.departamento_nome
         if (depNome) {
           vagasPorDep[depNome] = (vagasPorDep[depNome] || 0) + 1
-        }})
+        }
+      })
       const funcionariosPorDep: Record<string, number> = {}
       funcionariosData.forEach((func: any) => {
         const depNome = func.departamento
@@ -140,8 +136,7 @@ const useDepartamentos = () => {
       }))
       console.log(vagasPorDep)
       setDepartamentos(departamentosFormatados)
-    } 
-    catch (error) {
+    } catch (error) {
       console.error("Erro ao buscar departamentos:", error)
       setError("Falha ao carregar departamentos")
       Swal.fire({
@@ -321,16 +316,11 @@ export default function DepartamentosDashboard() {
         status: statusDepartamento,
       }
 
-      const response = await fetchAPI("/departamentos/", {
+      await fetchAPI("/departamentos/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(novoDepartamento),
       })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || `Erro ${response.status}`)
-      }
 
       Swal.fire({
         title: "Sucesso",
@@ -910,7 +900,6 @@ export default function DepartamentosDashboard() {
           </DialogContent>
         </Dialog>
 
-        {/* Modal Detalhes do Departamento */}
         <Dialog open={modalDetalhesAberto} onOpenChange={setModalDetalhesAberto}>
           <DialogContent className="sm:max-w-[700px] bg-slate-800 border-slate-700 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
