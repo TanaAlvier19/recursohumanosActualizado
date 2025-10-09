@@ -69,10 +69,11 @@ export default function AdminDashboard() {
   const [estatisticasRecrutamento, setEstatisticasRecrutamento] = useState<any>(null)
   const [estatisticasFormacoes, setEstatisticasFormacoes] = useState<any>(null)
   const [evolucaoRecrutamento, setEvolucaoRecrutamento] = useState<any[]>([])
-  const [evolucaoFormacoes, setEvolucaoFormacoes] = useState<any[]>([])
+  const [evolucaoFormacoes, setEvolucaoFormacoes] = useState<any[]>([]) // Garantir que sempre seja array
   const [alertas, setAlertas] = useState<Alerta[]>([])
   const [evolucaoData, setEvolucaoData] = useState<any[]>([])
   const [atividadesRecentes, setAtividadesRecentes] = useState<Atividade[]>([])
+  const [loading, setLoading] = useState(true)
 
   const fetchDepartamentos = useCallback(async () => {
     try {
@@ -149,6 +150,7 @@ export default function AdminDashboard() {
         setEstatisticasFormacoes(data)
       } catch (error) {
         console.error("Erro ao buscar estatísticas de formações:", error)
+        setEstatisticasFormacoes({}) // Definir como objeto vazio em caso de erro
       }
     }
 
@@ -159,9 +161,10 @@ export default function AdminDashboard() {
     const fetchEvolucaoRecrutamento = async () => {
       try {
         const data = await fetchAPI("/aplicacoes/evolucao_mensal/")
-        setEvolucaoRecrutamento(data)
+        setEvolucaoRecrutamento(Array.isArray(data) ? data : []) // Garantir que seja array
       } catch (error) {
         console.error("Erro ao buscar evolução de recrutamento:", error)
+        setEvolucaoRecrutamento([]) // Garantir array vazio em caso de erro
       }
     }
 
@@ -172,9 +175,11 @@ export default function AdminDashboard() {
     const fetchEvolucaoFormacoes = async () => {
       try {
         const data = await fetchAPI("/formacoes/evolucao_mensal/")
-        setEvolucaoFormacoes(data)
+        // CORREÇÃO PRINCIPAL: Garantir que sempre seja array, nunca null
+        setEvolucaoFormacoes(Array.isArray(data) ? data : [])
       } catch (error) {
         console.error("Erro ao buscar evolução de formações:", error)
+        setEvolucaoFormacoes([]) // Sempre definir como array vazio
       }
     }
 
@@ -219,41 +224,56 @@ export default function AdminDashboard() {
     const fetchEvolucao = async () => {
       try {
         const data = await fetchAPI("/dashboard/evolucao_geral/")
-        setEvolucaoData(data)
+        setEvolucaoData(Array.isArray(data) ? data : [])
       } catch (error) {
         console.log("[v0] Endpoint de evolução geral não disponível, combinando dados de recrutamento e formações")
+        
         const mesesMap = new Map<string, any>()
 
-        evolucaoRecrutamento.forEach((item) => {
-          mesesMap.set(item.mes, {
-            month: item.mes,
-            candidaturas: item.candidaturas,
-            contratacoes: item.contratacoes,
-            funcionarios: item.contratacoes,
-            formacoes: 0,
+        // CORREÇÃO: Verificar se é array antes de usar forEach
+        if (Array.isArray(evolucaoRecrutamento)) {
+          evolucaoRecrutamento.forEach((item) => {
+            if (item && item.mes) {
+              mesesMap.set(item.mes, {
+                month: item.mes,
+                candidaturas: item.candidaturas || 0,
+                contratacoes: item.contratacoes || 0,
+                funcionarios: item.contratacoes || 0,
+                formacoes: 0,
+              })
+            }
           })
-        })
+        }
 
-        evolucaoFormacoes.forEach((item) => {
-          const existing = mesesMap.get(item.mes) || {
-            month: item.mes,
-            candidaturas: 0,
-            contratacoes: 0,
-            funcionarios: 0,
-          }
-          mesesMap.set(item.mes, {
-            ...existing,
-            formacoes: item.formacoes,
-            participantes: item.participantes,
+        // CORREÇÃO: Verificar se é array antes de usar forEach
+        if (Array.isArray(evolucaoFormacoes)) {
+          evolucaoFormacoes.forEach((item) => {
+            if (item && item.mes) {
+              const existing = mesesMap.get(item.mes) || {
+                month: item.mes,
+                candidaturas: 0,
+                contratacoes: 0,
+                funcionarios: 0,
+              }
+              mesesMap.set(item.mes, {
+                ...existing,
+                formacoes: item.formacoes || 0,
+                participantes: item.participantes || 0,
+              })
+            }
           })
-        })
+        }
 
         setEvolucaoData(Array.from(mesesMap.values()))
+      } finally {
+        setLoading(false)
       }
     }
 
     if (evolucaoRecrutamento.length > 0 || evolucaoFormacoes.length > 0) {
       fetchEvolucao()
+    } else {
+      setLoading(false)
     }
   }, [evolucaoRecrutamento, evolucaoFormacoes])
 
@@ -269,7 +289,7 @@ export default function AdminDashboard() {
         if (estatisticasRecrutamento) {
           atividadesFallback.push({
             user: "Sistema",
-            action: `registrou ${estatisticasRecrutamento.vagas_abertas} vagas abertas`,
+            action: `registrou ${estatisticasRecrutamento.vagas_abertas || 0} vagas abertas`,
             module: "Recrutamento",
             time: "hoje",
           })
@@ -278,7 +298,7 @@ export default function AdminDashboard() {
         if (estatisticasFormacoes) {
           atividadesFallback.push({
             user: "Sistema",
-            action: `processou ${estatisticasFormacoes.total_inscricoes} inscrições em formações`,
+            action: `processou ${estatisticasFormacoes.total_inscricoes || 0} inscrições em formações`,
             module: "Formações",
             time: "hoje",
           })
@@ -287,7 +307,7 @@ export default function AdminDashboard() {
         if (metricasGerais) {
           atividadesFallback.push({
             user: "Sistema",
-            action: `atualizou dados de ${metricasGerais.total_funcionarios} funcionários`,
+            action: `atualizou dados de ${metricasGerais.total_funcionarios || 0} funcionários`,
             module: "Recursos Humanos",
             time: "hoje",
           })
@@ -300,11 +320,57 @@ export default function AdminDashboard() {
     fetchAtividades()
   }, [estatisticasRecrutamento, estatisticasFormacoes, metricasGerais])
 
+  // CORREÇÃO: Função dadosEvolucaoCombinados com validações
+  const dadosEvolucaoCombinados = useMemo(() => {
+    if (evolucaoData && evolucaoData.length > 0) {
+      return evolucaoData
+    }
+
+    const mesesMap = new Map<string, any>()
+
+    // Validar se é array antes de usar forEach
+    if (Array.isArray(evolucaoRecrutamento)) {
+      evolucaoRecrutamento.forEach((item) => {
+        if (item && item.mes) {
+          mesesMap.set(item.mes, {
+            month: item.mes,
+            candidaturas: item.candidaturas || 0,
+            contratacoes: item.contratacoes || 0,
+            funcionarios: item.contratacoes || 0,
+            formacoes: 0,
+          })
+        }
+      })
+    }
+
+    // Validar se é array antes de usar forEach
+    if (Array.isArray(evolucaoFormacoes)) {
+      evolucaoFormacoes.forEach((item) => {
+        if (item && item.mes) {
+          const existing = mesesMap.get(item.mes) || { 
+            month: item.mes, 
+            candidaturas: 0, 
+            contratacoes: 0, 
+            funcionarios: 0 
+          }
+          mesesMap.set(item.mes, {
+            ...existing,
+            formacoes: item.formacoes || 0,
+            participantes: item.participantes || 0,
+          })
+        }
+      })
+    }
+
+    return Array.from(mesesMap.values())
+  }, [evolucaoData, evolucaoRecrutamento, evolucaoFormacoes])
+
+  // Resto do código permanece igual...
   const overallMetrics = useMemo(() => {
     return [
       {
         title: "Total de Funcionários",
-        value: metricasGerais?.total_funcionarios.toString() || funcionarios.toString(),
+        value: metricasGerais?.total_funcionarios?.toString() || funcionarios.toString(),
         change: "+12",
         trend: "up" as const,
         icon: Users,
@@ -312,7 +378,7 @@ export default function AdminDashboard() {
       },
       {
         title: "Folha de Pagamento Mensal",
-        value: metricasGerais ? `KZ ${(metricasGerais.folha_mensal / 1000000).toFixed(1)}M` : "Carregando...",
+        value: metricasGerais ? `KZ ${((metricasGerais.folha_mensal || 0) / 1000000).toFixed(1)}M` : "Carregando...",
         change: "+5.2%",
         trend: "up" as const,
         icon: DollarSign,
@@ -320,7 +386,7 @@ export default function AdminDashboard() {
       },
       {
         title: "Taxa de Assiduidade",
-        value: metricasGerais ? `${metricasGerais.taxa_assiduidade}%` : "Carregando...",
+        value: metricasGerais ? `${metricasGerais.taxa_assiduidade || 0}%` : "Carregando...",
         change: "+2.1%",
         trend: "up" as const,
         icon: UserCheck,
@@ -329,8 +395,8 @@ export default function AdminDashboard() {
       {
         title: "Vagas Abertas",
         value:
-          estatisticasRecrutamento?.vagas_abertas.toString() ||
-          metricasGerais?.vagas_abertas.toString() ||
+          estatisticasRecrutamento?.vagas_abertas?.toString() ||
+          metricasGerais?.vagas_abertas?.toString() ||
           "Carregando...",
         change: "-5",
         trend: "down" as const,
@@ -350,7 +416,7 @@ export default function AdminDashboard() {
         stats: {
           active: `${funcionarios} funcionários`,
           pending: metricasGerais
-            ? `KZ ${(metricasGerais.folha_mensal / 1000000).toFixed(1)}M mensal`
+            ? `KZ ${((metricasGerais.folha_mensal || 0) / 1000000).toFixed(1)}M mensal`
             : "Carregando...",
         },
         color: "from-green-500 to-emerald-600",
@@ -361,7 +427,7 @@ export default function AdminDashboard() {
         description: "Controle de presenças e faltas",
         href: "/admin/assiduidade",
         stats: {
-          active: metricasGerais ? `${metricasGerais.taxa_assiduidade}% presença` : "Carregando...",
+          active: metricasGerais ? `${metricasGerais.taxa_assiduidade || 0}% presença` : "Carregando...",
           pending: "8 justificativas",
         },
         color: "from-blue-500 to-cyan-600",
@@ -384,9 +450,9 @@ export default function AdminDashboard() {
         href: "/admin/formacoes",
         stats: {
           active: estatisticasFormacoes
-            ? `${estatisticasFormacoes.formacoes_ativas} formações ativas`
+            ? `${estatisticasFormacoes.formacoes_ativas || 0} formações ativas`
             : "Carregando...",
-          pending: estatisticasFormacoes ? `${estatisticasFormacoes.total_inscricoes} inscrições` : "Carregando...",
+          pending: estatisticasFormacoes ? `${estatisticasFormacoes.total_inscricoes || 0} inscrições` : "Carregando...",
         },
         color: "from-cyan-500 to-blue-600",
       },
@@ -397,10 +463,10 @@ export default function AdminDashboard() {
         href: "/list/recrutamento",
         stats: {
           active: estatisticasRecrutamento
-            ? `${estatisticasRecrutamento.vagas_abertas} vagas abertas`
+            ? `${estatisticasRecrutamento.vagas_abertas || 0} vagas abertas`
             : "Carregando...",
           pending: estatisticasRecrutamento
-            ? `${estatisticasRecrutamento.tempo_medio_fechamento_dias} dias médio`
+            ? `${estatisticasRecrutamento.tempo_medio_fechamento_dias || 0} dias médio`
             : "Carregando...",
         },
         color: "from-orange-500 to-red-600",
@@ -418,39 +484,18 @@ export default function AdminDashboard() {
     }))
   }, [departamentos])
 
-  const dadosEvolucaoCombinados = useMemo(() => {
-    if (evolucaoData.length > 0) {
-      return evolucaoData
-    }
-
-    const mesesMap = new Map<string, any>()
-
-    evolucaoRecrutamento.forEach((item) => {
-      mesesMap.set(item.mes, {
-        month: item.mes,
-        candidaturas: item.candidaturas,
-        contratacoes: item.contratacoes,
-        funcionarios: item.contratacoes,
-        formacoes: 0,
-      })
-    })
-
-    evolucaoFormacoes.forEach((item) => {
-      const existing = mesesMap.get(item.mes) || { month: item.mes, candidaturas: 0, contratacoes: 0 }
-      mesesMap.set(item.mes, {
-        ...existing,
-        formacoes: item.formacoes,
-        participantes: item.participantes,
-      })
-    })
-
-    return Array.from(mesesMap.values())
-  }, [evolucaoData, evolucaoRecrutamento, evolucaoFormacoes])
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Carregando dashboard...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Dashboard Administrativo</h1>
             <p className="text-slate-400">Visão geral de todos os módulos do sistema de RH</p>
