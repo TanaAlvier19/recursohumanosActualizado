@@ -7,8 +7,6 @@ const isMobile = () => {
   )
 }
 
-const options = {}
-
 export const fetchAPI = async (url: string, options: RequestInit = {}) => {
   try {
     const mobile = isMobile()
@@ -22,11 +20,13 @@ export const fetchAPI = async (url: string, options: RequestInit = {}) => {
     }
 
     if (mobile) {
+      // Mobile: usa localStorage
       const token = localStorage.getItem("access_token")
       if (token) {
         ;(config.headers as any).Authorization = `Bearer ${token}`
       }
     } else {
+      // Desktop: usa cookies
       config.credentials = "include"
     }
 
@@ -36,14 +36,35 @@ export const fetchAPI = async (url: string, options: RequestInit = {}) => {
     const res = await fetch(fullURL, config)
 
     if (res.status === 403 || res.status === 401) {
+      console.warn(`[fetchAPI] Não autorizado: ${res.status}`)
       return null
+    }
+
+    const contentType = res.headers.get("content-type")
+    if (!contentType || !contentType.includes("application/json")) {
+      console.error(`[fetchAPI] Resposta não é JSON. Content-Type: ${contentType}`)
+      console.error(`[fetchAPI] Status: ${res.status} - URL: ${fullURL}`)
+
+      // Se for erro 500, retornar null ao invés de tentar fazer parse
+      if (res.status >= 500) {
+        console.error(`[fetchAPI] Erro no servidor (${res.status})`)
+        return null
+      }
+
+      throw new Error(`Resposta não é JSON. Status: ${res.status}`)
+    }
+
+    if (!res.ok) {
+      console.error(`[fetchAPI] Erro HTTP: ${res.status} - ${fullURL}`)
+      const errorData = await res.json().catch(() => ({ error: "Erro desconhecido" }))
+      throw new Error(errorData.error || `Erro HTTP ${res.status}`)
     }
 
     const dados = await res.json()
     return dados
   } catch (err) {
-    console.error("Erro na requisição:", err)
-    throw err
+    console.error("[fetchAPI] Erro na requisição:", err)
+    return null
   }
 }
 

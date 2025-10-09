@@ -129,8 +129,12 @@ export default function AdminDashboard() {
   const fetchDepartamentos = useCallback(async () => {
     try {
       const [depResponse, funcResponse] = await Promise.all([
-        fetchAPI("/departamentos/"),
-        fetchAPI("/valores/"),
+        fetch("https://recursohumanosactualizado.onrender.com/departamentos/",{
+          credentials:"include"
+        }),
+        fetch("https://recursohumanosactualizado.onrender.com/valores/",{
+          credentials:"include"
+        }),
       ])
 
       if (!depResponse.ok) throw new Error(`Erro ${depResponse.status}`)
@@ -171,7 +175,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchMetricas = async () => {
       try {
-        const response = await fetchAPI("/metricas-gerais/")
+        const response = await fetch("https://recursohumanosactualizado.onrender.com/metricas-gerais/",{
+          credentials:"include"
+        })
         
         if (response.ok) {
           const data = await response.json()
@@ -188,7 +194,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEstatisticasRecrutamento = async () => {
       try {
-        const response = await fetchAPI("/vagas/estatisticas")
+        const response = await fetch("https://recursohumanosactualizado.onrender.com/vagas/estatisticas",{
+          credentials:"include"
+        })
         
         if (response.ok) {
           const data = await response.json()
@@ -205,7 +213,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEstatisticasFormacoes = async () => {
       try {
-        const response = await fetchAPI("/formacoes/estatisticas/")
+        const response = await fetch("https://recursohumanosactualizado.onrender.com/formacoes/estatisticas/",{
+          credentials:"include"
+        })
         if (response.ok) {
           const data = await response.json()
           setEstatisticasFormacoes(data)
@@ -221,7 +231,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEvolucaoRecrutamento = async () => {
       try {
-        const response = await fetchAPI("/aplicacoes/evolucao_mensal/")
+        const response = await fetch("https://recursohumanosactualizado.onrender.com/aplicacoes/evolucao_mensal/",{
+          credentials:"include"
+        })
         if (response.ok) {
           const data = await response.json()
           setEvolucaoRecrutamento(data)
@@ -237,7 +249,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchEvolucaoFormacoes = async () => {
       try {
-        const response = await fetchAPI("/formacoes/evolucao_mensal/")
+        const response = await fetch("https://recursohumanosactualizado.onrender.com/formacoes/evolucao_mensal/",{
+          credentials:"include"
+        })
         if (response.ok) {
           const data = await response.json()
           setEvolucaoFormacoes(data)
