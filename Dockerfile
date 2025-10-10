@@ -36,4 +36,4 @@ USER django
 EXPOSE $PORT
 
 # Run application
-CMD python manage.py migrate && python manage.py runserver 0.0.0.0:10000
+CMD python manage.py makemigrations formacoes && python manage.py migrate && python manage.py runserver 0.0.0.0:10000
