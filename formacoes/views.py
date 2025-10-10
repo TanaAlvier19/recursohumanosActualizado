@@ -185,10 +185,9 @@ class RelatoriosViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def top_formacoes(self, request):
-        # CORREÇÃO: Use outro nome para a annotation
         top_formacoes = Formacao.objects.annotate(
             total_participantes=Count('inscricoes'),
-            media_calculada=Avg('avaliacaoformacao__nota_geral')  # ← NOME DIFERENTE
+            media_calculada=Avg('inscricoes__avaliacao__nota_geral') 
         ).order_by('-total_participantes')[:5]
         
         dados = []
@@ -207,7 +206,6 @@ class RelatoriosViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def investimento_mensal(self, request):
-        # Últimos 6 meses de investimento
         end_date = datetime.now()
         start_date = end_date - timedelta(days=180)
         
