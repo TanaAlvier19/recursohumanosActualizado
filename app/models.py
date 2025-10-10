@@ -45,6 +45,7 @@ class UsuarioEmpresa(AbstractUser):
         choices=[
             ("admin", "Administrador"),
             ("funcionario", "Funcionario"),
+            ("gestor", "Gestor"),
             
         ],
         default="admin"

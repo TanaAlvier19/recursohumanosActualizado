@@ -1,4 +1,4 @@
-# views.py
+# views.py CORRIGIDO
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -180,14 +180,15 @@ class AvaliacaoCompetenciaViewSet(viewsets.ModelViewSet):
     queryset = AvaliacaoCompetencia.objects.all()
     serializer_class = AvaliacaoCompetenciaSerializer
 
-# Views para relatórios
+# Views para relatórios - CORRIGIDAS
 class RelatoriosViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def top_formacoes(self, request):
+        # CORREÇÃO: Use outro nome para a annotation
         top_formacoes = Formacao.objects.annotate(
             total_participantes=Count('inscricoes'),
-            avaliacao_media=Avg('avaliacao_media')
+            media_calculada=Avg('avaliacaoformacao__nota_geral')  # ← NOME DIFERENTE
         ).order_by('-total_participantes')[:5]
         
         dados = []
@@ -198,7 +199,7 @@ class RelatoriosViewSet(viewsets.ViewSet):
             dados.append({
                 'nome': formacao.titulo,
                 'participantes': formacao.total_participantes,
-                'avaliacao': float(formacao.avaliacao_media) if formacao.avaliacao_media else 0,
+                'avaliacao': float(formacao.media_calculada) if formacao.media_calculada else 0,
                 'conclusao': round(taxa_conclusao, 1)
             })
         
@@ -218,7 +219,6 @@ class RelatoriosViewSet(viewsets.ViewSet):
             realizado=Sum('custo')
         ).order_by('mes')
         
-        # Adicionar valores planejados (aqui seria com base no orçamento)
         meses_map = {
             1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun'
         }
