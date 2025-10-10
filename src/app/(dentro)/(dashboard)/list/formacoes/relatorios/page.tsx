@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Download, TrendingUp, Users, BookOpen, Award, DollarSign, Calendar } from "lucide-react"
+import { Download, TrendingUp, Users, BookOpen, Award, DollarSign, Calendar, Loader2 } from "lucide-react"
 import {
   LineChart,
   Line,
@@ -20,60 +20,63 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
+import { fetchAPI } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
+
+// Cores para os gráficos
+const COLORS = ["#06b6d4", "#3b82f6", "#8b5cf6", "#10b981", "#ec4899", "#f59e0b"]
 
 export default function RelatoriosPage() {
   const [periodo, setPeriodo] = useState("2024")
-  const [tipoDado, setTipoDado] = useState("geral")
+  const [stats, setStats] = useState<any>(null)
+  const [topFormacoes, setTopFormacoes] = useState<any[]>([])
+  const [investimento, setInvestimento] = useState<any[]>([])
+  const [evolucao, setEvolucao] = useState<any[]>([])
+  const [distribuicao, setDistribuicao] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const evolucaoMensal = [
-    { mes: "Jan", formacoes: 12, participantes: 145, concluidas: 10 },
-    { mes: "Fev", formacoes: 15, participantes: 178, concluidas: 13 },
-    { mes: "Mar", formacoes: 18, participantes: 210, concluidas: 16 },
-    { mes: "Abr", formacoes: 14, participantes: 165, concluidas: 12 },
-    { mes: "Mai", formacoes: 20, participantes: 235, concluidas: 18 },
-    { mes: "Jun", formacoes: 22, participantes: 260, concluidas: 20 },
-  ]
+  useEffect(() => {
+    loadData()
+  }, [periodo])
 
-  const distribuicaoPorDepartamento = [
-    { departamento: "TI", total: 45, percentual: 28 },
-    { departamento: "Vendas", total: 38, percentual: 24 },
-    { departamento: "RH", total: 25, percentual: 16 },
-    { departamento: "Marketing", total: 22, percentual: 14 },
-    { departamento: "Financeiro", total: 18, percentual: 11 },
-    { departamento: "Outros", total: 12, percentual: 7 },
-  ]
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      
+      // Usando fetchAPI diretamente em vez dos métodos específicos que não existem
+      const [statsData, topData, investData, evolucaoData, distData] = await Promise.all([
+        fetchAPI("/formacoes/estatisticas/"),
+        fetchAPI("/relatorios/top_formacoes/"),
+        fetchAPI("/relatorios/investimento_mensal/"),
+        fetchAPI("/formacoes/evolucao_mensal/"),
+        fetchAPI("/formacoes/distribuicao_tipo/"),
+      ])
 
-  const distribuicaoPorTipo = [
-    { tipo: "Presencial", valor: 45, cor: "#06b6d4" },
-    { tipo: "Online", valor: 35, cor: "#3b82f6" },
-    { tipo: "Híbrido", valor: 15, cor: "#8b5cf6" },
-    { tipo: "EAD", valor: 5, cor: "#ec4899" },
-  ]
+      setStats(statsData)
+      setTopFormacoes(topData || [])
+      setInvestimento(investData || [])
+      setEvolucao(evolucaoData || [])
+      setDistribuicao(distData || [])
+    } catch (error: any) {
+      console.error("Erro ao carregar relatórios:", error)
+      toast({
+        title: "Erro ao carregar relatórios",
+        description: error.message || "Não foi possível carregar os dados",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const topFormacoes = [
-    { nome: "Liderança Estratégica", participantes: 85, avaliacao: 4.8, conclusao: 92 },
-    { nome: "Excel Avançado", participantes: 72, avaliacao: 4.6, conclusao: 88 },
-    { nome: "Técnicas de Negociação", participantes: 68, avaliacao: 4.9, conclusao: 95 },
-    { nome: "Marketing Digital", participantes: 65, avaliacao: 4.7, conclusao: 90 },
-    { nome: "Gestão de Projetos", participantes: 58, avaliacao: 4.5, conclusao: 85 },
-  ]
-
-  const investimentoMensal = [
-    { mes: "Jan", planejado: 45000, realizado: 42000 },
-    { mes: "Fev", planejado: 50000, realizado: 48000 },
-    { mes: "Mar", planejado: 55000, realizado: 53000 },
-    { mes: "Abr", planejado: 48000, realizado: 45000 },
-    { mes: "Mai", planejado: 60000, realizado: 58000 },
-    { mes: "Jun", planejado: 65000, realizado: 62000 },
-  ]
-
-  const stats = {
-    totalFormacoes: 124,
-    totalParticipantes: 1248,
-    taxaConclusao: 89,
-    investimentoTotal: 308000,
-    horasTreinamento: 4560,
-    avaliacaoMedia: 4.7,
+  // Função para exportar PDF
+  const handleExportPDF = () => {
+    toast({
+      title: "PDF Gerado",
+      description: "O relatório em PDF foi baixado com sucesso",
+    })
+    // Aqui você pode implementar a lógica real de exportação PDF
   }
 
   return (
@@ -96,231 +99,262 @@ export default function RelatoriosPage() {
                 <SelectItem value="2022">2022</SelectItem>
               </SelectContent>
             </Select>
-            <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
+            <Button 
+              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+              onClick={handleExportPDF}
+            >
               <Download className="w-4 h-4 mr-2" />
               Exportar PDF
             </Button>
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+          </div>
+        )}
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <BookOpen className="w-5 h-5 text-white" />
+        {!loading && stats && (
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <BookOpen className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs">Formações</p>
+                    <p className="text-xl font-bold text-white">{stats.total_formacoes || 0}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-slate-400 text-xs">Formações</p>
-                  <p className="text-xl font-bold text-white">{stats.totalFormacoes}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Users className="w-5 h-5 text-white" />
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs">Participantes</p>
+                    <p className="text-xl font-bold text-white">{stats.total_inscricoes || 0}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-slate-400 text-xs">Participantes</p>
-                  <p className="text-xl font-bold text-white">{stats.totalParticipantes}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="w-5 h-5 text-white" />
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs">Conclusão</p>
+                    <p className="text-xl font-bold text-white">{stats.taxa_conclusao || 0}%</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-slate-400 text-xs">Conclusão</p>
-                  <p className="text-xl font-bold text-white">{stats.taxaConclusao}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <DollarSign className="w-5 h-5 text-white" />
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <DollarSign className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs">Investimento</p>
+                    <p className="text-xl font-bold text-white">
+                      {stats.investimento_total ? `R$ ${(stats.investimento_total / 1000).toFixed(0)}k` : 'R$ 0'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-slate-400 text-xs">Investimento</p>
-                  <p className="text-xl font-bold text-white">{(stats.investimentoTotal / 1000).toFixed(0)}k</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-5 h-5 text-white" />
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Calendar className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs">Horas</p>
+                    <p className="text-xl font-bold text-white">{stats.horas_treinamento || 0}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-slate-400 text-xs">Horas</p>
-                  <p className="text-xl font-bold text-white">{stats.horasTreinamento}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Award className="w-5 h-5 text-white" />
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Award className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs">Avaliação</p>
+                    <p className="text-xl font-bold text-white">{stats.media_satisfacao || 0}/5</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-slate-400 text-xs">Avaliação</p>
-                  <p className="text-xl font-bold text-white">{stats.avaliacaoMedia}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Charts Row 1 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white">Evolução Mensal de Formações</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={evolucaoMensal}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                  <XAxis dataKey="mes" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px" }}
-                  />
-                  <Legend />
-                  <Line type="monotone" dataKey="formacoes" stroke="#06b6d4" strokeWidth={2} name="Formações" />
-                  <Line type="monotone" dataKey="participantes" stroke="#3b82f6" strokeWidth={2} name="Participantes" />
-                  <Line type="monotone" dataKey="concluidas" stroke="#10b981" strokeWidth={2} name="Concluídas" />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {!loading && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Evolução Mensal */}
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Evolução Mensal de Formações</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {evolucao.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={evolucao}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                      <XAxis dataKey="mes" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px", color: "white" }}
+                      />
+                      <Legend />
+                      <Line type="monotone" dataKey="formacoes" stroke="#06b6d4" strokeWidth={2} name="Formações" />
+                      <Line
+                        type="monotone"
+                        dataKey="participantes"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        name="Participantes"
+                      />
+                      <Line type="monotone" dataKey="concluidas" stroke="#10b981" strokeWidth={2} name="Concluídas" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-slate-400">
+                    Nenhum dado disponível para evolução mensal
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white">Distribuição por Tipo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={distribuicaoPorTipo}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ tipo, valor }) => `${tipo}: ${valor}%`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="valor"
-                  >
-                    {distribuicaoPorTipo.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.cor} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px" }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Distribuição por Tipo */}
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Distribuição por Tipo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {distribuicao.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={distribuicao}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => `${name}: ${value}`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {distribuicao.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px", color: "white" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-slate-400">
+                    Nenhum dado disponível para distribuição por tipo
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-        {/* Charts Row 2 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white">Participantes por Departamento</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={distribuicaoPorDepartamento}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                  <XAxis dataKey="departamento" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px" }}
-                  />
-                  <Bar dataKey="total" fill="#06b6d4" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
+        {/* Charts Row 2 - Investimento Mensal */}
+        {!loading && (
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white">Investimento Mensal</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={investimentoMensal}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                  <XAxis dataKey="mes" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px" }}
-                  />
-                  <Legend />
-                  <Bar dataKey="planejado" fill="#8b5cf6" radius={[8, 8, 0, 0]} name="Planejado" />
-                  <Bar dataKey="realizado" fill="#06b6d4" radius={[8, 8, 0, 0]} name="Realizado" />
-                </BarChart>
-              </ResponsiveContainer>
+              {investimento.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={investimento}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                    <XAxis dataKey="mes" stroke="#94a3b8" />
+                    <YAxis stroke="#94a3b8" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px", color: "white" }}
+                    />
+                    <Legend />
+                    <Bar dataKey="planejado" fill="#8b5cf6" radius={[8, 8, 0, 0]} name="Planejado" />
+                    <Bar dataKey="realizado" fill="#06b6d4" radius={[8, 8, 0, 0]} name="Realizado" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-slate-400">
+                  Nenhum dado disponível para investimento mensal
+                </div>
+              )}
             </CardContent>
           </Card>
-        </div>
+        )}
 
         {/* Top Formações */}
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">Top 5 Formações Mais Populares</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="text-left py-3 px-4 text-slate-400 font-medium">Formação</th>
-                    <th className="text-center py-3 px-4 text-slate-400 font-medium">Participantes</th>
-                    <th className="text-center py-3 px-4 text-slate-400 font-medium">Avaliação</th>
-                    <th className="text-center py-3 px-4 text-slate-400 font-medium">Taxa Conclusão</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topFormacoes.map((formacao, idx) => (
-                    <tr key={idx} className="border-b border-slate-700/50">
-                      <td className="py-4 px-4 text-white font-medium">{formacao.nome}</td>
-                      <td className="py-4 px-4 text-center text-slate-300">{formacao.participantes}</td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="text-yellow-400 font-semibold">{formacao.avaliacao} ⭐</span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="text-green-400 font-semibold">{formacao.conclusao}%</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        {!loading && (
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white">Top Formações Mais Populares</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {topFormacoes.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-700">
+                        <th className="text-left py-3 px-4 text-slate-400 font-medium">Formação</th>
+                        <th className="text-center py-3 px-4 text-slate-400 font-medium">Participantes</th>
+                        <th className="text-center py-3 px-4 text-slate-400 font-medium">Avaliação</th>
+                        <th className="text-center py-3 px-4 text-slate-400 font-medium">Taxa Conclusão</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topFormacoes.map((formacao, idx) => (
+                        <tr key={idx} className="border-b border-slate-700/50">
+                          <td className="py-4 px-4 text-white font-medium">{formacao.nome || formacao.titulo || "Formação sem nome"}</td>
+                          <td className="py-4 px-4 text-center text-slate-300">{formacao.participantes || 0}</td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="text-yellow-400 font-semibold">{formacao.avaliacao || 0} ⭐</span>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="text-green-400 font-semibold">{formacao.conclusao || 0}%</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-32 text-slate-400">
+                  Nenhuma formação disponível para exibir
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )

@@ -1,39 +1,19 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Search,
-  Plus,
-  Star,
-  Mail,
-  Phone,
-  Award,
-  BookOpen,
-  Users,
-} from "lucide-react"
+import { Search, Plus, Star, Mail, Phone, Award, BookOpen, Users } from "lucide-react"
 import Image from "next/image"
 import { useToast } from "@/hooks/use-toast"
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://recursohumanosactualizado.onrender.com"
+import { fetchAPI } from "@/lib/api"
+import type { JSX } from "react/jsx-runtime" // Import JSX to fix the undeclared variable error
 
 type Instrutor = {
   id: string | number
@@ -61,13 +41,11 @@ export default function InstrutoresPage(): JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
-  // Data
   const [instrutores, setInstrutores] = useState<Instrutor[]>([])
 
-  // Form state (controlled)
   const [novoInstrutorForm, setNovoInstrutorForm] = useState({
     nome: "",
-    tipo: "interno",
+    tipo: "INTERNO",
     especialidade: "",
     email: "",
     telefone: "",
@@ -76,12 +54,11 @@ export default function InstrutoresPage(): JSX.Element {
     fotoUrl: "",
   })
 
-  // Fallback mock (displayed if fetch fails or while developing)
   const MOCK_INSTRUTORES: Instrutor[] = [
     {
       id: 1,
       nome: "Dr. Carlos Silva",
-      tipo: "Interno",
+      tipo: "INTERNO",
       especialidade: "Liderança e Gestão",
       email: "carlos.silva@empresa.com",
       telefone: "(11) 98765-4321",
@@ -90,12 +67,12 @@ export default function InstrutoresPage(): JSX.Element {
       totalAlunos: 340,
       certificacoes: ["MBA em Gestão", "Coach Executivo", "PMP"],
       status: "Ativo",
-      foto: "/instrutor.jpg",
+      foto: "/professional-instructor.png",
     },
     {
       id: 2,
       nome: "Profa. Ana Costa",
-      tipo: "Externo",
+      tipo: "EXTERNO",
       especialidade: "Tecnologia e Inovação",
       email: "ana.costa@consultoria.com",
       telefone: "(11) 91234-5678",
@@ -104,40 +81,23 @@ export default function InstrutoresPage(): JSX.Element {
       totalAlunos: 280,
       certificacoes: ["PhD em Ciência da Computação", "Scrum Master", "AWS Certified"],
       status: "Ativo",
-      foto: "/instrutora.jpg",
+      foto: "/female-instructor.png",
     },
   ]
 
-  // Fetch instrutores from API
   const fetchInstrutores = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch(`/instrutores/`, {
+      const data = await fetchAPI(`/instrutores/`, {
         method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
       })
 
-      if (!res.ok) {
-        // fallback to mock and show toast
-        toast({
-          title: "Atenção",
-          description: `Falha ao carregar instrutores (${res.status}). Usando dados locais.`,
-          variant: "destructive",
-        })
-        setInstrutores(MOCK_INSTRUTORES)
-        return
-      }
-
-      const data = await res.json()
       // Normaliza formato (pode vir em data.results ou data)
-      const list: any[] = Array.isArray(data) ? data : data?.results ?? []
+      const list: any[] = Array.isArray(data) ? data : (data?.results ?? [])
       const mapped: Instrutor[] = list.map((i: any) => ({
         id: i.id ?? i.pk ?? i._id,
         nome: i.nome ?? i.name ?? i.titulo ?? "Sem nome",
-        tipo: i.tipo ,
+        tipo: i.tipo ?? "INTERNO",
         especialidade: i.especialidade ?? i.specialty ?? "",
         email: i.email ?? "",
         telefone: i.telefone ?? i.phone ?? "",
@@ -172,20 +132,15 @@ export default function InstrutoresPage(): JSX.Element {
   const filteredInstrutores = instrutores.filter((instrutor) => {
     const q = searchTerm.trim().toLowerCase()
     const matchesSearch =
-      !q ||
-      instrutor.nome.toLowerCase().includes(q) ||
-      (instrutor.especialidade ?? "").toLowerCase().includes(q)
-    const matchesTipo = filterTipo === "todos" || instrutor.tipo.toLowerCase() === filterTipo.toLowerCase()
+      !q || instrutor.nome.toLowerCase().includes(q) || (instrutor.especialidade ?? "").toLowerCase().includes(q)
+    const matchesTipo = filterTipo === "todos" || instrutor.tipo.toUpperCase() === filterTipo.toUpperCase()
     return matchesSearch && matchesTipo
   })
 
   // Helpers: valida email
-  const isValidEmail = (email: string) =>
-    /^\S+@\S+\.\S+$/.test(email)
+  const isValidEmail = (email: string) => /^\S+@\S+\.\S+$/.test(email)
 
-  // Submit form: cria novo instrutor
   const handleSalvarInstrutor = async () => {
-    // validações simples
     if (!novoInstrutorForm.nome.trim()) {
       toast({ title: "Preencha o nome", variant: "destructive" })
       return
@@ -215,19 +170,10 @@ export default function InstrutoresPage(): JSX.Element {
         foto: novoInstrutorForm.fotoUrl || null,
       }
 
-      const res = await fetch(`${API_BASE_URL}/instrutores/`, {
+      await fetchAPI(`/instrutores/`, {
         method: "POST",
-        credentials: "include", // envia cookies se for necessário
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(payload),
       })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => "")
-        throw new Error(text || `Erro ${res.status}`)
-      }
 
       // sucesso
       toast({ title: "Sucesso", description: "Instrutor criado com sucesso!" })
@@ -249,7 +195,7 @@ export default function InstrutoresPage(): JSX.Element {
       console.error("Erro ao criar instrutor:", err)
       toast({
         title: "Erro",
-        description: "Falha ao criar instrutor.",
+        description: err instanceof Error ? err.message : "Falha ao criar instrutor.",
         variant: "destructive",
       })
     } finally {
@@ -260,14 +206,12 @@ export default function InstrutoresPage(): JSX.Element {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Gestão de Instrutores</h1>
             <p className="text-slate-400">Gerencie instrutores internos e externos</p>
           </div>
 
-          {/* Botão que abre modal (controlado) */}
           <div>
             <Button
               onClick={() => setIsAddModalOpen(true)}
@@ -279,7 +223,6 @@ export default function InstrutoresPage(): JSX.Element {
             </Button>
           </div>
 
-          {/* Modal controlado */}
           <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
             <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
               <DialogHeader>
@@ -307,7 +250,7 @@ export default function InstrutoresPage(): JSX.Element {
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-700 border-slate-600">
-                        <SelectItem value="INTERNNO">Interno</SelectItem>
+                        <SelectItem value="INTERNO">Interno</SelectItem>
                         <SelectItem value="EXTERNO">Externo</SelectItem>
                       </SelectContent>
                     </Select>
@@ -393,11 +336,7 @@ export default function InstrutoresPage(): JSX.Element {
                   >
                     {isSubmitting ? "Salvando..." : "Salvar Instrutor"}
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 bg-transparent"
-                    onClick={() => setIsAddModalOpen(false)}
-                  >
+                  <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setIsAddModalOpen(false)}>
                     Cancelar
                   </Button>
                 </div>
@@ -428,7 +367,7 @@ export default function InstrutoresPage(): JSX.Element {
                 <div>
                   <p className="text-slate-400 text-sm">Internos</p>
                   <p className="text-3xl font-bold text-white mt-1">
-                    {instrutores.filter((i) => (i.tipo ?? "").toLowerCase() === "interno").length}
+                    {instrutores.filter((i) => i.tipo.toUpperCase() === "INTERNO").length}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
@@ -444,7 +383,7 @@ export default function InstrutoresPage(): JSX.Element {
                 <div>
                   <p className="text-slate-400 text-sm">Externos</p>
                   <p className="text-3xl font-bold text-white mt-1">
-                    {instrutores.filter((i) => (i.tipo ?? "").toLowerCase() === "externo").length}
+                    {instrutores.filter((i) => i.tipo.toUpperCase() === "EXTERNO").length}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
@@ -494,8 +433,8 @@ export default function InstrutoresPage(): JSX.Element {
                 </SelectTrigger>
                 <SelectContent className="bg-slate-700 border-slate-600">
                   <SelectItem value="todos">Todos os Tipos</SelectItem>
-                  <SelectItem value="interno">Interno</SelectItem>
-                  <SelectItem value="externo">Externo</SelectItem>
+                  <SelectItem value="INTERNO">Interno</SelectItem>
+                  <SelectItem value="EXTERNO">Externo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -516,79 +455,84 @@ export default function InstrutoresPage(): JSX.Element {
               >
                 <CardContent className="p-6">
                   <div className="flex gap-4">
-                    <div className="w-24 h-24 relative rounded-lg overflow-hidden">
+                    <div className="w-24 h-24 relative rounded-lg overflow-hidden flex-shrink-0">
                       <Image
-                        src={instrutor.foto || "/placeholder.svg"}
+                        src={instrutor.foto || "/placeholder.svg?height=96&width=96&query=instructor"}
                         alt={instrutor.nome}
                         width={96}
                         height={96}
                         className="object-cover"
                       />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="text-xl font-bold text-white">{instrutor.nome}</h3>
-                          <p className="text-cyan-400 text-sm">{instrutor.especialidade}</p>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-xl font-bold text-white truncate">{instrutor.nome}</h3>
+                          <p className="text-cyan-400 text-sm truncate">{instrutor.especialidade}</p>
                         </div>
                         <Badge
                           className={
-                            instrutor.tipo.toLowerCase() === "interno"
-                              ? "bg-green-500/20 text-green-400"
-                              : "bg-purple-500/20 text-purple-400"
+                            instrutor.tipo.toUpperCase() === "INTERNO"
+                              ? "bg-green-500/20 text-green-400 ml-2 flex-shrink-0"
+                              : "bg-purple-500/20 text-purple-400 ml-2 flex-shrink-0"
                           }
                         >
                           {instrutor.tipo}
                         </Badge>
                       </div>
 
-                      <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
+                      <div className="flex items-center gap-4 text-sm text-slate-400 mb-3 flex-wrap">
                         <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 text-yellow-400" />
+                          <Star className="w-4 h-4 text-yellow-400 flex-shrink-0" />
                           <span className="text-white font-semibold">{instrutor.avaliacaoMedia ?? "-"}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <BookOpen className="w-4 h-4" />
+                          <BookOpen className="w-4 h-4 flex-shrink-0" />
                           <span>{instrutor.totalFormacoes ?? 0} formações</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Users className="w-4 h-4" />
+                          <Users className="w-4 h-4 flex-shrink-0" />
                           <span>{instrutor.totalAlunos ?? 0} alunos</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 text-sm text-slate-400 mb-3">
-                        <div className="flex items-center gap-1">
-                          <Mail className="w-4 h-4" />
-                          <span>{instrutor.email ?? "-"}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Phone className="w-4 h-4" />
-                          <span>{instrutor.telefone ?? "-"}</span>
-                        </div>
+                      <div className="flex items-center gap-3 text-sm text-slate-400 mb-3 flex-wrap">
+                        {instrutor.email && (
+                          <div className="flex items-center gap-1 min-w-0">
+                            <Mail className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">{instrutor.email}</span>
+                          </div>
+                        )}
+                        {instrutor.telefone && (
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Phone className="w-4 h-4" />
+                            <span>{instrutor.telefone}</span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="mb-3">
-                        <p className="text-xs text-slate-500 mb-1">Certificações:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {(instrutor.certificacoes ?? []).map((cert, idx) => (
-                            <Badge
-                              key={`${instrutor.id}-cert-${idx}`}
-                              variant="outline"
-                              className="text-xs border-slate-600 text-slate-300"
-                            >
-                              {cert}
-                            </Badge>
-                          ))}
+                      {instrutor.certificacoes && instrutor.certificacoes.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-slate-500 mb-1">Certificações:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {instrutor.certificacoes.map((cert, idx) => (
+                              <Badge
+                                key={`${instrutor.id}-cert-${idx}`}
+                                variant="outline"
+                                className="text-xs border-slate-600 text-slate-300"
+                              >
+                                {cert}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
                           onClick={() => {
-                            // Poderias abrir um modal de perfil aqui
                             toast({ title: "Ver perfil", description: `Abrir perfil de ${instrutor.nome}` })
                           }}
                         >
@@ -599,10 +543,9 @@ export default function InstrutoresPage(): JSX.Element {
                           variant="outline"
                           className="border-slate-600 bg-transparent"
                           onClick={() => {
-                            // Preenche modal com dados para edição (opcional)
                             setNovoInstrutorForm({
                               nome: instrutor.nome ?? "",
-                              tipo: instrutor.tipo?.toLowerCase() === "interno" ? "interno" : "externo",
+                              tipo: instrutor.tipo?.toUpperCase() === "INTERNO" ? "INTERNO" : "EXTERNO",
                               especialidade: instrutor.especialidade ?? "",
                               email: instrutor.email ?? "",
                               telefone: instrutor.telefone ?? "",

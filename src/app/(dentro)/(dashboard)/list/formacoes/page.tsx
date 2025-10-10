@@ -2,25 +2,194 @@
 
 import type React from "react"
 import { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import {
+  BookOpen,
+  Users,
+  Award,
+  Plus,
+  Download,
+  Clock,
+  GraduationCap,
+  FileText,
+  CheckCircle,
+  ArrowRight,
+  UserCheck,
+} from "lucide-react"
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+} from "recharts"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
+import jsPDF from "jspdf"
 import "jspdf-autotable"
+import { MetricCard } from "@/components/metrcCard"
+import Link from "next/link"
+import { Progress } from "@/components/ui/progress"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { fetchAPI } from "@/lib/api"
 
-const API_BASE_URL = "https://api.example.com" // Declare API_BASE_URL here
+// ---------- Tipos ----------
+
+type Resumo = {
+  total_formacoes: number
+  formacoes_ativas: number
+  total_inscricoes: number
+  taxa_conclusao: number
+  horas_treinamento: number
+  investimento_total: number
+  certificados_emitidos: number
+  media_satisfacao: number
+}
+
+type EvolucaoMensalItem = {
+  mes: string
+  formacoes: number
+  participantes: number
+  concluidas: number
+}
+
+type DistribuicaoTipoItem = {
+  name: string
+  value: number
+}
+
+type TopFormacaoItem = {
+  id: string
+  nome: string
+  participantes: number
+  avaliacao: number
+  conclusao: number
+}
+
+type InvestimentoMensalItem = {
+  mes: string
+  planejado: number
+  realizado: number
+}
+
+type DistribuicaoDepartamentoItem = {
+  departamento: string
+  total: number
+}
+
+// Formulários (tipos mais restritos)
+type NovaFormacaoState = {
+  titulo: string
+  descricao: string
+  categoria: "tecnica" | "comportamental" | "lideranca" | "compliance" | "idiomas" | "certificacao"
+  tipo: "PRESENCIAL" | "ONLINE" | "HIBRIDO" | "EAD"
+  instrutor_id: string
+  carga_horaria: number
+  data_inicio: string
+  data_fim: string
+  horario: string
+  vagas_totais: number
+  obrigatoria: boolean
+  custo: number
+  local: string
+  plataforma: string
+  nivel: "basico" | "intermediario" | "avancado"
+  certificado: boolean
+  nota_minima_aprovacao: number
+}
+
+type NovaInscricaoState = {
+  funcionario: string
+  formacao: string
+  justificativa: string
+  status?: string
+  prioridade?: string
+}
+
+type NovoInstrutorState = {
+  nome: string
+  especialidade: string
+  email: string
+  telefone: string
+  tipo: "interno" | "externo"
+}
+
+type NovoPlanoState = {
+  funcionario_id: string
+  competencias_alvo: string[]
+  formacoes_planejadas: string[]
+  prazo: string
+}
+
+// ---------- Config ----------
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://recursohumanosactualizado.onrender.com"
+const COLORS = ["#06b6d4", "#3b82f6", "#8b5cf6", "#10b981", "#ec4899", "#f59e0b"]
+
+// ---------- Helpers ----------
+
+const safeParseInt = (v: string | number | undefined, fallback = 0) => {
+  if (typeof v === "number") return Math.trunc(v)
+  if (!v) return fallback
+  const n = Number.parseInt(String(v), 10)
+  return Number.isNaN(n) ? fallback : n
+}
+
+const safeParseFloat = (v: string | number | undefined, fallback = 0) => {
+  if (typeof v === "number") return v
+  if (!v) return fallback
+  const n = Number.parseFloat(String(v))
+  return Number.isNaN(n) ? fallback : n
+}
+
 
 const GestaoFormacoes: React.FC = () => {
   const { toast } = useToast()
   const [loading, setLoading] = useState<boolean>(true)
-  const [resumo, setResumo] = useState<any>({})
-  const [evolucaoMensal, setEvolucaoMensal] = useState<any[]>([])
-  const [distribuicaoTipo, setDistribuicaoTipo] = useState<any[]>([])
-  const [topFormacoes, setTopFormacoes] = useState<any[]>([])
-  const [investimentoMensal, setInvestimentoMensal] = useState<any[]>([])
-  const [distribuicaoDepartamento, setDistribuicaoDepartamento] = useState<any[]>([])
+  const [resumo, setResumo] = useState<Resumo>({
+    total_formacoes: 0,
+    formacoes_ativas: 0,
+    total_inscricoes: 0,
+    taxa_conclusao: 0,
+    horas_treinamento: 0,
+    investimento_total: 0,
+    certificados_emitidos: 0,
+    media_satisfacao: 0,
+  })
+
+  const [evolucaoMensal, setEvolucaoMensal] = useState<EvolucaoMensalItem[]>([])
+  const [distribuicaoTipo, setDistribuicaoTipo] = useState<DistribuicaoTipoItem[]>([])
+  const [topFormacoes, setTopFormacoes] = useState<TopFormacaoItem[]>([])
+  const [investimentoMensal, setInvestimentoMensal] = useState<InvestimentoMensalItem[]>([])
+  const [distribuicaoDepartamento, setDistribuicaoDepartamento] = useState<DistribuicaoDepartamentoItem[]>([])
+
+  // selects / listas
   const [instrutores, setInstrutores] = useState<any[]>([])
   const [funcionarios, setFuncionarios] = useState<any[]>([])
   const [formacoes, setFormacoes] = useState<any[]>([])
-  const [novaFormacao, setNovaFormacao] = useState<any>({
+
+  // modals
+  const [novaFormacaoOpen, setNovaFormacaoOpen] = useState(false)
+  const [inscreverFuncionarioOpen, setInscreverFuncionarioOpen] = useState(false)
+  const [novoInstrutorOpen, setNovoInstrutorOpen] = useState(false)
+  const [novoPlanoOpen, setNovoPlanoOpen] = useState(false)
+
+  // formulários
+  const [novaFormacao, setNovaFormacao] = useState<NovaFormacaoState>({
     titulo: "",
     descricao: "",
     categoria: "tecnica",
@@ -39,97 +208,168 @@ const GestaoFormacoes: React.FC = () => {
     certificado: true,
     nota_minima_aprovacao: 70,
   })
-  const [novaInscricao, setNovaInscricao] = useState<any>({
-    funcionario_id: "",
-    formacao_id: "",
+
+  const [novaInscricao, setNovaInscricao] = useState<NovaInscricaoState>({
+    funcionario: "",
+    formacao: "",
+    justificativa: "Desenvolvimento profissional e aquisição de novas competências"
   })
-  const [novoInstrutor, setNovoInstrutor] = useState<any>({
+
+  const [novoInstrutor, setNovoInstrutor] = useState<NovoInstrutorState>({
     nome: "",
+    especialidade: "",
     email: "",
+    telefone: "",
+    tipo: "interno",
   })
-  const [novoPlano, setNovoPlano] = useState<any>({
-    nome: "",
-    descricao: "",
+
+  const [novoPlano, setNovoPlano] = useState<NovoPlanoState>({
+    funcionario_id: "",
+    competencias_alvo: [],
+    formacoes_planejadas: [],
+    prazo: "",
   })
-  const [isCreatingFormacao, setIsCreatingFormacao] = useState<boolean>(false)
-  const [isInscrevendo, setIsInscrevendo] = useState<boolean>(false)
-  const [isCreatingInstrutor, setIsCreatingInstrutor] = useState<boolean>(false)
-  const [isCreatingPlano, setIsCreatingPlano] = useState<boolean>(false)
-  const [novaFormacaoOpen, setNovaFormacaoOpen] = useState<boolean>(false)
-  const [inscreverFuncionarioOpen, setInscreverFuncionarioOpen] = useState<boolean>(false)
-  const [novoInstrutorOpen, setNovoInstrutorOpen] = useState<boolean>(false)
-  const [novoPlanoOpen, setNovoPlanoOpen] = useState<boolean>(false)
 
-  const mapEvolucao = (data: any[]) => data // Define mapEvolucao here
-  const mapDistribuicaoTipo = (data: any[]) => data // Define mapDistribuicaoTipo here
-  const mapTopFormacoes = (data: any[]) => data // Define mapTopFormacoes here
-  const mapInvestimento = (data: any[]) => data // Define mapInvestimento here
-  const mapDistribuicaoDepartamento = (data: any[]) => data // Define mapDistribuicaoDepartamento here
+  // submitting states
+  const [isCreatingFormacao, setIsCreatingFormacao] = useState(false)
+  const [isInscrevendo, setIsInscrevendo] = useState(false)
+  const [isCreatingInstrutor, setIsCreatingInstrutor] = useState(false)
+  const [isCreatingPlano, setIsCreatingPlano] = useState(false)
 
-  const safeParseInt = (value: any, defaultValue = 0) => {
-    const parsedValue = Number.parseInt(value, 10)
-    return isNaN(parsedValue) ? defaultValue : parsedValue
+  // ---------- Fetch & mapping ----------
+
+  const mapEvolucao = (raw: any[]): EvolucaoMensalItem[] => {
+    return raw.map((r) => ({
+      mes: r.mes ?? r.month ?? String(r.mes_label ?? ""),
+      formacoes: safeParseInt(r.formacoes ?? r.total_formacoes ?? r.formations ?? 0),
+      participantes: safeParseInt(r.participantes ?? r.participants ?? r.total_participantes ?? 0),
+      concluidas: safeParseInt(r.concluidas ?? r.concluded ?? r.total_concluded ?? 0),
+    }))
   }
 
-  const safeParseFloat = (value: any, defaultValue = 0) => {
-    const parsedValue = Number.parseFloat(value)
-    return isNaN(parsedValue) ? defaultValue : parsedValue
+  const mapDistribuicaoTipo = (raw: any[]): DistribuicaoTipoItem[] => {
+    return raw.map((r) => ({
+      name: r.tipo ?? r.name ?? r.label ?? "Outro",
+      value: safeParseInt(r.total ?? r.count ?? r.value ?? 0),
+    }))
+  }
+
+  const mapTopFormacoes = (raw: any[]): TopFormacaoItem[] => {
+    return raw.map((r) => ({
+      id: String(r.id ?? r.pk ?? r._id ?? `${Math.random()}`),
+      nome: r.titulo ?? r.nome ?? r.name ?? "Sem título",
+      participantes: safeParseInt(r.participantes ?? r.participants ?? r.inscritos ?? 0),
+      avaliacao: safeParseFloat(r.avaliacao ?? r.rating ?? r.media ?? 0),
+      conclusao: safeParseFloat(r.conclusao ?? r.completion ?? r.percent ?? 0),
+    }))
+  }
+
+  const mapInvestimento = (raw: any[]): InvestimentoMensalItem[] => {
+    return raw.map((r) => ({
+      mes: r.mes ?? r.month ?? "",
+      planejado: safeParseFloat(r.planejado ?? r.planned ?? 0),
+      realizado: safeParseFloat(r.realizado ?? r.actual ?? 0),
+    }))
+  }
+
+  const mapDistribuicaoDepartamento = (raw: any[]): DistribuicaoDepartamentoItem[] => {
+    return raw.map((r) => ({
+      departamento: r.departamento ?? r.department ?? r.name ?? "Geral",
+      total: safeParseInt(r.total ?? r.count ?? r.participantes ?? 0),
+    }))
   }
 
   const fetchData = async () => {
     setLoading(true)
     try {
       const endpoints = [
-        { key: "resumo", url: `${API_BASE_URL}/formacoes/estatisticas/` },
-        { key: "evolucao", url: `${API_BASE_URL}/formacoes/evolucao_mensal/` },
-        { key: "distribuicaoTipo", url: `${API_BASE_URL}/formacoes/distribuicao_tipo/` },
-        { key: "topFormacoes", url: `${API_BASE_URL}/relatorios/top_formacoes/` },
-        { key: "investimento", url: `${API_BASE_URL}/relatorios/investimento_mensal/` },
-        { key: "departamento", url: `${API_BASE_URL}/formacoes/distribuicao_departamento/` },
+        { key: "resumo", url: "/formacoes/estatisticas/" },
+        { key: "evolucao", url: "/formacoes/evolucao_mensal/" },
+        { key: "distribuicaoTipo", url: "/formacoes/distribuicao_tipo/" },
+        { key: "topFormacoes", url: "/relatorios/top_formacoes/" },
+        { key: "investimento", url: "/relatorios/investimento_mensal/" },
       ]
 
-      const promises = endpoints.map((ep) => fetchAPI(ep.url).then((res) => ({ key: ep.key, res })))
-      const results = await Promise.allSettled(promises)
+      const promises = endpoints.map((ep) =>
+        fetchAPI(ep.url)
+          .then((data) => ({ key: ep.key, data, success: true }))
+          .catch((err) => ({ key: ep.key, error: err, success: false })),
+      )
 
-      for (const p of results) {
-        if (p.status === "fulfilled") {
-          const { key, res } = p.value
-          if (!res.ok) {
-            toast({ title: `Erro (${key})`, description: `Falha ao buscar ${key}`, variant: "destructive" })
-            continue
-          }
-          const data = await res.json()
-          switch (key) {
-            case "resumo":
-              setResumo((prev:any) => ({ ...prev, ...data }))
-              break
-            case "evolucao":
-              setEvolucaoMensal(mapEvolucao(Array.isArray(data) ? data : (data?.results ?? [])))
-              break
-            case "distribuicaoTipo":
-              setDistribuicaoTipo(mapDistribuicaoTipo(Array.isArray(data) ? data : (data?.results ?? [])))
-              break
-            case "topFormacoes":
-              setTopFormacoes(mapTopFormacoes(Array.isArray(data) ? data : (data?.results ?? [])))
-              break
-            case "investimento":
-              setInvestimentoMensal(mapInvestimento(Array.isArray(data) ? data : (data?.results ?? [])))
-              break
-            case "departamento":
-              setDistribuicaoDepartamento(
-                mapDistribuicaoDepartamento(Array.isArray(data) ? data : (data?.results ?? [])),
-              )
-              break
-            default:
-              break
-          }
-        } else {
-          toast({ title: "Erro de rede", description: "Falha ao buscar dados", variant: "destructive" })
+      const results = await Promise.all(promises)
+
+      const failedEndpoints: string[] = []
+
+      for (const result of results) {
+        if (!result.success) {
+          console.warn(`[v0] Failed to fetch ${result.key}`)
+          failedEndpoints.push(result.key)
+          continue
+        }
+
+        // Usar type assertion para evitar erro TypeScript
+        const successResult = result as { key: string; data: any; success: boolean }
+        const { key, data } = successResult
+
+        switch (key) {
+          case "resumo":
+            setResumo({
+              total_formacoes: data.total_formacoes || 0,
+              formacoes_ativas: data.formacoes_ativas || 0,
+              total_inscricoes: data.total_inscricoes || 0,
+              taxa_conclusao: data.taxa_conclusao || 0,
+              horas_treinamento: data.horas_treinamento || 0,
+              investimento_total: data.investimento_total || 0,
+              certificados_emitidos: data.certificados_emitidos || 0,
+              media_satisfacao: data.media_satisfacao || 0,
+            })
+            break
+          case "evolucao":
+            setEvolucaoMensal(
+              (Array.isArray(data) ? data : []).map((item) => ({
+                mes: item.mes || "",
+                formacoes: item.formacoes || 0,
+                participantes: item.participantes || 0,
+                concluidas: item.conclusoes || 0,
+              })),
+            )
+            break
+          case "distribuicaoTipo":
+            setDistribuicaoTipo(Array.isArray(data) ? data : [])
+            break
+          case "topFormacoes":
+            setTopFormacoes(
+              (Array.isArray(data) ? data : []).map((item, idx) => ({
+                id: String(idx),
+                nome: item.nome || "",
+                participantes: item.participantes || 0,
+                avaliacao: item.avaliacao || 0,
+                conclusao: item.conclusao || 0,
+              })),
+            )
+            break
+          case "investimento":
+            setInvestimentoMensal(Array.isArray(data) ? data : [])
+            break
+          default:
+            break
         }
       }
+
+      if (failedEndpoints.length > 0) {
+        toast({
+          title: "Aviso",
+          description: `Alguns dados não puderam ser carregados. O sistema pode estar temporariamente indisponível.`,
+          variant: "default",
+        })
+      }
     } catch (err) {
-      console.error("Erro fetchData:", err)
-      toast({ title: "Erro", description: "Erro ao carregar dados do sistema", variant: "destructive" })
+      console.error("[v0] Error in fetchData:", err)
+      toast({
+        title: "Erro de Conexão",
+        description: "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -137,34 +377,30 @@ const GestaoFormacoes: React.FC = () => {
 
   const fetchInstrutores = async () => {
     try {
-      const res = await fetchAPI(`${API_BASE_URL}/instrutores/`)
-      if (!res.ok) throw new Error("Erro ao buscar instrutores")
-      const data = await res.json()
+      const data = await fetchAPI("/instrutores/")
       setInstrutores(Array.isArray(data) ? data : (data?.results ?? []))
     } catch (err) {
-      console.error(err)
+      console.error("[v0] Error fetching instrutores:", err)
     }
   }
 
   const fetchFuncionarios = async () => {
     try {
-      const res = await fetchAPI(`${API_BASE_URL}/usuario/`)
-      if (!res.ok) throw new Error("Erro ao buscar funcionários")
-      const data = await res.json()
+      const data = await fetchAPI("/valores/")
       setFuncionarios(Array.isArray(data) ? data : (data?.results ?? []))
+      console.log("funcionarios",data)
     } catch (err) {
-      console.error(err)
+      console.error("[v0] Error fetching funcionarios:", err)
     }
   }
 
   const fetchFormacoes = async () => {
     try {
-      const res = await fetchAPI(`${API_BASE_URL}/formacoes/`)
-      if (!res.ok) throw new Error("Erro ao buscar formações")
-      const data = await res.json()
+      const data = await fetchAPI("/formacoes/")
+      
       setFormacoes(Array.isArray(data) ? data : (data?.results ?? []))
     } catch (err) {
-      console.error(err)
+      console.error("[v0] Error fetching formacoes:", err)
     }
   }
 
@@ -181,6 +417,15 @@ const GestaoFormacoes: React.FC = () => {
   const handleCreateFormacao = async () => {
     setIsCreatingFormacao(true)
     try {
+      if (!novaFormacao.titulo || !novaFormacao.descricao) {
+        toast({
+          title: "Campos Obrigatórios",
+          description: "Preencha o título e descrição da formação",
+          variant: "destructive",
+        })
+        return
+      }
+
       const payload = {
         titulo: novaFormacao.titulo,
         descricao: novaFormacao.descricao,
@@ -201,19 +446,10 @@ const GestaoFormacoes: React.FC = () => {
         total_avaliacoes: 0,
       }
 
-      console.log("Payload enviado:", payload)
-
-      const res = await fetchAPI(`${API_BASE_URL}/formacoes/`, {
+      await fetchAPI("/formacoes/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-
-      if (!res.ok) {
-        const errorText = await res.text()
-        console.error("Erro detalhado:", errorText)
-        throw new Error(errorText || "Erro ao criar formação")
-      }
 
       toast({ title: "Sucesso", description: "Formação criada com sucesso!" })
       setNovaFormacaoOpen(false)
@@ -240,11 +476,11 @@ const GestaoFormacoes: React.FC = () => {
 
       fetchData()
       fetchFormacoes()
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro criar formação:", err)
       toast({
-        title: "Erro",
-        description: "Falha ao criar formação. Verifique os dados e tente novamente.",
+        title: "Erro ao Criar Formação",
+        description: err.message || "Verifique os dados e tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -255,25 +491,46 @@ const GestaoFormacoes: React.FC = () => {
   const handleInscreverFuncionario = async () => {
     setIsInscrevendo(true)
     try {
-      if (!novaInscricao.funcionario_id || !novaInscricao.formacao_id) {
-        toast({ title: "Atenção", description: "Selecione funcionário e formação", variant: "destructive" })
+      if (!novaInscricao.funcionario || !novaInscricao.formacao) {
+        toast({ 
+          title: "Atenção", 
+          description: "Selecione funcionário e formação", 
+          variant: "destructive" 
+        })
         return
       }
-      const res = await fetchAPI(`${API_BASE_URL}/inscricoes/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(novaInscricao),
-      })
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text || "Erro ao inscrever funcionário")
+
+      const payload = {
+        funcionario: novaInscricao.funcionario,
+        formacao: novaInscricao.formacao,
+        justificativa: novaInscricao.justificativa || "Desenvolvimento profissional",
+        status: "APROVADA",
+        prioridade: "MEDIA"
       }
-      toast({ title: "Sucesso", description: "Funcionário inscrito com sucesso!" })
+
+      await fetchAPI("/inscricoes/", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      })
+
+      toast({ 
+        title: "Sucesso", 
+        description: "Funcionário inscrito com sucesso!" 
+      })
       setInscreverFuncionarioOpen(false)
+      setNovaInscricao({ 
+        funcionario: "", 
+        formacao: "", 
+        justificativa: "Desenvolvimento profissional e aquisição de novas competências" 
+      })
       fetchData()
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro inscrever:", err)
-      toast({ title: "Erro", description: "Falha ao inscrever funcionário", variant: "destructive" })
+      toast({ 
+        title: "Erro ao Inscrever", 
+        description: err.message || "Tente novamente", 
+        variant: "destructive" 
+      })
     } finally {
       setIsInscrevendo(false)
     }
@@ -282,22 +539,28 @@ const GestaoFormacoes: React.FC = () => {
   const handleCreateInstrutor = async () => {
     setIsCreatingInstrutor(true)
     try {
+      if (!novoInstrutor.nome || !novoInstrutor.email) {
+        toast({
+          title: "Campos Obrigatórios",
+          description: "Preencha nome e email do instrutor",
+          variant: "destructive",
+        })
+        return
+      }
+
       const payload = { ...novoInstrutor }
-      const res = await fetchAPI(`${API_BASE_URL}/instrutores/`, {
+      await fetchAPI("/instrutores/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text || "Erro ao criar instrutor")
-      }
+
       toast({ title: "Sucesso", description: "Instrutor criado com sucesso!" })
       setNovoInstrutorOpen(false)
+      setNovoInstrutor({ nome: "", especialidade: "", email: "", telefone: "", tipo: "interno" })
       fetchInstrutores()
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro criar instrutor:", err)
-      toast({ title: "Erro", description: "Falha ao criar instrutor", variant: "destructive" })
+      toast({ title: "Erro ao Criar Instrutor", description: err.message || "Tente novamente", variant: "destructive" })
     } finally {
       setIsCreatingInstrutor(false)
     }
@@ -306,27 +569,857 @@ const GestaoFormacoes: React.FC = () => {
   const handleCreatePlano = async () => {
     setIsCreatingPlano(true)
     try {
+      if (!novoPlano.funcionario_id || !novoPlano.prazo) {
+        toast({
+          title: "Campos Obrigatórios",
+          description: "Selecione funcionário e prazo",
+          variant: "destructive",
+        })
+        return
+      }
+
       const payload = { ...novoPlano }
-      const res = await fetchAPI(`${API_BASE_URL}/planos-desenvolvimento/`, {
+      await fetchAPI("/planos-desenvolvimento/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text || "Erro ao criar plano")
-      }
+
       toast({ title: "Sucesso", description: "Plano criado com sucesso!" })
       setNovoPlanoOpen(false)
-    } catch (err) {
+      setNovoPlano({ funcionario_id: "", competencias_alvo: [], formacoes_planejadas: [], prazo: "" })
+    } catch (err: any) {
       console.error("Erro criar plano:", err)
-      toast({ title: "Erro", description: "Falha ao criar plano", variant: "destructive" })
+      toast({ title: "Erro ao Criar Plano", description: err.message || "Tente novamente", variant: "destructive" })
     } finally {
       setIsCreatingPlano(false)
     }
   }
 
-  return <div>{/* Your component code here */}</div>
+  // ---------- Export PDF ----------
+
+  const handleExportPdf = () => {
+    const doc = new jsPDF({
+      unit: "pt",
+      format: "a4",
+    })
+
+    doc.text("Relatório - Gestão de Formações", 40, 50)
+
+    const tableData = topFormacoes.map((t) => [t.nome, String(t.participantes), String(t.avaliacao), `${t.conclusao}%`])
+
+    // @ts-ignore
+    doc.autoTable({
+      head: [["Formação", "Participantes", "Avaliação", "Conclusão"]],
+      body: tableData,
+      startY: 80,
+    })
+
+    doc.save("relatorio_formacoes.pdf")
+  }
+
+  // ---------- Render ----------
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-6 space-y-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <Skeleton className="h-10 w-80 mb-2 bg-slate-700" />
+            <Skeleton className="h-4 w-96 bg-slate-700" />
+          </div>
+          <Skeleton className="h-10 w-40 bg-slate-700" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-lg bg-slate-700" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-6 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+            Gestão de Formações
+          </h1>
+          <p className="text-lg text-slate-300 max-w-2xl">
+            Sistema completo de treinamento, desenvolvimento e certificação profissional
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto gap-2 border-slate-600 text-slate-300 hover:bg-slate-700 bg-transparent"
+            onClick={handleExportPdf}
+            aria-label="Exportar PDF"
+          >
+            <Download className="h-4 w-4" />
+            Exportar PDF
+          </Button>
+          <Button
+            onClick={() => setNovaFormacaoOpen(true)}
+            className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Formação
+          </Button>
+          <Button
+            onClick={() => setInscreverFuncionarioOpen(true)}
+            className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 gap-2"
+          >
+            <UserCheck className="h-4 w-4" />
+            Inscrever Funcionário
+          </Button>
+        </div>
+      </div>
+
+      {/* Métricas Principais */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard
+          title="Total de Formações"
+          value={String(resumo.total_formacoes)}
+          icon={BookOpen}
+          description={`${resumo.formacoes_ativas} formações ativas`}
+          trend={{ value: 12.5, isPositive: true }}
+        />
+        <MetricCard
+          title="Taxa de Conclusão"
+          value={`${resumo.taxa_conclusao}%`}
+          icon={CheckCircle}
+          description={`${resumo.total_inscricoes} inscrições totais`}
+          trend={{ value: 5.2, isPositive: true }}
+        />
+        <MetricCard
+          title="Horas de Treinamento"
+          value={`${resumo.horas_treinamento}h`}
+          icon={Clock}
+          description="Acumulado no ano"
+          trend={{ value: 18.3, isPositive: true }}
+        />
+        <MetricCard
+          title="Certificados Emitidos"
+          value={String(resumo.certificados_emitidos)}
+          icon={Award}
+          description={`Satisfação média: ${resumo.media_satisfacao}/5`}
+          trend={{ value: 8.7, isPositive: true }}
+        />
+      </div>
+
+      {/* Gráficos Principais */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Evolução Mensal */}
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">Evolução Mensal</CardTitle>
+            <CardDescription className="text-slate-400">Formações, participantes e conclusões</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={evolucaoMensal}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                <XAxis dataKey="mes" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #475569",
+                    borderRadius: "8px",
+                    color: "white",
+                  }}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="formacoes" stroke={COLORS[0]} strokeWidth={2} name="Formações" />
+                <Line type="monotone" dataKey="participantes" stroke={COLORS[1]} strokeWidth={2} name="Participantes" />
+                <Line type="monotone" dataKey="concluidas" stroke={COLORS[3]} strokeWidth={2} name="Concluídas" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Distribuição por Tipo */}
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">Distribuição por Tipo</CardTitle>
+            <CardDescription className="text-slate-400">Modalidades de formação</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={distribuicaoTipo}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {distribuicaoTipo.map((entry, index) => (
+                    <Cell key={`cell-${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #475569",
+                    borderRadius: "8px",
+                    color: "white",
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Participantes por Departamento */}
+        {distribuicaoDepartamento.length > 0 && (
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white">Participantes por Departamento</CardTitle>
+              <CardDescription className="text-slate-400">Distribuição por áreas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={distribuicaoDepartamento}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                  <XAxis dataKey="departamento" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1e293b",
+                      border: "1px solid #475569",
+                      borderRadius: "8px",
+                      color: "white",
+                    }}
+                  />
+                  <Bar dataKey="total" fill={COLORS[0]} radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Investimento Mensal */}
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">Investimento Mensal</CardTitle>
+            <CardDescription className="text-slate-400">Planejado vs Realizado</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={investimentoMensal}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                <XAxis dataKey="mes" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #475569",
+                    borderRadius: "8px",
+                    color: "white",
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="planejado" fill={COLORS[2]} radius={[8, 8, 0, 0]} name="Planejado" />
+                <Bar dataKey="realizado" fill={COLORS[0]} radius={[8, 8, 0, 0]} name="Realizado" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Top Formações */}
+      <Card className="bg-slate-800/50 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white">Top 5 Formações Mais Populares</CardTitle>
+          <CardDescription className="text-slate-400">Formações com maior participação e avaliação</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {topFormacoes.map((formacao) => (
+              <div key={formacao.id} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">#</span>
+                  </div>
+                  <div>
+                    <h4 className="text-white font-semibold">{formacao.nome}</h4>
+                    <div className="flex items-center gap-4 text-sm text-slate-400 mt-1">
+                      <span>{formacao.participantes} participantes</span>
+                      <span>⭐ {formacao.avaliacao}</span>
+                      <span>{formacao.conclusao}% conclusão</span>
+                    </div>
+                  </div>
+                </div>
+                <Progress value={formacao.conclusao} className="w-32" />
+              </div>
+            ))}
+            {topFormacoes.length === 0 && <div className="text-slate-400">Sem dados para mostrar.</div>}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Módulos de Formação */}
+      <Card className="bg-slate-800/50 border-slate-700">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-2xl text-white">
+                <GraduationCap className="h-6 w-6 text-cyan-400" />
+                Módulos de Formação
+              </CardTitle>
+              <CardDescription className="text-slate-400 mt-1">
+                Acesso rápido a todas as funcionalidades de treinamento e desenvolvimento
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link href="/list/formacoes/catologo">
+              <Card className="bg-slate-700/50 border-slate-600 hover:bg-slate-700 transition-all cursor-pointer group h-full">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
+                      <BookOpen className="h-6 w-6 text-cyan-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Catálogo de Formações</h3>
+                  <p className="text-sm text-slate-400">Explore e inscreva-se em treinamentos disponíveis</p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/instrutores">
+              <Card className="bg-slate-700/50 border-slate-600 hover:bg-slate-700 transition-all cursor-pointer group h-full">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30">
+                      <Users className="h-6 w-6 text-orange-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-orange-400 transition-colors" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Gestão de Instrutores</h3>
+                  <p className="text-sm text-slate-400">Cadastre e gerencie instrutores internos e externos</p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/list/formacoes/avaliacoes">
+              <Card className="bg-slate-700/50 border-slate-600 hover:bg-slate-700 transition-all cursor-pointer group h-full">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-lg bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border border-yellow-500/30">
+                      <Award className="h-6 w-6 text-yellow-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-yellow-400 transition-colors" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Avaliações e Certificados</h3>
+                  <p className="text-sm text-slate-400">Gerencie avaliações de desempenho e certificados</p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/list/formacoes/relatorios">
+              <Card className="bg-slate-700/50 border-slate-600 hover:bg-slate-700 transition-all cursor-pointer group h-full">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-lg bg-gradient-to-br from-teal-500/20 to-cyan-500/20 border border-teal-500/30">
+                      <FileText className="h-6 w-6 text-teal-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-teal-400 transition-colors" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Relatórios e Analytics</h3>
+                  <p className="text-sm text-slate-400">Análises detalhadas de ROI e efetividade</p>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ---------- Modals ---------- */}
+
+      {/* Nova Formação Modal */}
+      <Dialog open={novaFormacaoOpen} onOpenChange={setNovaFormacaoOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nova Formação</DialogTitle>
+            <DialogDescription className="text-slate-400">Cadastre uma nova formação no sistema</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="titulo">Título</Label>
+              <Input
+                id="titulo"
+                value={novaFormacao.titulo}
+                onChange={(e) => setNovaFormacao((s) => ({ ...s, titulo: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="descricao">Descrição</Label>
+              <Textarea
+                id="descricao"
+                value={novaFormacao.descricao}
+                onChange={(e) => setNovaFormacao((s) => ({ ...s, descricao: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="categoria">Categoria</Label>
+                <Select
+                  value={novaFormacao.categoria}
+                  onValueChange={(value) =>
+                    setNovaFormacao((s) => ({ ...s, categoria: value as NovaFormacaoState["categoria"] }))
+                  }
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                    <SelectItem value="tecnica">Técnica</SelectItem>
+                    <SelectItem value="comportamental">Comportamental</SelectItem>
+                    <SelectItem value="lideranca">Liderança</SelectItem>
+                    <SelectItem value="compliance">Compliance</SelectItem>
+                    <SelectItem value="idiomas">Idiomas</SelectItem>
+                    <SelectItem value="certificacao">Certificação</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="tipo">Tipo</Label>
+                <Select
+                  value={novaFormacao.tipo}
+                  onValueChange={(value) =>
+                    setNovaFormacao((s) => ({ ...s, tipo: value as NovaFormacaoState["tipo"] }))
+                  }
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                    <SelectItem value="PRESENCIAL">Presencial</SelectItem>
+                    <SelectItem value="ONLINE">Online</SelectItem>
+                    <SelectItem value="HIBRIDO">Híbrido</SelectItem>
+                    <SelectItem value="EAD">EAD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="instrutor">Instrutor</Label>
+              <Select
+                value={novaFormacao.instrutor_id}
+                onValueChange={(value) => setNovaFormacao((s) => ({ ...s, instrutor_id: value }))}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Selecione um instrutor" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                  {instrutores.map((instrutor) => (
+                    <SelectItem
+                      key={instrutor.id ?? instrutor.pk ?? instrutor._id}
+                      value={String(instrutor.id ?? instrutor.pk ?? instrutor._id)}
+                    >
+                      {instrutor.nome ?? instrutor.nome_completo ?? instrutor.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="carga_horaria">Carga Horária (horas)</Label>
+                <Input
+                  id="carga_horaria"
+                  type="number"
+                  value={novaFormacao.carga_horaria}
+                  onChange={(e) => setNovaFormacao((s) => ({ ...s, carga_horaria: safeParseInt(e.target.value, 0) }))}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="vagas_totais">Vagas Totais</Label>
+                <Input
+                  id="vagas_totais"
+                  type="number"
+                  value={novaFormacao.vagas_totais}
+                  onChange={(e) => setNovaFormacao((s) => ({ ...s, vagas_totais: safeParseInt(e.target.value, 0) }))}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="data_inicio">Data Início</Label>
+                <Input
+                  id="data_inicio"
+                  type="date"
+                  value={novaFormacao.data_inicio}
+                  onChange={(e) => setNovaFormacao((s) => ({ ...s, data_inicio: e.target.value }))}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+              <div>
+                <Label htmlFor="data_fim">Data Fim</Label>
+                <Input
+                  id="data_fim"
+                  type="date"
+                  value={novaFormacao.data_fim}
+                  onChange={(e) => setNovaFormacao((s) => ({ ...s, data_fim: e.target.value }))}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="custo">Custo</Label>
+                <Input
+                  id="custo"
+                  type="number"
+                  value={novaFormacao.custo}
+                  onChange={(e) => setNovaFormacao((s) => ({ ...s, custo: safeParseFloat(e.target.value, 0) }))}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="nivel">Nível</Label>
+                <Select
+                  value={novaFormacao.nivel}
+                  onValueChange={(value) =>
+                    setNovaFormacao((s) => ({ ...s, nivel: value as NovaFormacaoState["nivel"] }))
+                  }
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                    <SelectItem value="basico">Básico</SelectItem>
+                    <SelectItem value="intermediario">Intermediário</SelectItem>
+                    <SelectItem value="avancado">Avançado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="local">Local</Label>
+              <Input
+                id="local"
+                value={novaFormacao.local}
+                onChange={(e) => setNovaFormacao((s) => ({ ...s, local: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+                placeholder="Ex: Sala 101, Auditório Principal"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="horario">Horário</Label>
+              <Input
+                id="horario"
+                value={novaFormacao.horario}
+                onChange={(e) => setNovaFormacao((s) => ({ ...s, horario: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+                placeholder="Ex: 09:00 - 18:00"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="plataforma">Plataforma (para online/EAD)</Label>
+              <Input
+                id="plataforma"
+                value={novaFormacao.plataforma}
+                onChange={(e) => setNovaFormacao((s) => ({ ...s, plataforma: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+                placeholder="Ex: Zoom, Teams, Moodle"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="obrigatoria"
+                checked={novaFormacao.obrigatoria}
+                onCheckedChange={(checked) => setNovaFormacao((s) => ({ ...s, obrigatoria: !!checked }))}
+              />
+              <Label htmlFor="obrigatoria">Formação Obrigatória</Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="certificado"
+                checked={novaFormacao.certificado}
+                onCheckedChange={(checked) => setNovaFormacao((s) => ({ ...s, certificado: !!checked }))}
+              />
+              <Label htmlFor="certificado">Emite Certificado</Label>
+            </div>
+
+            <div>
+              <Label htmlFor="nota_minima">Nota Mínima para Aprovação (%)</Label>
+              <Input
+                id="nota_minima"
+                type="number"
+                value={novaFormacao.nota_minima_aprovacao}
+                onChange={(e) =>
+                  setNovaFormacao((s) => ({ ...s, nota_minima_aprovacao: safeParseInt(e.target.value, 70) }))
+                }
+                className="bg-slate-700 border-slate-600 text-white"
+                min={0}
+                max={100}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="outline" onClick={() => setNovaFormacaoOpen(false)} className="border-slate-600">
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateFormacao}
+              disabled={isCreatingFormacao}
+              className="bg-cyan-600 hover:bg-cyan-700"
+            >
+              {isCreatingFormacao ? "Salvando..." : "Criar Formação"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Inscrever Funcionário Modal */}
+      <Dialog open={inscreverFuncionarioOpen} onOpenChange={setInscreverFuncionarioOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Inscrever Funcionário</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Inscreva um funcionário em uma formação disponível
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="funcionario">Funcionário</Label>
+              <Select
+                value={novaInscricao.funcionario}
+                onValueChange={(value) => setNovaInscricao((s) => ({ ...s, funcionario: value }))}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Selecione um funcionário" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                  {funcionarios.map((func) => (
+                    <SelectItem key={func.id ?? func.pk} value={String(func.id ?? func.pk)}>
+                      {func.valores?.Nome ?? func.valores?.nome} {func.valores?.cargo ? `- ${func.valores.cargo}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="formacao">Formação</Label>
+              <Select
+                value={novaInscricao.formacao}
+                onValueChange={(value) => setNovaInscricao((s) => ({ ...s, formacao: value }))}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Selecione uma formação" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                  {formacoes.map((f) => (
+                    <SelectItem key={f.id ?? f.pk} value={String(f.id ?? f.pk)}>
+                      {f.titulo ?? f.nome} {f.data_inicio ? `- ${f.data_inicio}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="justificativa">Justificativa</Label>
+              <Textarea
+                id="justificativa"
+                value={novaInscricao.justificativa}
+                onChange={(e) => setNovaInscricao((s) => ({ ...s, justificativa: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+                rows={3}
+                placeholder="Descreva a justificativa para esta inscrição..."
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="outline" onClick={() => setInscreverFuncionarioOpen(false)} className="border-slate-600">
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleInscreverFuncionario}
+              disabled={isInscrevendo}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isInscrevendo ? "Inscrevendo..." : "Inscrever"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Novo Instrutor Modal */}
+      <Dialog open={novoInstrutorOpen} onOpenChange={setNovoInstrutorOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Novo Instrutor</DialogTitle>
+            <DialogDescription className="text-slate-400">Cadastre um novo instrutor no sistema</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="nome_instrutor">Nome</Label>
+              <Input
+                id="nome_instrutor"
+                value={novoInstrutor.nome}
+                onChange={(e) => setNovoInstrutor((s) => ({ ...s, nome: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="especialidade">Especialidade</Label>
+              <Input
+                id="especialidade"
+                value={novoInstrutor.especialidade}
+                onChange={(e) => setNovoInstrutor((s) => ({ ...s, especialidade: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="email_instrutor">Email</Label>
+              <Input
+                id="email_instrutor"
+                type="email"
+                value={novoInstrutor.email}
+                onChange={(e) => setNovoInstrutor((s) => ({ ...s, email: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="telefone_instrutor">Telefone</Label>
+              <Input
+                id="telefone_instrutor"
+                value={novoInstrutor.telefone}
+                onChange={(e) => setNovoInstrutor((s) => ({ ...s, telefone: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="tipo_instrutor">Tipo</Label>
+              <Select
+                value={novoInstrutor.tipo}
+                onValueChange={(value) => setNovoInstrutor((s) => ({ ...s, tipo: value as "interno" | "externo" }))}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                  <SelectItem value="interno">Interno</SelectItem>
+                  <SelectItem value="externo">Externo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="outline" onClick={() => setNovoInstrutorOpen(false)} className="border-slate-600">
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateInstrutor}
+              disabled={isCreatingInstrutor}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {isCreatingInstrutor ? "Salvando..." : "Criar Instrutor"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Novo Plano Modal */}
+      <Dialog open={novoPlanoOpen} onOpenChange={setNovoPlanoOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Novo Plano de Desenvolvimento</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Crie um plano de desenvolvimento individual para um funcionário
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="funcionario_plano">Funcionário</Label>
+              <Select
+                value={novoPlano.funcionario_id}
+                onValueChange={(value) => setNovoPlano((s) => ({ ...s, funcionario_id: value }))}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Selecione um funcionário" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                  {funcionarios.map((func) => (
+                    <SelectItem key={func.id ?? func.pk} value={String(func.id ?? func.pk)}>
+                      {func.nome ?? func.name} {func.cargo ? `- ${func.cargo}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="prazo_plano">Prazo</Label>
+              <Input
+                id="prazo_plano"
+                type="date"
+                value={novoPlano.prazo}
+                onChange={(e) => setNovoPlano((s) => ({ ...s, prazo: e.target.value }))}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="outline" onClick={() => setNovoPlanoOpen(false)} className="border-slate-600">
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreatePlano}
+              disabled={isCreatingPlano}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {isCreatingPlano ? "Salvando..." : "Criar Plano"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }
 
 export default GestaoFormacoes

@@ -19,7 +19,7 @@ interface LoginData {
 
 interface LoginResponse {
   success?: boolean
-  nivel_acesso?: "admin" | "funcionario"
+  nivel_acesso?: "admin" | "funcionario"|"gestor"
   access_token:string
   message?: string
   refresh_token:string
@@ -31,7 +31,6 @@ interface LoginResponse {
     email: string
   }
 }
-
 interface LoginFormProps extends React.ComponentProps<"form"> {
   className?: string
 }
@@ -134,7 +133,7 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           text: `Bem-vindo(a) de volta${data.user?.name ? ", " + data.user.name : ""}!`,
           icon: "success",
           confirmButtonText: "Continuar",
-          timer: 2000,
+          timer: 1400,
           timerProgressBar: true,
           showClass: {
             popup: "animate__animated animate__fadeInDown",
@@ -144,10 +143,19 @@ export function LoginForm({ className, ...props }: LoginFormProps) {
           },
         })
 
-        const redirectPath = data.nivel_acesso === "admin" ? "/admin" : "/funcionarios"
-        router.push(redirectPath)
+        if(data.nivel_acesso === "admin"){
+        router.push("/admin")
+        }else if(data.nivel_acesso==="funcionario"){
+        router.push("/painel_funcionario")
+
+        }else if(data.nivel_acesso==="gestor"){
+        router.push("/gestor")
+
+        }else{
+          return null
+        }
+
       } else {
-        // Tratamento específico de erros
         const errorMessage = data.message || "Erro ao fazer login. Tente novamente."
         const errorField = data.field || "general"
 

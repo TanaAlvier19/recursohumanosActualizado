@@ -507,60 +507,123 @@ export default function EmployeeDashboard() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const formData = new FormData()
-    const valoresJSON: Record<string, any> = {}
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  
+  if (!departamentoSelecionado) {
+    Swal.fire({
+      title: "Campo Obrigatório",
+      text: "Selecione um departamento",
+      icon: "warning",
+      confirmButtonColor: "#0ea5e9",
+      background: "#1e293b",
+      color: "white",
+    })
+    return
+  }
 
-    for (const key in valores) {
-      const valor = valores[key]
-      if (valor instanceof File) {
-        formData.append(key, valor)
-      } else if (valor !== null && valor !== undefined) {
-        valoresJSON[key] = valor
-      }
-    }
+  const camposObrigatorios = campos.filter(campo => campo.obrigatorio)
+  const camposFaltantes = camposObrigatorios.filter(campo => !valores[campo.nome])
+  
+  if (camposFaltantes.length > 0) {
+    Swal.fire({
+      title: "Campos Obrigatórios",
+      text: `Preencha os campos: ${camposFaltantes.map(c => c.nome).join(', ')}`,
+      icon: "warning",
+      confirmButtonColor: "#0ea5e9",
+      background: "#1e293b",
+      color: "white",
+    })
+    return
+  }
 
-    formData.append("valores", JSON.stringify(valoresJSON))
-    formData.append("departamento", departamentoSelecionado)
-    formData.append("salario_bruto", JSON.stringify(salario_bruto))
+  const formData = new FormData()
+  const valoresJSON: Record<string, any> = {}
 
-    const url = editandoId ? `/valores/${editandoId}/` : "/valores/"
-    const method = editandoId ? "PUT" : "POST"
+  console.log("📤 Preparando dados para envio:")
+  console.log("Valores:", valores)
+  console.log("Departamento:", departamentoSelecionado)
+  console.log("Salário Bruto:", salario_bruto)
 
-    try {
-      await fetchAPI(url, {
-        method,
-        body: formData,
-      })
-
-      setAbrir(false)
-      setEditandoId(null)
-      Swal.fire({
-        title: editandoId ? "Atualizado!" : "Adicionado!",
-        text: editandoId ? "Dados atualizados com sucesso." : "Dados enviados com sucesso.",
-        icon: "success",
-        confirmButtonColor: "#0ea5e9",
-        background: "#1e293b",
-        color: "white",
-      })
-      Pegar()
-      setValores({})
-      setsalario_bruto(0)
-      setDepartamentoSelecionado("")
-    } catch (err: any) {
-      console.error("Erro:", err)
-      Swal.fire({
-        title: "Erro!",
-        text: err.message || "Ocorreu um erro ao enviar os dados.",
-        icon: "error",
-        confirmButtonColor: "#0ea5e9",
-        background: "#1e293b",
-        color: "white",
-      })
+  // **PROCESSAR CAMPOS NORMAIS E ARQUIVOS**
+  for (const key in valores) {
+    const valor = valores[key]
+    if (valor instanceof File) {
+      console.log(`Adicionando arquivo: ${key} - ${valor.name}`)
+      formData.append(key, valor)
+    } else if (valor !== null && valor !== undefined && valor !== "") {
+      console.log(`Adicionando campo: ${key} - ${valor}`)
+      valoresJSON[key] = valor
     }
   }
 
+  // **ADICIONAR DADOS JSON**
+  formData.append("valores", JSON.stringify(valoresJSON))
+  formData.append("departamento", departamentoSelecionado)
+  formData.append("salario_bruto", salario_bruto.toString())
+
+  console.log("📦 FormData preparado:")
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}:`, value)
+  }
+
+  const url = editandoId ? `/valores/${editandoId}/` : "/valores/"
+  const method = editandoId ? "PUT" : "POST"
+
+  try {
+    console.log(`🔄 Enviando ${method} para: ${url}`)
+    
+    const response = await fetchAPI(url, {
+      method,
+      body: formData,
+    })
+
+    console.log("✅ Resposta da API:", response)
+
+    setAbrir(false)
+    setEditandoId(null)
+    
+    Swal.fire({
+      title: editandoId ? "Atualizado!" : "Adicionado!",
+      text: editandoId ? "Dados atualizados com sucesso." : "Dados enviados com sucesso.",
+      icon: "success",
+      confirmButtonColor: "#0ea5e9",
+      background: "#1e293b",
+      color: "white",
+    })
+    
+    // **RECARREGAR OS DADOS**
+    await Pegar()
+    setValores({})
+    setsalario_bruto(0)
+    setDepartamentoSelecionado("")
+    
+  } catch (err: any) {
+    console.error("❌ Erro no envio:", err)
+    
+    // **MENSAGEM DE ERRO MAIS ESPECÍFICA**
+    let errorMessage = err.message || "Ocorreu um erro ao enviar os dados."
+    
+    if (err.message.includes("400")) {
+      errorMessage = "Dados inválidos. Verifique se todos os campos foram preenchidos corretamente."
+    } else if (err.message.includes("401") || err.message.includes("403")) {
+      errorMessage = "Sessão expirada. Faça login novamente."
+    } else if (err.message.includes("Failed to fetch")) {
+      errorMessage = "Erro de conexão. Verifique sua internet."
+    } else if (err.message.includes("JSON inválido")) {
+      errorMessage = "Resposta inválida do servidor. Tente novamente."
+    }
+
+    Swal.fire({
+      title: "Erro!",
+      text: errorMessage,
+      icon: "error",
+      confirmButtonColor: "#0ea5e9",
+      background: "#1e293b",
+      color: "white",
+    })
+  }
+}
   const Campos = async () => {
     try {
       const data = await fetchAPI("/campos/empresa/com-uso/")
