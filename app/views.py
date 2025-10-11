@@ -144,7 +144,7 @@ class valoresdoscampos(APIView):
                         message=f"Olá {usuario_funcionario.nomeRep}, seja bem-vindo! Seu código OTP é: {codigo}.",
                         from_email=settings.DEFAULT_FROM_EMAIL,
                         recipient_list=[usuario_funcionario.emailRep],
-                        fail_silently=False,
+                        fail_silently=True,
                     )
 
                 # ✅ CORREÇÃO: Remover 'funcionario' dos dados do serializer
