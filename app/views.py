@@ -86,47 +86,52 @@ class valoresdoscampos(APIView):
         user = request.user
         empresa = user.empresa
         dado = request.data.copy()
-        salario=request.data.get('salario_bruto')
+        salario = request.data.get('salario_bruto')
         valores_json_str = request.data.get('valores', '{}')
-        print("Content-Type:", request.content_type)
-        print("Dados:", request.data)
-        print("Arquivos:", dict(request.FILES))
-        print("Usuário:", request.user)
-        print("Empresa:", request.user.empresa)
+        
         try:
             valores_json = json.loads(valores_json_str)
-            salario1=Decimal(salario)
         except json.JSONDecodeError:
             return Response({"valores": "Formato JSON inválido."}, status=status.HTTP_400_BAD_REQUEST)
 
-        nome_funcionario = valores_json.get('Nome', valores_json.get('nome', None))
-        email_funcionario = valores_json.get('Email', valores_json.get('email', None))
+        # ✅ VALIDAÇÃO de campos obrigatórios
+        nome_funcionario = valores_json.get('Nome', valores_json.get('nome', ''))
+        email_funcionario = valores_json.get('Email', valores_json.get('email', ''))
 
-        """ if not nome_funcionario or not email_funcionario:
-            return Response({"erro": "Nome e Email do funcionário são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST) """
+        if not nome_funcionario or not email_funcionario:
+            return Response({"erro": "Nome e Email do funcionário são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # ✅ VALIDAÇÃO do salário
+        try:
+            salario1 = Decimal(str(salario)) if salario else Decimal('0')
+        except (TypeError, ValueError, Decimal.InvalidOperation):
+            return Response({"salario_bruto": "Valor de salário inválido."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # ✅ VALIDAÇÃO de departamento
         departamento_id = request.data.get('departamento')
-        dado["empresa"]=empresa.id
         departamento_instance = None
+        
         if departamento_id:
             try:
                 departamento_instance = Departamento.objects.get(id=departamento_id, empresa=empresa)
             except Departamento.DoesNotExist:
-                return Response({"departamento": "Departamento inválido ou não pertence a esta empresa."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"departamento": "Departamento inválido."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             with transaction.atomic():
-                
+                # ✅ VERIFICAÇÃO de email existente
                 if UsuarioEmpresa.objects.filter(emailRep=email_funcionario, empresa=empresa).exists():
-                        return Response({"erro": "Já existe um funcionário com este email."}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"erro": "Já existe um funcionário com este email."}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Criar usuário funcionário
                 usuario_funcionario, created = UsuarioEmpresa.objects.get_or_create(
                     emailRep=email_funcionario,
                     defaults={
                         'nomeRep': nome_funcionario,
                         'empresa': empresa,
-                        'nivel_acesso': 'funcionario',
-                        'is_active': False, 
-                        'password': make_password(None) 
+                        'nivel_accesso': 'funcionario',
+                        'is_active': False,
+                        'password': make_password(None)
                     }
                 )
 
@@ -136,32 +141,33 @@ class valoresdoscampos(APIView):
 
                     send_mail(
                         subject="Seu código OTP",
-                        message=f"Olá {usuario_funcionario.nomeRep}, seja bem-vindo! Seu código OTP é: {codigo}. Use-o para ativar sua conta e definir sua senha. http://localhost:3000/verificar-otp?email={usuario_funcionario.emailRep}",
+                        message=f"Olá {usuario_funcionario.nomeRep}, seja bem-vindo! Seu código OTP é: {codigo}.",
                         from_email=settings.DEFAULT_FROM_EMAIL,
                         recipient_list=[usuario_funcionario.emailRep],
                         fail_silently=False,
                     )
-                else:
-                    
-                    pass
-                
+
+                # ✅ CORREÇÃO: Remover 'funcionario' dos dados do serializer
                 data_para_serializer = {
                     'empresa': empresa.id,
                     'valores': valores_json,
-                    'funcionario': usuario_funcionario.id,
-                    'departamento': departamento_instance.id if departamento_instance else None,
-                    'salario_bruto':salario1
+                    'salario_bruto': salario1
                 }
                 
+                # ✅ Adicionar departamento apenas se existir
+                if departamento_instance:
+                    data_para_serializer['departamento'] = departamento_instance.id
+
                 serializer = ValoresSerializer(data=data_para_serializer)
+                
                 if serializer.is_valid():
-                    valores_instancia = serializer.save() 
+                    valores_instancia = serializer.save()
                     
+                    # Processar arquivos
                     arquivos = request.FILES
                     for nome_campo, arquivo in arquivos.items():
                         try:
                             campo_personalizado = CamposPersonalizados.objects.get(nome=nome_campo, empresa=empresa)
-                            
                             ValoresArquivo.objects.create(
                                 valores_instancia=valores_instancia,
                                 campo_personalizado=campo_personalizado,
@@ -171,16 +177,24 @@ class valoresdoscampos(APIView):
                             print(f"Campo personalizado '{nome_campo}' não encontrado.")
                     
                     return Response({
-                        "detail": "Funcionário cadastrado com sucesso. Verifique o e-mail para ativar a conta.",
+                        "detail": "Funcionário cadastrado com sucesso.",
                         "data": serializer.data
                     }, status=status.HTTP_201_CREATED)
                 else:
-                    print(serializer.errors)
-                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    print("❌ Erros do serializer:", serializer.errors)
+                    return Response({
+                        "erro": "Dados inválidos",
+                        "detalhes": serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            print(f"Erro inesperado: {e}")
-            return Response({"erro": "Ocorreu um erro inesperado."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            print(f"❌ Erro inesperado: {str(e)}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            return Response({
+                "erro": "Erro interno do servidor",
+                "detalhes": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     def get(self, request):
         user=request.user
         
