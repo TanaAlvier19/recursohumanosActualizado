@@ -129,7 +129,7 @@ class valoresdoscampos(APIView):
                     defaults={
                         'nomeRep': nome_funcionario,
                         'empresa': empresa,
-                        'nivel_accesso': 'funcionario',
+                        'nivel_acesso': 'funcionario',
                         'is_active': False,
                         'password': make_password(None)
                     }
