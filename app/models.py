@@ -62,7 +62,7 @@ class CamposPersonalizados (models.Model):
     nome=models.CharField(max_length=100, blank=True, null=True)
     tipo=models.CharField(max_length=50, choices=TIPO_CAMPO, blank=True, null=True)
     obrigatorio=models.BooleanField(default=False)
-  
+    opcoes = models.JSONField(blank=True, null=True)
     def __str__(self):
         return self.nome
 

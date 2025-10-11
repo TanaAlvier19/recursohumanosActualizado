@@ -73,6 +73,9 @@ class CamposPersonalizadosSerializer(serializers.ModelSerializer):
     class Meta:
         model = CamposPersonalizados
         fields = '__all__'
+        extra_kwargs = {
+            'opcoes': {'required': False, 'allow_null': True}
+        }
 class VerificarOTPSerializer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)

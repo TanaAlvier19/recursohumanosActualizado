@@ -32,25 +32,46 @@ from rest_framework.decorators import api_view,permission_classes
 @permission_classes([IsAuthenticated])
 def campos(request):
     if request.method == 'POST':
-        data= request.data
-        novo_campos=[]
-        serializer = CamposPersonalizadosSerializer(data=novo_campos, many=True)
+        data = request.data
+        novo_campos = []
+        
         for item in data:
+            nome = item.get("nome")
+            empresa_id = item.get("empresa")
+            tipo = item.get("tipo")
+            opcoes = item.get("opcoes", [])  # ✅ Capturar opções
             
-            nome=item["nome"]
-            empresa=item["empresa"]
-            print(empresa)
-            existe=CamposPersonalizados.objects.filter(nome=nome, empresa=empresa)
-            if not existe:
-                novo_campos.append(item)
-            if existe:
-                serializer_existe=CamposPersonalizadosSerializer(existe, many=True)
-                return Response({"error":"Campo Já existe","campos":serializer_existe.data}, status=status.HTTP_400_BAD_REQUEST)
+            if not nome or not empresa_id:
+                continue
+                
+            try:
+                empresa = Empresa.objects.get(id=empresa_id)
+                existe = CamposPersonalizados.objects.filter(nome=nome, empresa=empresa)
+                
+                if not existe:
+                    novo_campo = {
+                        'nome': nome,
+                        'empresa': empresa.id,
+                        'tipo': tipo,
+                        'obrigatorio': item.get('obrigatorio', False),
+                        'opcoes': opcoes  # ✅ Salvar opções
+                    }
+                    novo_campos.append(novo_campo)
+                else:
+                    serializer_existe = CamposPersonalizadosSerializer(existe, many=True)
+                    return Response({
+                        "error": "Campo Já existe",
+                        "campos": serializer_existe.data
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                    
+            except Empresa.DoesNotExist:
+                return Response({"error": "Empresa não encontrada"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = CamposPersonalizadosSerializer(data=novo_campos, many=True)
         if serializer.is_valid():
             serializer.save()
-            print("dados", serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        print("erro",serializer.errors)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 class satisfacao(APIView):
     permission_classes=[IsAuthenticated]
