@@ -26,4 +26,4 @@ USER django
 
 EXPOSE $PORT
 
-CMD python manage.py makemigrations formacoes assiduidade folha_pagamento && python manage.py migrate && python manage.py runserver 0.0.0.0:10000
+CMD python manage.py makemigrations app formacoes assiduidade folha_pagamento && python manage.py migrate && python manage.py runserver 0.0.0.0:10000
